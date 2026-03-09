@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import crypto from 'crypto';
 import prisma from '../lib/prisma';
+import { smsQueue } from '../lib/queue';
 
 const router = Router();
 
@@ -74,6 +75,13 @@ router.post('/orders/create', async (req: Request, res: Response): Promise<void>
     });
 
     console.log(`[webhook] Order oluşturuldu: #${order.id} — ${customerName} (${customerPhone}) — ${total}`);
+
+    await smsQueue.add('send-sms', {
+      orderId: order.id,
+      phone: customerPhone,
+      customerName,
+      total,
+    });
   } catch (err) {
     console.error('[webhook] Order kaydedilemedi:', err);
   }

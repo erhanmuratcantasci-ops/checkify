@@ -3,6 +3,7 @@ import express, { Request, Response } from 'express';
 import cors from 'cors';
 import authRouter from './routes/auth';
 import webhookRouter from './routes/webhook';
+import './workers/smsWorker';
 
 const app = express();
 const PORT = process.env['PORT'] || 3001;
