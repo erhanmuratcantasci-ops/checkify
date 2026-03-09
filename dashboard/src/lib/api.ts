@@ -38,6 +38,12 @@ export const auth = {
     }),
 
   me: () => apiRequest<{ user: User }>('/auth/me'),
+
+  updateMe: (data: { name?: string; email?: string; currentPassword?: string; newPassword?: string }) =>
+    apiRequest<{ user: User }>('/auth/me', {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
 };
 
 export interface User {

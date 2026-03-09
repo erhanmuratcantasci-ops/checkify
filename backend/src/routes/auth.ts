@@ -80,4 +80,54 @@ router.get('/me', authenticate, async (req: AuthRequest, res: Response): Promise
   res.json({ user });
 });
 
+// PATCH /auth/me
+router.patch('/me', authenticate, async (req: AuthRequest, res: Response): Promise<void> => {
+  const { name, email, currentPassword, newPassword } = req.body as {
+    name?: string;
+    email?: string;
+    currentPassword?: string;
+    newPassword?: string;
+  };
+
+  const existing = await prisma.user.findUnique({ where: { id: req.userId } });
+  if (!existing) {
+    res.status(404).json({ error: 'Kullanıcı bulunamadı' });
+    return;
+  }
+
+  const data: { name?: string; email?: string; password?: string } = {};
+
+  if (name !== undefined) data.name = name;
+
+  if (email && email !== existing.email) {
+    const taken = await prisma.user.findUnique({ where: { email } });
+    if (taken) {
+      res.status(409).json({ error: 'Bu email zaten kullanımda' });
+      return;
+    }
+    data.email = email;
+  }
+
+  if (newPassword) {
+    if (!currentPassword) {
+      res.status(400).json({ error: 'Mevcut şifre gerekli' });
+      return;
+    }
+    const valid = await bcrypt.compare(currentPassword, existing.password);
+    if (!valid) {
+      res.status(401).json({ error: 'Mevcut şifre yanlış' });
+      return;
+    }
+    data.password = await bcrypt.hash(newPassword, 10);
+  }
+
+  const user = await prisma.user.update({
+    where: { id: req.userId },
+    data,
+    select: { id: true, email: true, name: true, createdAt: true },
+  });
+
+  res.json({ user });
+});
+
 export default router;
