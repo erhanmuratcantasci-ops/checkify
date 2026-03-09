@@ -15,4 +15,58 @@ model User {
   password  String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  shops     Shop[]
+}
+
+model Shop {
+  id        Int      @id @default(autoincrement())
+  name      String
+  phone     String?
+  userId    Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      User     @relation(fields: [userId], references: [id])
+  orders    Order[]
+}
+
+model Order {
+  id             Int         @id @default(autoincrement())
+  customerName   String
+  customerPhone  String
+  total          Float
+  status         OrderStatus @default(PENDING)
+  shopId         Int
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  shop           Shop        @relation(fields: [shopId], references: [id])
+  smsLogs        SMSLog[]
+}
+
+model SMSLog {
+  id        Int       @id @default(autoincrement())
+  phone     String
+  message   String
+  status    SMSStatus @default(PENDING)
+  orderId   Int
+  createdAt DateTime  @default(now())
+
+  order     Order     @relation(fields: [orderId], references: [id])
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PREPARING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+enum SMSStatus {
+  PENDING
+  SENT
+  FAILED
 }
