@@ -1,10 +1,9 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-const publicPaths = ['/', '/login', '/register'];
 const protectedPaths = ['/dashboard', '/orders', '/profile', '/shops'];
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const isProtected = protectedPaths.some((p) => pathname.startsWith(p));
 
