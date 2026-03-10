@@ -95,12 +95,14 @@ router.get('/users/:id', adminOnly, async (req: AuthRequest, res: Response): Pro
     select: {
       id: true, email: true, name: true, smsCredits: true,
       isAdmin: true, createdAt: true, lastLoginAt: true,
-      _count: { select: { shops: true, orders: true } },
+      _count: { select: { shops: true } },
+      shops: { include: { _count: { select: { orders: true } } } },
     },
   });
   if (!user) { res.status(404).json({ error: 'Kullanıcı bulunamadı' }); return; }
 
-  res.json({ user: { ...user, shopCount: user._count.shops, orderCount: user._count.orders, _count: undefined } });
+  const orderCount = user.shops.reduce((sum, s) => sum + s._count.orders, 0);
+  res.json({ user: { ...user, shopCount: user._count.shops, orderCount, shops: undefined, _count: undefined } });
 });
 
 // DELETE /admin/users/:id — kullanıcı sil
@@ -119,7 +121,7 @@ router.get('/shops', adminOnly, async (_req: AuthRequest, res: Response): Promis
   const shops = await prisma.shop.findMany({
     orderBy: { createdAt: 'desc' },
     select: {
-      id: true, name: true, domain: true, createdAt: true,
+      id: true, name: true, shopDomain: true, createdAt: true,
       user: { select: { id: true, email: true, name: true } },
       _count: { select: { orders: true } },
     },
