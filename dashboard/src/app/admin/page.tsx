@@ -33,7 +33,7 @@ interface AdminUserDetail extends AdminUser {
 interface AdminShop {
   id: number;
   name: string;
-  domain: string;
+  shopDomain: string | null;
   createdAt: string;
   orderCount: number;
   user: { id: number; email: string; name: string | null };
@@ -398,7 +398,7 @@ export default function AdminPage() {
                       <div style={{ color: '#e5e7eb', fontSize: 14, fontWeight: 500 }}>{shop.name}</div>
                     </div>
                   </td>
-                  <td style={{ padding: '14px 20px', color: '#6b7280', fontSize: 13 }}>{shop.domain}</td>
+                  <td style={{ padding: '14px 20px', color: '#6b7280', fontSize: 13 }}>{shop.shopDomain || '—'}</td>
                   <td style={{ padding: '14px 20px' }}>
                     <div style={{ color: '#9ca3af', fontSize: 13 }}>{shop.user.name || shop.user.email}</div>
                     {shop.user.name && <div style={{ color: '#4b5563', fontSize: 11 }}>{shop.user.email}</div>}
