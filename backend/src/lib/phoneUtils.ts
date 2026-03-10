@@ -13,7 +13,7 @@ export function normalizePhone(phone: string): string {
 
   if (cleaned.startsWith('+90')) return cleaned;
   if (cleaned.startsWith('90')) return '+' + cleaned;
-  if (cleaned.startsWith('05')) return '+9' + cleaned.slice(1);
+  if (cleaned.startsWith('05')) return '+90' + cleaned.slice(1);
   if (cleaned.startsWith('5')) return '+90' + cleaned;
 
   return cleaned;
