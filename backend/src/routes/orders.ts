@@ -19,7 +19,10 @@ router.get('/stats', authenticate, async (req: AuthRequest, res: Response): Prom
 
   const shopIds = shops.map((s) => s.id);
 
-  const [groupedByStatus, revenueAgg] = await Promise.all([
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const [groupedByStatus, revenueAgg, todayOrders] = await Promise.all([
     prisma.order.groupBy({
       by: ['status'],
       where: { shopId: { in: shopIds } },
@@ -29,6 +32,9 @@ router.get('/stats', authenticate, async (req: AuthRequest, res: Response): Prom
       where: { shopId: { in: shopIds }, status: { notIn: ['CANCELLED'] } },
       _sum: { total: true },
       _count: { _all: true },
+    }),
+    prisma.order.count({
+      where: { shopId: { in: shopIds }, createdAt: { gte: today } },
     }),
   ]);
 
@@ -40,6 +46,7 @@ router.get('/stats', authenticate, async (req: AuthRequest, res: Response): Prom
     total: revenueAgg._count._all,
     totalRevenue: revenueAgg._sum.total ?? 0,
     byStatus,
+    todayOrders,
   });
 });
 

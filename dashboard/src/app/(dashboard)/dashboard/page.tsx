@@ -11,6 +11,8 @@ interface Stats {
   revenue: number;
   pending: number;
   confirmed: number;
+  cancelled: number;
+  todayOrders: number;
 }
 
 interface User {
@@ -22,24 +24,27 @@ interface User {
 export default function DashboardPage() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
-  const [stats, setStats] = useState<Stats>({ total: 0, revenue: 0, pending: 0, confirmed: 0 });
+  const [stats, setStats] = useState<Stats>({ total: 0, revenue: 0, pending: 0, confirmed: 0, cancelled: 0, todayOrders: 0 });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const token = document.cookie.split('; ').find(r => r.startsWith('token='))?.split('=')[1];
     if (!token) { router.push('/login'); return; }
 
+    const headers = { Authorization: `Bearer ${token}` };
     Promise.all([
-      fetch('http://127.0.0.1:3001/auth/me', { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()),
-      fetch('http://127.0.0.1:3001/orders?limit=100', { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()),
-    ]).then(([userData, ordersData]) => {
+      fetch('http://127.0.0.1:3001/auth/me', { headers }).then(r => r.json()),
+      fetch('http://127.0.0.1:3001/orders/stats', { headers }).then(r => r.json()),
+    ]).then(([userData, statsData]) => {
       setUser(userData.user ?? userData);
-      const orders = ordersData.orders || [];
+      const byStatus = statsData.byStatus || {};
       setStats({
-        total: orders.filter((o: {status: string}) => o.status !== 'CANCELLED').length,
-        revenue: orders.filter((o: {status: string}) => o.status !== 'CANCELLED').reduce((sum: number, o: {total: number}) => sum + o.total, 0),
-        pending: orders.filter((o: {status: string}) => o.status === 'PENDING').length,
-        confirmed: orders.filter((o: {status: string}) => o.status === 'CONFIRMED').length,
+        total: statsData.total ?? 0,
+        revenue: statsData.totalRevenue ?? 0,
+        pending: byStatus['PENDING'] ?? 0,
+        confirmed: byStatus['CONFIRMED'] ?? 0,
+        cancelled: byStatus['CANCELLED'] ?? 0,
+        todayOrders: statsData.todayOrders ?? 0,
       });
     }).catch(() => router.push('/login')).finally(() => setLoading(false));
   }, [router]);
@@ -48,7 +53,7 @@ export default function DashboardPage() {
     { label: 'Toplam Sipariş', value: stats.total, sub: 'iptal hariç', icon: '📦', color: '#7c3aed' },
     { label: 'Toplam Gelir', value: `${stats.revenue.toFixed(2)} ₺`, sub: 'iptal hariç', icon: '💰', color: '#059669' },
     { label: 'Bekleyen', value: stats.pending, sub: 'onay bekliyor', icon: '⏳', color: '#d97706' },
-    { label: 'Onaylanan', value: stats.confirmed, sub: 'onaylandı', icon: '✅', color: '#7c3aed' },
+    { label: 'Bugün', value: stats.todayOrders, sub: 'bugünkü sipariş', icon: '📅', color: '#0891b2' },
   ];
 
   return (
