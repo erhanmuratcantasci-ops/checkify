@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
+import Logo from '@/components/Logo';
 
 export default function Navbar({ userName }: { userName?: string }) {
   const pathname = usePathname();
@@ -28,21 +29,8 @@ export default function Navbar({ userName }: { userName?: string }) {
       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 32 }}>
-        <Link href="/dashboard" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 8 }}>
-          <div style={{
-            width: 28, height: 28,
-            background: 'linear-gradient(135deg, #7c3aed, #a855f7)',
-            borderRadius: 8,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: '0 0 12px rgba(139,92,246,0.4)',
-          }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-              <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </div>
-          <span style={{ color: '#fff', fontWeight: 700, fontSize: 16, fontFamily: "'Syne', sans-serif", letterSpacing: '-0.3px' }}>
-            Checkify
-          </span>
+        <Link href="/dashboard" style={{ textDecoration: 'none' }}>
+          <Logo size="sm" />
         </Link>
         <div style={{ display: 'flex', gap: 4 }}>
           {navLinks.map(link => {
