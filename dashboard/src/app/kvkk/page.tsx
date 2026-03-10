@@ -7,7 +7,7 @@ import Logo from '@/components/Logo';
 const sections = [
   {
     title: '1. Veri Sorumlusunun Kimliği',
-    text: '6698 sayılı Kişisel Verilerin Korunması Kanunu ("KVKK") kapsamında veri sorumlusu sıfatıyla Checkkify, kullanıcılarına ait kişisel verileri işlemektedir. Veri sorumlusuna destek@checkkify.com adresi üzerinden ulaşılabilir.',
+    text: '6698 sayılı Kişisel Verilerin Korunması Kanunu ("KVKK") kapsamında veri sorumlusu sıfatıyla Chekkify, kullanıcılarına ait kişisel verileri işlemektedir. Veri sorumlusuna destek@checkkify.com adresi üzerinden ulaşılabilir.',
   },
   {
     title: '2. İşlenen Kişisel Veriler',

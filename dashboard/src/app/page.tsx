@@ -6,15 +6,15 @@ import Logo from '@/components/Logo';
 import { useState } from 'react';
 
 const faqs = [
-  { q: 'Checkkify nasıl çalışır?', a: 'Shopify mağazanıza webhook bağlantısı kurarsınız. Yeni kapıda ödeme siparişi geldiğinde müşterinize otomatik SMS gönderilir. Müşteri onaylarsa sipariş işleme alınır, reddederse iptal edilir.' },
-  { q: 'Hangi kargo firmalarıyla uyumlu?', a: 'Checkkify kargo firmasından bağımsız çalışır. Shopify üzerindeki tüm siparişler için çalışır.' },
+  { q: 'Chekkify nasıl çalışır?', a: 'Shopify mağazanıza webhook bağlantısı kurarsınız. Yeni kapıda ödeme siparişi geldiğinde müşterinize otomatik SMS gönderilir. Müşteri onaylarsa sipariş işleme alınır, reddederse iptal edilir.' },
+  { q: 'Hangi kargo firmalarıyla uyumlu?', a: 'Chekkify kargo firmasından bağımsız çalışır. Shopify üzerindeki tüm siparişler için çalışır.' },
   { q: 'SMS gönderimi nasıl faturalanır?', a: 'Kredi bazlı sistem kullanıyoruz. Paket satın alırsınız, her SMS gönderiminde kredi düşer. Abonelik yoktur.' },
   { q: 'Entegrasyon ne kadar sürer?', a: 'Shopify webhook kurulumu 5 dakika içinde tamamlanır. Teknik bilgi gerekmez.' },
 ];
 
 const steps = [
-  { num: '01', title: 'Mağazanı bağla', desc: 'Shopify mağazanı Checkkify\'a bağla. Webhook kurulumu tek tık.' },
-  { num: '02', title: 'Sipariş gelir', desc: 'Kapıda ödeme siparişi alındığında Checkkify otomatik devreye girer.' },
+  { num: '01', title: 'Mağazanı bağla', desc: 'Shopify mağazanı Chekkify\'a bağla. Webhook kurulumu tek tık.' },
+  { num: '02', title: 'Sipariş gelir', desc: 'Kapıda ödeme siparişi alındığında Chekkify otomatik devreye girer.' },
   { num: '03', title: 'SMS doğrulama', desc: 'Müşteriye SMS gönderilir. Onay verir ya da iptal eder.' },
 ];
 
@@ -140,7 +140,7 @@ export default function LandingPage() {
       {/* FOOTER */}
       <footer style={{ borderTop: '1px solid rgba(255,255,255,0.06)', padding: '32px 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'relative', zIndex: 1, flexWrap: 'wrap', gap: 16 }}>
         <Logo size="sm" />
-        <div style={{ color: '#4b5563', fontSize: 13 }}>© 2026 Checkkify. Tüm hakları saklıdır.</div>
+        <div style={{ color: '#4b5563', fontSize: 13 }}>© 2026 Chekkify. Tüm hakları saklıdır.</div>
         <div style={{ display: 'flex', gap: 24 }}>
           {[['Gizlilik', '/gizlilik'], ['KVKK', '/kvkk'], ['İletişim', '/iletisim']].map(([label, href]) => (
             <Link key={label} href={href} style={{ color: '#6b7280', fontSize: 13, textDecoration: 'none' }}>{label}</Link>

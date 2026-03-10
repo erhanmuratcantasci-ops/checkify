@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Checkify",
-  description: "Shopify sipariş yönetim paneli",
+  title: "Chekkify",
+  description: "Chekkify — Shopify COD doğrulama platformu",
 };
 
 export default function RootLayout({

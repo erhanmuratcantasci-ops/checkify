@@ -7,7 +7,7 @@ import Logo from '@/components/Logo';
 const sections = [
   {
     title: '1. Toplanan Bilgiler',
-    text: 'Checkkify olarak hizmetlerimizi sunabilmek amacıyla ad, e-posta adresi, şirket bilgileri ve ödeme bilgileri gibi kişisel verilerinizi toplayabiliriz. Ayrıca platformumuzu kullanırken otomatik olarak IP adresi, tarayıcı türü, işletim sistemi ve kullanım verileri gibi teknik bilgiler de toplanabilir.',
+    text: 'Chekkify olarak hizmetlerimizi sunabilmek amacıyla ad, e-posta adresi, şirket bilgileri ve ödeme bilgileri gibi kişisel verilerinizi toplayabiliriz. Ayrıca platformumuzu kullanırken otomatik olarak IP adresi, tarayıcı türü, işletim sistemi ve kullanım verileri gibi teknik bilgiler de toplanabilir.',
   },
   {
     title: '2. Bilgilerin Kullanım Amacı',
@@ -59,7 +59,7 @@ export default function GizlilikPage() {
 
         <div style={{ background: 'rgba(139,92,246,0.06)', border: '1px solid rgba(139,92,246,0.15)', borderRadius: 12, padding: '16px 20px', marginBottom: 40 }}>
           <p style={{ color: '#c4b5fd', fontSize: 14, margin: 0, lineHeight: 1.6 }}>
-            Bu Gizlilik Politikası, Checkkify platformunu kullanırken kişisel verilerinizin nasıl toplandığını, kullanıldığını ve korunduğunu açıklamaktadır.
+            Bu Gizlilik Politikası, Chekkify platformunu kullanırken kişisel verilerinizin nasıl toplandığını, kullanıldığını ve korunduğunu açıklamaktadır.
           </p>
         </div>
 

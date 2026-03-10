@@ -64,7 +64,7 @@ export default function DashboardPage() {
             {loading ? 'Yükleniyor...' : `Hoş geldin, ${user?.name?.split(' ')[0]} 👋`}
           </h1>
           <p style={{ color: '#6b7280', fontSize: 14, margin: 0 }}>
-            Checkify dashboard — siparişlerini ve onaylarını yönet
+            Chekkify dashboard — siparişlerini ve onaylarını yönet
           </p>
         </div>
 
