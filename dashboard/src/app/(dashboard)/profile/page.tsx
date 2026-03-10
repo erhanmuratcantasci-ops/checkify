@@ -55,7 +55,7 @@ export default function ProfilePage() {
         setEmail(u.email ?? '');
         setLoading(false);
       })
-      .catch(() => { showToast('Profil yüklenemedi', 'error'); router.push('/login'); });
+      .catch(() => router.push('/login'));
   }, [router]);
 
   async function handleSave(e: React.FormEvent) {

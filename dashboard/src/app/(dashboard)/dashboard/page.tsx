@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import GeometricBackground from '@/components/GeometricBackground';
 import { SkeletonCard } from '@/components/Skeleton';
-import { useToast } from '@/components/Toast';
 
 interface Stats {
   total: number;
@@ -22,7 +21,6 @@ interface User {
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { showToast } = useToast();
   const [user, setUser] = useState<User | null>(null);
   const [stats, setStats] = useState<Stats>({ total: 0, revenue: 0, pending: 0, confirmed: 0 });
   const [loading, setLoading] = useState(true);
@@ -43,8 +41,7 @@ export default function DashboardPage() {
         pending: orders.filter((o: {status: string}) => o.status === 'PENDING').length,
         confirmed: orders.filter((o: {status: string}) => o.status === 'CONFIRMED').length,
       });
-      showToast('Dashboard yüklendi', 'success');
-    }).catch(() => { showToast('Veriler yüklenemedi', 'error'); router.push('/login'); }).finally(() => setLoading(false));
+    }).catch(() => router.push('/login')).finally(() => setLoading(false));
   }, [router]);
 
   const statCards = [

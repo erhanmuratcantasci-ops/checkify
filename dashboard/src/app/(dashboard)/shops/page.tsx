@@ -83,10 +83,8 @@ export default function ShopsPage() {
       if (!res.ok) throw new Error();
       const data = await res.json();
       setShops(data.shops ?? data);
-      showToast('Mağazalar yüklendi', 'success');
     } catch {
       setShops([]);
-      showToast('Mağazalar yüklenemedi', 'error');
     } finally {
       setLoading(false);
     }

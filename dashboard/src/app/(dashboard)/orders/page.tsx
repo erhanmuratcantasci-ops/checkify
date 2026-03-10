@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import GeometricBackground from '@/components/GeometricBackground';
 import { SkeletonTable } from '@/components/Skeleton';
-import { useToast } from '@/components/Toast';
 
 const STATUS_LABELS: Record<string, string> = {
   PENDING: 'Bekliyor', CONFIRMED: 'Onaylandı', PREPARING: 'Hazırlanıyor',
@@ -33,7 +32,6 @@ interface Order {
 
 export default function OrdersPage() {
   const router = useRouter();
-  const { showToast } = useToast();
   const [orders, setOrders] = useState<Order[]>([]);
   const [total, setTotal] = useState(0);
   const [filter, setFilter] = useState('Tümü');
@@ -47,8 +45,8 @@ export default function OrdersPage() {
     const url = `http://127.0.0.1:3001/orders${status ? `?status=${status}` : ''}`;
     fetch(url, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.json())
-      .then(data => { setOrders(data.orders || []); setTotal(data.total || 0); showToast('Siparişler yüklendi', 'success'); })
-      .catch(() => { showToast('Siparişler yüklenemedi', 'error'); router.push('/login'); })
+      .then(data => { setOrders(data.orders || []); setTotal(data.total || 0); })
+      .catch(() => router.push('/login'))
       .finally(() => setLoading(false));
   }, [filter, router]);
 
