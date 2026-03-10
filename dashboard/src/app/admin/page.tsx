@@ -73,9 +73,13 @@ export default function AdminPage() {
   // Admin toggle loading
   const [togglingAdmin, setTogglingAdmin] = useState<number | null>(null);
 
-  useEffect(() => {
+  useEffect(() => { void (async () => {
     const token = getToken();
     if (!token) { router.push('/login'); return; }
+
+    const meRes = await fetch(`${API}/auth/me`, { headers: authHeaders() });
+    const meData = await meRes.json();
+    if (!meData.user?.isAdmin) { router.push('/dashboard'); return; }
 
     Promise.all([
       fetch(`${API}/admin/users`, { headers: authHeaders() }),
@@ -90,7 +94,7 @@ export default function AdminPage() {
       setStats(sData);
     }).catch(() => router.push('/dashboard'))
       .finally(() => setLoading(false));
-  }, [router]);
+  })(); }, [router]);
 
   async function handleAddCredits(e: React.FormEvent) {
     e.preventDefault();
