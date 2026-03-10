@@ -2,8 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Navbar from '@/components/Navbar';
-import GeometricBackground from '@/components/GeometricBackground';
 import { useToast } from '@/components/Toast';
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://127.0.0.1:3001';
@@ -15,42 +13,48 @@ function authHeaders() {
   return { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` };
 }
 
+type Section = 'dashboard' | 'users' | 'shops' | 'orders';
+
 interface AdminUser {
-  id: number;
-  email: string;
-  name: string | null;
-  smsCredits: number;
-  isAdmin: boolean;
-  shopCount: number;
-  createdAt: string;
-  lastLoginAt: string | null;
+  id: number; email: string; name: string | null;
+  smsCredits: number; isAdmin: boolean; shopCount: number;
+  createdAt: string; lastLoginAt: string | null;
 }
-
-interface AdminUserDetail extends AdminUser {
-  orderCount: number;
-}
-
+interface AdminUserDetail extends AdminUser { orderCount: number; }
 interface AdminShop {
-  id: number;
-  name: string;
-  shopDomain: string | null;
-  createdAt: string;
-  orderCount: number;
-  user: { id: number; email: string; name: string | null };
+  id: number; name: string; shopDomain: string | null; createdAt: string;
+  orderCount: number; user: { id: number; email: string; name: string | null };
 }
-
+interface AdminOrder {
+  id: number; customerName: string; customerPhone: string;
+  total: number; status: string; createdAt: string; shopifyOrderId: string | null;
+  shop: { id: number; name: string; shopDomain: string | null; user: { id: number; email: string; name: string | null } };
+}
 interface AdminStats {
-  totalUsers: number;
-  totalOrders: number;
-  totalSMSSent: number;
-  totalCreditsInSystem: number;
-  ordersByStatus: Record<string, number>;
+  totalUsers: number; totalOrders: number; totalSMSSent: number;
+  totalCreditsInSystem: number; ordersByStatus: Record<string, number>;
 }
 
 const STATUS_LABELS: Record<string, string> = {
   PENDING: 'Bekliyor', CONFIRMED: 'Onaylandı', PREPARING: 'Hazırlanıyor',
   SHIPPED: 'Kargoda', DELIVERED: 'Teslim', CANCELLED: 'İptal',
 };
+const STATUS_COLORS: Record<string, string> = {
+  PENDING: '#fbbf24', CONFIRMED: '#34d399', PREPARING: '#60a5fa',
+  SHIPPED: '#818cf8', DELIVERED: '#34d399', CANCELLED: '#f87171',
+};
+
+const SECTION_LABELS: Record<Section, string> = {
+  dashboard: 'Dashboard', users: 'Kullanıcılar',
+  shops: 'Mağazalar', orders: 'Tüm Siparişler',
+};
+
+const NAV_ITEMS: { key: Section; icon: string }[] = [
+  { key: 'dashboard', icon: '◈' },
+  { key: 'users', icon: '👤' },
+  { key: 'shops', icon: '🏪' },
+  { key: 'orders', icon: '📦' },
+];
 
 function StatCard({ label, value, icon, color }: { label: string; value: string | number; icon: string; color: string }) {
   return (
@@ -58,10 +62,7 @@ function StatCard({ label, value, icon, color }: { label: string; value: string 
       background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)',
       borderRadius: 14, padding: '20px 22px', position: 'relative', overflow: 'hidden',
     }}>
-      <div style={{
-        position: 'absolute', top: -16, right: -16, width: 70, height: 70, borderRadius: '50%',
-        background: `radial-gradient(circle, ${color}30 0%, transparent 70%)`,
-      }} />
+      <div style={{ position: 'absolute', top: -16, right: -16, width: 70, height: 70, borderRadius: '50%', background: `radial-gradient(circle, ${color}30 0%, transparent 70%)` }} />
       <div style={{ fontSize: 20, marginBottom: 8 }}>{icon}</div>
       <div style={{ fontSize: 28, fontWeight: 800, color: '#fff', marginBottom: 2 }}>{value}</div>
       <div style={{ color: '#6b7280', fontSize: 12, fontWeight: 500 }}>{label}</div>
@@ -72,11 +73,17 @@ function StatCard({ label, value, icon, color }: { label: string; value: string 
 export default function AdminPage() {
   const router = useRouter();
   const { showToast } = useToast();
+  const [section, setSection] = useState<Section>('dashboard');
 
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [shops, setShops] = useState<AdminShop[]>([]);
+  const [orders, setOrders] = useState<AdminOrder[]>([]);
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Search
+  const [userSearch, setUserSearch] = useState('');
+  const [orderSearch, setOrderSearch] = useState('');
 
   // Credit modal
   const [creditTarget, setCreditTarget] = useState<AdminUser | null>(null);
@@ -84,16 +91,16 @@ export default function AdminPage() {
   const [creditDesc, setCreditDesc] = useState('');
   const [creditSaving, setCreditSaving] = useState(false);
 
-  // Admin toggle loading
-  const [togglingAdmin, setTogglingAdmin] = useState<number | null>(null);
-
-  // Delete confirm modal
+  // Delete modal
   const [deleteTarget, setDeleteTarget] = useState<AdminUser | null>(null);
   const [deleting, setDeleting] = useState(false);
 
-  // User detail modal
+  // Detail modal
   const [detailUser, setDetailUser] = useState<AdminUserDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
+
+  // Admin toggle
+  const [togglingAdmin, setTogglingAdmin] = useState<number | null>(null);
 
   useEffect(() => { void (async () => {
     const token = getToken();
@@ -103,25 +110,21 @@ export default function AdminPage() {
     try {
       const meRes = await fetch(`${API}/auth/me`, { headers: authHeaders() });
       meData = await meRes.json();
-    } catch {
-      // Network hatası — loading state'te kal, redirect etme
-      return;
-    }
+    } catch { return; }
     if (meData.user && meData.user.isAdmin === false) { router.push('/dashboard'); return; }
 
     Promise.all([
       fetch(`${API}/admin/users`, { headers: authHeaders() }),
       fetch(`${API}/admin/stats`, { headers: authHeaders() }),
       fetch(`${API}/admin/shops`, { headers: authHeaders() }),
-    ]).then(async ([uRes, sRes, shRes]) => {
-      if (uRes.status === 403 || uRes.status === 401) {
-        router.push('/dashboard');
-        return;
-      }
-      const [uData, sData, shData] = await Promise.all([uRes.json(), sRes.json(), shRes.json()]);
+      fetch(`${API}/admin/orders`, { headers: authHeaders() }),
+    ]).then(async ([uRes, sRes, shRes, oRes]) => {
+      if (uRes.status === 403 || uRes.status === 401) { router.push('/dashboard'); return; }
+      const [uData, sData, shData, oData] = await Promise.all([uRes.json(), sRes.json(), shRes.json(), oRes.json()]);
       setUsers(uData.users || []);
       setStats(sData);
       setShops(shData.shops || []);
+      setOrders(oData.orders || []);
     }).catch(() => router.push('/dashboard'))
       .finally(() => setLoading(false));
   })(); }, [router]);
@@ -141,14 +144,9 @@ export default function AdminPage() {
       if (!res.ok) throw new Error(data.error || 'Hata oluştu');
       setUsers(prev => prev.map(u => u.id === creditTarget.id ? { ...u, smsCredits: data.user.smsCredits } : u));
       showToast(`${amount > 0 ? '+' : ''}${amount} kredi yüklendi`, 'success');
-      setCreditTarget(null);
-      setCreditAmount('');
-      setCreditDesc('');
-    } catch (err) {
-      showToast(err instanceof Error ? err.message : 'Hata oluştu', 'error');
-    } finally {
-      setCreditSaving(false);
-    }
+      setCreditTarget(null); setCreditAmount(''); setCreditDesc('');
+    } catch (err) { showToast(err instanceof Error ? err.message : 'Hata oluştu', 'error'); }
+    finally { setCreditSaving(false); }
   }
 
   async function handleToggleAdmin(user: AdminUser) {
@@ -162,46 +160,50 @@ export default function AdminPage() {
       if (!res.ok) throw new Error(data.error || 'Hata oluştu');
       setUsers(prev => prev.map(u => u.id === user.id ? { ...u, isAdmin: data.user.isAdmin } : u));
       showToast(`${user.email} ${data.user.isAdmin ? 'admin yapıldı' : 'admin yetkisi kaldırıldı'}`, 'success');
-    } catch (err) {
-      showToast(err instanceof Error ? err.message : 'Hata oluştu', 'error');
-    } finally {
-      setTogglingAdmin(null);
-    }
+    } catch (err) { showToast(err instanceof Error ? err.message : 'Hata oluştu', 'error'); }
+    finally { setTogglingAdmin(null); }
   }
 
   async function handleDeleteUser() {
     if (!deleteTarget) return;
     setDeleting(true);
     try {
-      const res = await fetch(`${API}/admin/users/${deleteTarget.id}`, {
-        method: 'DELETE', headers: authHeaders(),
-      });
+      const res = await fetch(`${API}/admin/users/${deleteTarget.id}`, { method: 'DELETE', headers: authHeaders() });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Hata oluştu');
       setUsers(prev => prev.filter(u => u.id !== deleteTarget.id));
       showToast('Kullanıcı silindi', 'success');
       setDeleteTarget(null);
-    } catch (err) {
-      showToast(err instanceof Error ? err.message : 'Hata oluştu', 'error');
-    } finally {
-      setDeleting(false);
-    }
+    } catch (err) { showToast(err instanceof Error ? err.message : 'Hata oluştu', 'error'); }
+    finally { setDeleting(false); }
   }
 
   async function openUserDetail(user: AdminUser) {
-    setDetailLoading(true);
-    setDetailUser(null);
+    setDetailLoading(true); setDetailUser(null);
     try {
       const res = await fetch(`${API}/admin/users/${user.id}`, { headers: authHeaders() });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Hata oluştu');
+      if (!res.ok) throw new Error(data.error);
       setDetailUser(data.user);
-    } catch (err) {
-      showToast(err instanceof Error ? err.message : 'Hata oluştu', 'error');
-    } finally {
-      setDetailLoading(false);
-    }
+    } catch (err) { showToast(err instanceof Error ? err.message : 'Hata oluştu', 'error'); }
+    finally { setDetailLoading(false); }
   }
+
+  const filteredUsers = users.filter(u =>
+    u.email.toLowerCase().includes(userSearch.toLowerCase()) ||
+    (u.name || '').toLowerCase().includes(userSearch.toLowerCase())
+  );
+
+  const filteredOrders = orders.filter(o =>
+    o.customerName.toLowerCase().includes(orderSearch.toLowerCase()) ||
+    o.customerPhone.includes(orderSearch) ||
+    o.shop.name.toLowerCase().includes(orderSearch.toLowerCase())
+  );
+
+  const sidebarW = 240;
+  const accent = '#991b1b';
+  const accentLight = 'rgba(153,27,27,0.18)';
+  const accentBorder = 'rgba(153,27,27,0.4)';
 
   if (loading) {
     return (
@@ -212,295 +214,319 @@ export default function AdminPage() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0a0a0f', fontFamily: "'Outfit', sans-serif", position: 'relative' }}>
-      <GeometricBackground />
-      <Navbar />
+    <div style={{ minHeight: '100vh', background: '#0a0a0f', fontFamily: "'Outfit', sans-serif" }}>
+      {/* Hide default navbar */}
+      <style>{`nav, header > nav { display: none !important; }`}</style>
 
-      <main style={{ maxWidth: 1200, margin: '0 auto', padding: '40px 24px' }}>
-
-        {/* Header */}
-        <div style={{ marginBottom: 32 }}>
-          <div style={{
-            display: 'inline-flex', alignItems: 'center', gap: 8,
-            background: 'rgba(139,92,246,0.12)', border: '1px solid rgba(139,92,246,0.3)',
-            borderRadius: 20, padding: '4px 12px', marginBottom: 12,
-          }}>
-            <span style={{ fontSize: 11 }}>🛡️</span>
-            <span style={{ color: '#a78bfa', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.8px' }}>Admin Panel</span>
+      {/* Sidebar */}
+      <div style={{
+        position: 'fixed', top: 0, left: 0, width: sidebarW, height: '100vh',
+        background: '#0d0d14', borderRight: '1px solid rgba(255,255,255,0.06)',
+        display: 'flex', flexDirection: 'column', zIndex: 50,
+      }}>
+        {/* Logo */}
+        <div style={{ padding: '24px 20px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{
+              width: 34, height: 34, borderRadius: 8,
+              background: `linear-gradient(135deg, ${accent}, #b91c1c)`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 14, fontWeight: 900, color: '#fff',
+            }}>C</div>
+            <div>
+              <div style={{ color: '#fff', fontWeight: 800, fontSize: 15, letterSpacing: '-0.3px' }}>Chekkify</div>
+              <div style={{
+                display: 'inline-block', background: accentLight, border: `1px solid ${accentBorder}`,
+                borderRadius: 4, padding: '1px 6px', fontSize: 9, fontWeight: 700,
+                color: '#fca5a5', textTransform: 'uppercase', letterSpacing: '0.8px',
+              }}>Admin</div>
+            </div>
           </div>
-          <h1 style={{ color: '#fff', fontSize: 26, fontWeight: 700, margin: 0, letterSpacing: '-0.5px' }}>Platform Yönetimi</h1>
-          <p style={{ color: '#6b7280', fontSize: 14, margin: '4px 0 0' }}>{users.length} kullanıcı kayıtlı</p>
         </div>
 
-        {/* Stats */}
-        {stats && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 32 }}>
-            <StatCard label="Toplam Kullanıcı" value={stats.totalUsers} icon="👤" color="#7c3aed" />
-            <StatCard label="Toplam Sipariş" value={stats.totalOrders} icon="📦" color="#0891b2" />
-            <StatCard label="SMS Gönderildi" value={stats.totalSMSSent} icon="📱" color="#059669" />
-            <StatCard label="Sistemdeki Kredi" value={stats.totalCreditsInSystem} icon="💳" color="#d97706" />
-          </div>
-        )}
+        {/* Nav */}
+        <nav style={{ flex: 1, padding: '12px 12px' }}>
+          {NAV_ITEMS.map(({ key, icon }) => {
+            const active = section === key;
+            return (
+              <button
+                key={key}
+                onClick={() => setSection(key)}
+                style={{
+                  width: '100%', display: 'flex', alignItems: 'center', gap: 10,
+                  padding: '10px 12px', borderRadius: 8, marginBottom: 2,
+                  background: active ? accentLight : 'transparent',
+                  border: active ? `1px solid ${accentBorder}` : '1px solid transparent',
+                  color: active ? '#fca5a5' : '#6b7280',
+                  fontSize: 13, fontWeight: active ? 600 : 400,
+                  cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s',
+                }}
+              >
+                <span style={{ fontSize: 15 }}>{icon}</span>
+                {SECTION_LABELS[key]}
+              </button>
+            );
+          })}
+        </nav>
 
-        {/* Orders by status */}
-        {stats && Object.keys(stats.ordersByStatus).length > 0 && (
-          <div style={{
-            background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)',
-            borderRadius: 14, padding: '18px 24px', marginBottom: 28,
-            display: 'flex', gap: 24, flexWrap: 'wrap',
-          }}>
-            {Object.entries(stats.ordersByStatus).map(([status, count]) => (
-              <div key={status} style={{ textAlign: 'center' }}>
-                <div style={{ color: '#e5e7eb', fontSize: 18, fontWeight: 700 }}>{count}</div>
-                <div style={{ color: '#4b5563', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                  {STATUS_LABELS[status] || status}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Users table */}
-        <div style={{
-          background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)',
-          borderRadius: 16, overflow: 'hidden', marginBottom: 32,
-        }}>
-          <div style={{ padding: '18px 24px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-            <h2 style={{ color: '#9ca3af', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.8px', margin: 0 }}>
-              Kullanıcılar
-            </h2>
-          </div>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-                {['Kullanıcı', 'Email', 'Kredi', 'Mağaza', 'Kayıt', 'Rol', ''].map((h, i) => (
-                  <th key={i} style={{
-                    padding: '12px 20px', textAlign: 'left', color: '#4b5563',
-                    fontSize: 11, fontWeight: 600, letterSpacing: '0.8px', textTransform: 'uppercase',
-                  }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {users.map((user, i) => (
-                <tr key={user.id} style={{ borderBottom: i < users.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
-                  <td style={{ padding: '14px 20px' }}>
-                    <div
-                      style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}
-                      onClick={() => openUserDetail(user)}
-                    >
-                      <div style={{
-                        width: 32, height: 32, borderRadius: 8, flexShrink: 0,
-                        background: 'linear-gradient(135deg, #7c3aed, #a855f7)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: 12, fontWeight: 700, color: '#fff',
-                      }}>
-                        {(user.name || user.email).slice(0, 2).toUpperCase()}
-                      </div>
-                      <div style={{ color: '#e5e7eb', fontSize: 14, fontWeight: 500, textDecoration: 'underline dotted', textUnderlineOffset: 3 }}>
-                        {user.name || '—'}
-                      </div>
-                    </div>
-                  </td>
-                  <td style={{ padding: '14px 20px', color: '#9ca3af', fontSize: 13 }}>{user.email}</td>
-                  <td style={{ padding: '14px 20px' }}>
-                    <span style={{
-                      color: user.smsCredits === 0 ? '#f87171' : user.smsCredits < 10 ? '#fbbf24' : '#34d399',
-                      fontSize: 14, fontWeight: 700,
-                    }}>
-                      {user.smsCredits}
-                    </span>
-                  </td>
-                  <td style={{ padding: '14px 20px', color: '#6b7280', fontSize: 13 }}>{user.shopCount}</td>
-                  <td style={{ padding: '14px 20px', color: '#6b7280', fontSize: 12 }}>
-                    {new Date(user.createdAt).toLocaleDateString('tr-TR')}
-                  </td>
-                  <td style={{ padding: '14px 20px' }}>
-                    <button
-                      onClick={() => handleToggleAdmin(user)}
-                      disabled={togglingAdmin === user.id}
-                      style={{
-                        padding: '4px 10px', borderRadius: 6, fontSize: 11, fontWeight: 700,
-                        cursor: togglingAdmin === user.id ? 'not-allowed' : 'pointer',
-                        background: user.isAdmin ? 'rgba(139,92,246,0.15)' : 'rgba(255,255,255,0.04)',
-                        border: `1px solid ${user.isAdmin ? 'rgba(139,92,246,0.4)' : 'rgba(255,255,255,0.08)'}`,
-                        color: user.isAdmin ? '#a78bfa' : '#4b5563',
-                        transition: 'all 0.15s',
-                      }}
-                    >
-                      {togglingAdmin === user.id ? '...' : user.isAdmin ? '🛡️ Admin' : 'Kullanıcı'}
-                    </button>
-                  </td>
-                  <td style={{ padding: '14px 20px' }}>
-                    <div style={{ display: 'flex', gap: 8 }}>
-                      <button
-                        onClick={() => { setCreditTarget(user); setCreditAmount(''); setCreditDesc(''); }}
-                        style={{
-                          padding: '6px 14px', borderRadius: 7, fontSize: 12, fontWeight: 600,
-                          background: 'rgba(5,150,105,0.1)', border: '1px solid rgba(5,150,105,0.25)',
-                          color: '#34d399', cursor: 'pointer', whiteSpace: 'nowrap',
-                        }}
-                      >
-                        Kredi Yükle
-                      </button>
-                      <button
-                        onClick={() => setDeleteTarget(user)}
-                        style={{
-                          padding: '6px 14px', borderRadius: 7, fontSize: 12, fontWeight: 700,
-                          background: 'rgba(239,68,68,0.18)', border: '1px solid rgba(239,68,68,0.45)',
-                          color: '#f87171', cursor: 'pointer', whiteSpace: 'nowrap',
-                        }}
-                      >
-                        🗑️ Sil
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Shops table */}
-        <div style={{
-          background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)',
-          borderRadius: 16, overflow: 'hidden',
-        }}>
-          <div style={{ padding: '18px 24px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-            <h2 style={{ color: '#9ca3af', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.8px', margin: 0 }}>
-              Aktif Mağazalar ({shops.length})
-            </h2>
-          </div>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-                {['Mağaza', 'Domain', 'Sahip', 'Sipariş', 'Kayıt'].map((h, i) => (
-                  <th key={i} style={{
-                    padding: '12px 20px', textAlign: 'left', color: '#4b5563',
-                    fontSize: 11, fontWeight: 600, letterSpacing: '0.8px', textTransform: 'uppercase',
-                  }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {shops.map((shop, i) => (
-                <tr key={shop.id} style={{ borderBottom: i < shops.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
-                  <td style={{ padding: '14px 20px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <div style={{
-                        width: 32, height: 32, borderRadius: 8, flexShrink: 0,
-                        background: 'linear-gradient(135deg, #0891b2, #06b6d4)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: 12, fontWeight: 700, color: '#fff',
-                      }}>
-                        {shop.name.slice(0, 2).toUpperCase()}
-                      </div>
-                      <div style={{ color: '#e5e7eb', fontSize: 14, fontWeight: 500 }}>{shop.name}</div>
-                    </div>
-                  </td>
-                  <td style={{ padding: '14px 20px', color: '#6b7280', fontSize: 13 }}>{shop.shopDomain || '—'}</td>
-                  <td style={{ padding: '14px 20px' }}>
-                    <div style={{ color: '#9ca3af', fontSize: 13 }}>{shop.user.name || shop.user.email}</div>
-                    {shop.user.name && <div style={{ color: '#4b5563', fontSize: 11 }}>{shop.user.email}</div>}
-                  </td>
-                  <td style={{ padding: '14px 20px', color: '#e5e7eb', fontSize: 14, fontWeight: 600 }}>{shop.orderCount}</td>
-                  <td style={{ padding: '14px 20px', color: '#6b7280', fontSize: 12 }}>
-                    {new Date(shop.createdAt).toLocaleDateString('tr-TR')}
-                  </td>
-                </tr>
-              ))}
-              {shops.length === 0 && (
-                <tr>
-                  <td colSpan={5} style={{ padding: '32px', textAlign: 'center', color: '#4b5563', fontSize: 13 }}>
-                    Henüz mağaza yok
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </main>
-
-      {/* Credit modal */}
-      {creditTarget && (
-        <div
-          onClick={() => setCreditTarget(null)}
-          style={{
-            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)',
-            backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center',
-            justifyContent: 'center', zIndex: 100, padding: 24,
-          }}
-        >
-          <div
-            onClick={e => e.stopPropagation()}
+        {/* Logout */}
+        <div style={{ padding: '12px 12px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+          <button
+            onClick={() => { document.cookie = 'token=; path=/; max-age=0'; router.push('/login'); }}
             style={{
-              background: 'rgba(13,13,24,0.98)', border: '1px solid rgba(5,150,105,0.25)',
-              borderRadius: 20, padding: '36px 32px', width: '100%', maxWidth: 420,
-              boxShadow: '0 30px 60px rgba(0,0,0,0.6)',
+              width: '100%', display: 'flex', alignItems: 'center', gap: 10,
+              padding: '10px 12px', borderRadius: 8,
+              background: 'transparent', border: '1px solid transparent',
+              color: '#4b5563', fontSize: 13, cursor: 'pointer', textAlign: 'left',
             }}
           >
+            <span>🚪</span> Çıkış
+          </button>
+        </div>
+      </div>
+
+      {/* Main */}
+      <div style={{ marginLeft: sidebarW, minHeight: '100vh' }}>
+        {/* Top bar */}
+        <div style={{
+          padding: '20px 32px', borderBottom: '1px solid rgba(255,255,255,0.05)',
+          background: 'rgba(13,13,20,0.8)', backdropFilter: 'blur(10px)',
+          position: 'sticky', top: 0, zIndex: 40,
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        }}>
+          <h1 style={{ color: '#fff', fontSize: 18, fontWeight: 700, margin: 0, letterSpacing: '-0.3px' }}>
+            {SECTION_LABELS[section]}
+          </h1>
+          <div style={{ color: '#4b5563', fontSize: 12 }}>{users.length} kullanıcı · {orders.length} sipariş</div>
+        </div>
+
+        <div style={{ padding: '32px' }}>
+
+          {/* ── DASHBOARD ── */}
+          {section === 'dashboard' && stats && (
+            <div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 28 }}>
+                <StatCard label="Toplam Kullanıcı" value={stats.totalUsers} icon="👤" color="#7c3aed" />
+                <StatCard label="Toplam Sipariş" value={stats.totalOrders} icon="📦" color="#0891b2" />
+                <StatCard label="SMS Gönderildi" value={stats.totalSMSSent} icon="📱" color="#059669" />
+                <StatCard label="Sistemdeki Kredi" value={stats.totalCreditsInSystem} icon="💳" color="#d97706" />
+              </div>
+              {Object.keys(stats.ordersByStatus).length > 0 && (
+                <div style={{
+                  background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)',
+                  borderRadius: 14, padding: '20px 24px',
+                  display: 'flex', gap: 32, flexWrap: 'wrap',
+                }}>
+                  {Object.entries(stats.ordersByStatus).map(([status, count]) => (
+                    <div key={status} style={{ textAlign: 'center' }}>
+                      <div style={{ color: STATUS_COLORS[status] || '#e5e7eb', fontSize: 22, fontWeight: 800 }}>{count}</div>
+                      <div style={{ color: '#4b5563', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.5px', marginTop: 2 }}>
+                        {STATUS_LABELS[status] || status}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── USERS ── */}
+          {section === 'users' && (
+            <div>
+              <div style={{ marginBottom: 16 }}>
+                <input
+                  type="text"
+                  placeholder="Email veya isme göre ara..."
+                  value={userSearch}
+                  onChange={e => setUserSearch(e.target.value)}
+                  style={{
+                    padding: '10px 14px', borderRadius: 8, fontSize: 13,
+                    background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
+                    color: '#e5e7eb', outline: 'none', width: 300,
+                  }}
+                />
+              </div>
+              <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14, overflow: 'hidden' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                      {['Kullanıcı', 'Email', 'Kredi', 'Mağaza', 'Kayıt', 'Rol', ''].map((h, i) => (
+                        <th key={i} style={{ padding: '12px 16px', textAlign: 'left', color: '#4b5563', fontSize: 11, fontWeight: 600, letterSpacing: '0.8px', textTransform: 'uppercase' }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredUsers.map((user, i) => (
+                      <tr key={user.id} style={{ borderBottom: i < filteredUsers.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
+                        <td style={{ padding: '12px 16px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }} onClick={() => openUserDetail(user)}>
+                            <div style={{ width: 30, height: 30, borderRadius: 7, flexShrink: 0, background: 'linear-gradient(135deg, #7c3aed, #a855f7)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: '#fff' }}>
+                              {(user.name || user.email).slice(0, 2).toUpperCase()}
+                            </div>
+                            <div style={{ color: '#e5e7eb', fontSize: 13, fontWeight: 500, textDecoration: 'underline dotted', textUnderlineOffset: 3 }}>{user.name || '—'}</div>
+                          </div>
+                        </td>
+                        <td style={{ padding: '12px 16px', color: '#6b7280', fontSize: 12 }}>{user.email}</td>
+                        <td style={{ padding: '12px 16px' }}>
+                          <span style={{ color: user.smsCredits === 0 ? '#f87171' : user.smsCredits < 10 ? '#fbbf24' : '#34d399', fontSize: 13, fontWeight: 700 }}>{user.smsCredits}</span>
+                        </td>
+                        <td style={{ padding: '12px 16px', color: '#6b7280', fontSize: 12 }}>{user.shopCount}</td>
+                        <td style={{ padding: '12px 16px', color: '#6b7280', fontSize: 11 }}>{new Date(user.createdAt).toLocaleDateString('tr-TR')}</td>
+                        <td style={{ padding: '12px 16px' }}>
+                          <button onClick={() => handleToggleAdmin(user)} disabled={togglingAdmin === user.id} style={{
+                            padding: '3px 9px', borderRadius: 5, fontSize: 11, fontWeight: 700,
+                            cursor: togglingAdmin === user.id ? 'not-allowed' : 'pointer',
+                            background: user.isAdmin ? accentLight : 'rgba(255,255,255,0.04)',
+                            border: `1px solid ${user.isAdmin ? accentBorder : 'rgba(255,255,255,0.08)'}`,
+                            color: user.isAdmin ? '#fca5a5' : '#4b5563',
+                          }}>
+                            {togglingAdmin === user.id ? '...' : user.isAdmin ? '🛡️ Admin' : 'Kullanıcı'}
+                          </button>
+                        </td>
+                        <td style={{ padding: '12px 16px' }}>
+                          <div style={{ display: 'flex', gap: 6 }}>
+                            <button onClick={() => { setCreditTarget(user); setCreditAmount(''); setCreditDesc(''); }} style={{ padding: '5px 10px', borderRadius: 6, fontSize: 11, fontWeight: 600, background: 'rgba(5,150,105,0.1)', border: '1px solid rgba(5,150,105,0.25)', color: '#34d399', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                              Kredi
+                            </button>
+                            <button onClick={() => setDeleteTarget(user)} style={{ padding: '5px 10px', borderRadius: 6, fontSize: 11, fontWeight: 700, background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.35)', color: '#f87171', cursor: 'pointer' }}>
+                              Sil
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                    {filteredUsers.length === 0 && (
+                      <tr><td colSpan={7} style={{ padding: 32, textAlign: 'center', color: '#4b5563', fontSize: 13 }}>Sonuç bulunamadı</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* ── SHOPS ── */}
+          {section === 'shops' && (
+            <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14, overflow: 'hidden' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                    {['Mağaza', 'Domain', 'Sahip', 'Sipariş', 'Kayıt'].map((h, i) => (
+                      <th key={i} style={{ padding: '12px 16px', textAlign: 'left', color: '#4b5563', fontSize: 11, fontWeight: 600, letterSpacing: '0.8px', textTransform: 'uppercase' }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {shops.map((shop, i) => (
+                    <tr key={shop.id} style={{ borderBottom: i < shops.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
+                      <td style={{ padding: '12px 16px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <div style={{ width: 30, height: 30, borderRadius: 7, background: 'linear-gradient(135deg, #0891b2, #06b6d4)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: '#fff' }}>
+                            {shop.name.slice(0, 2).toUpperCase()}
+                          </div>
+                          <div style={{ color: '#e5e7eb', fontSize: 13, fontWeight: 500 }}>{shop.name}</div>
+                        </div>
+                      </td>
+                      <td style={{ padding: '12px 16px', color: '#6b7280', fontSize: 12 }}>{shop.shopDomain || '—'}</td>
+                      <td style={{ padding: '12px 16px' }}>
+                        <div style={{ color: '#9ca3af', fontSize: 12 }}>{shop.user.name || shop.user.email}</div>
+                        {shop.user.name && <div style={{ color: '#4b5563', fontSize: 11 }}>{shop.user.email}</div>}
+                      </td>
+                      <td style={{ padding: '12px 16px', color: '#e5e7eb', fontSize: 13, fontWeight: 600 }}>{shop.orderCount}</td>
+                      <td style={{ padding: '12px 16px', color: '#6b7280', fontSize: 11 }}>{new Date(shop.createdAt).toLocaleDateString('tr-TR')}</td>
+                    </tr>
+                  ))}
+                  {shops.length === 0 && (
+                    <tr><td colSpan={5} style={{ padding: 32, textAlign: 'center', color: '#4b5563', fontSize: 13 }}>Henüz mağaza yok</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {/* ── ORDERS ── */}
+          {section === 'orders' && (
+            <div>
+              <div style={{ marginBottom: 16 }}>
+                <input
+                  type="text"
+                  placeholder="Müşteri adı, telefon veya mağaza..."
+                  value={orderSearch}
+                  onChange={e => setOrderSearch(e.target.value)}
+                  style={{
+                    padding: '10px 14px', borderRadius: 8, fontSize: 13,
+                    background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
+                    color: '#e5e7eb', outline: 'none', width: 320,
+                  }}
+                />
+              </div>
+              <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14, overflow: 'hidden' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                      {['#', 'Müşteri', 'Telefon', 'Tutar', 'Durum', 'Mağaza', 'Tarih'].map((h, i) => (
+                        <th key={i} style={{ padding: '12px 16px', textAlign: 'left', color: '#4b5563', fontSize: 11, fontWeight: 600, letterSpacing: '0.8px', textTransform: 'uppercase' }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredOrders.map((order, i) => (
+                      <tr key={order.id} style={{ borderBottom: i < filteredOrders.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
+                        <td style={{ padding: '12px 16px', color: '#4b5563', fontSize: 12 }}>#{order.id}</td>
+                        <td style={{ padding: '12px 16px', color: '#e5e7eb', fontSize: 13 }}>{order.customerName}</td>
+                        <td style={{ padding: '12px 16px', color: '#6b7280', fontSize: 12 }}>{order.customerPhone}</td>
+                        <td style={{ padding: '12px 16px', color: '#e5e7eb', fontSize: 13, fontWeight: 600 }}>{order.total.toFixed(2)} ₺</td>
+                        <td style={{ padding: '12px 16px' }}>
+                          <span style={{
+                            padding: '3px 8px', borderRadius: 5, fontSize: 11, fontWeight: 600,
+                            color: STATUS_COLORS[order.status] || '#9ca3af',
+                            background: `${STATUS_COLORS[order.status] || '#9ca3af'}18`,
+                            border: `1px solid ${STATUS_COLORS[order.status] || '#9ca3af'}40`,
+                          }}>
+                            {STATUS_LABELS[order.status] || order.status}
+                          </span>
+                        </td>
+                        <td style={{ padding: '12px 16px' }}>
+                          <div style={{ color: '#9ca3af', fontSize: 12 }}>{order.shop.name}</div>
+                          <div style={{ color: '#4b5563', fontSize: 11 }}>{order.shop.user.email}</div>
+                        </td>
+                        <td style={{ padding: '12px 16px', color: '#6b7280', fontSize: 11 }}>{new Date(order.createdAt).toLocaleDateString('tr-TR')}</td>
+                      </tr>
+                    ))}
+                    {filteredOrders.length === 0 && (
+                      <tr><td colSpan={7} style={{ padding: 32, textAlign: 'center', color: '#4b5563', fontSize: 13 }}>Sonuç bulunamadı</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ── Credit Modal ── */}
+      {creditTarget && (
+        <div onClick={() => setCreditTarget(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: 24 }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: 'rgba(13,13,24,0.98)', border: '1px solid rgba(5,150,105,0.25)', borderRadius: 20, padding: '36px 32px', width: '100%', maxWidth: 420, boxShadow: '0 30px 60px rgba(0,0,0,0.6)' }}>
             <h2 style={{ color: '#fff', fontSize: 18, fontWeight: 700, margin: '0 0 6px' }}>Kredi Yükle</h2>
             <p style={{ color: '#6b7280', fontSize: 13, margin: '0 0 24px' }}>
               {creditTarget.name || creditTarget.email} — mevcut: <strong style={{ color: '#e5e7eb' }}>{creditTarget.smsCredits}</strong>
             </p>
             <form onSubmit={handleAddCredits} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div>
-                <label style={{ display: 'block', color: '#9ca3af', fontSize: 13, marginBottom: 6 }}>
-                  Miktar <span style={{ color: '#4b5563', fontWeight: 400 }}>(negatif değer düşer)</span>
-                </label>
-                <input
-                  type="number"
-                  required
-                  value={creditAmount}
-                  onChange={e => setCreditAmount(e.target.value)}
-                  placeholder="100"
-                  style={{
-                    width: '100%', padding: '11px 14px', background: 'rgba(255,255,255,0.05)',
-                    border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10,
-                    color: '#fff', fontSize: 14, outline: 'none', boxSizing: 'border-box',
-                  }}
-                  onFocus={e => e.target.style.borderColor = 'rgba(5,150,105,0.6)'}
-                  onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.1)'}
-                />
+                <label style={{ display: 'block', color: '#9ca3af', fontSize: 13, marginBottom: 6 }}>Miktar <span style={{ color: '#4b5563' }}>(negatif değer düşer)</span></label>
+                <input type="number" required value={creditAmount} onChange={e => setCreditAmount(e.target.value)} placeholder="100"
+                  style={{ width: '100%', padding: '11px 14px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, color: '#fff', fontSize: 14, outline: 'none', boxSizing: 'border-box' }} />
               </div>
               <div>
                 <label style={{ display: 'block', color: '#9ca3af', fontSize: 13, marginBottom: 6 }}>Açıklama (opsiyonel)</label>
-                <input
-                  type="text"
-                  value={creditDesc}
-                  onChange={e => setCreditDesc(e.target.value)}
-                  placeholder="Kampanya kredisi"
-                  style={{
-                    width: '100%', padding: '11px 14px', background: 'rgba(255,255,255,0.05)',
-                    border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10,
-                    color: '#fff', fontSize: 14, outline: 'none', boxSizing: 'border-box',
-                  }}
-                  onFocus={e => e.target.style.borderColor = 'rgba(5,150,105,0.6)'}
-                  onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.1)'}
-                />
+                <input type="text" value={creditDesc} onChange={e => setCreditDesc(e.target.value)} placeholder="Kampanya kredisi"
+                  style={{ width: '100%', padding: '11px 14px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, color: '#fff', fontSize: 14, outline: 'none', boxSizing: 'border-box' }} />
               </div>
-              <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
-                <button
-                  type="submit"
-                  disabled={creditSaving}
-                  style={{
-                    flex: 1, padding: '12px',
-                    background: creditSaving ? 'rgba(5,150,105,0.3)' : 'linear-gradient(135deg, #059669, #10b981)',
-                    border: 'none', borderRadius: 10, color: '#fff',
-                    fontSize: 14, fontWeight: 600, cursor: creditSaving ? 'not-allowed' : 'pointer',
-                  }}
-                >
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button type="submit" disabled={creditSaving} style={{ flex: 1, padding: '12px', background: creditSaving ? 'rgba(5,150,105,0.3)' : 'linear-gradient(135deg, #059669, #10b981)', border: 'none', borderRadius: 10, color: '#fff', fontSize: 14, fontWeight: 600, cursor: creditSaving ? 'not-allowed' : 'pointer' }}>
                   {creditSaving ? 'Yükleniyor...' : 'Yükle'}
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setCreditTarget(null)}
-                  style={{
-                    flex: 1, padding: '12px', background: 'rgba(255,255,255,0.05)',
-                    border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10,
-                    color: '#9ca3af', fontSize: 14, cursor: 'pointer',
-                  }}
-                >
+                <button type="button" onClick={() => setCreditTarget(null)} style={{ flex: 1, padding: '12px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, color: '#9ca3af', fontSize: 14, cursor: 'pointer' }}>
                   İptal
                 </button>
               </div>
@@ -509,53 +535,20 @@ export default function AdminPage() {
         </div>
       )}
 
-      {/* Delete confirm modal */}
+      {/* ── Delete Modal ── */}
       {deleteTarget && (
-        <div
-          onClick={() => !deleting && setDeleteTarget(null)}
-          style={{
-            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)',
-            backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center',
-            justifyContent: 'center', zIndex: 100, padding: 24,
-          }}
-        >
-          <div
-            onClick={e => e.stopPropagation()}
-            style={{
-              background: 'rgba(13,13,24,0.98)', border: '1px solid rgba(239,68,68,0.25)',
-              borderRadius: 20, padding: '36px 32px', width: '100%', maxWidth: 400,
-              boxShadow: '0 30px 60px rgba(0,0,0,0.6)',
-            }}
-          >
-            <div style={{ fontSize: 36, marginBottom: 16, textAlign: 'center' }}>🗑️</div>
+        <div onClick={() => !deleting && setDeleteTarget(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: 24 }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: 'rgba(13,13,24,0.98)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: 20, padding: '36px 32px', width: '100%', maxWidth: 400, boxShadow: '0 30px 60px rgba(0,0,0,0.6)' }}>
+            <div style={{ fontSize: 36, textAlign: 'center', marginBottom: 16 }}>🗑️</div>
             <h2 style={{ color: '#fff', fontSize: 18, fontWeight: 700, margin: '0 0 8px', textAlign: 'center' }}>Kullanıcıyı Sil</h2>
             <p style={{ color: '#6b7280', fontSize: 13, textAlign: 'center', margin: '0 0 24px', lineHeight: 1.6 }}>
-              <strong style={{ color: '#e5e7eb' }}>{deleteTarget.name || deleteTarget.email}</strong> hesabını silmek istediğinden emin misin?
-              Bu işlem geri alınamaz.
+              <strong style={{ color: '#e5e7eb' }}>{deleteTarget.name || deleteTarget.email}</strong> hesabını silmek istediğinden emin misin? Bu işlem geri alınamaz.
             </p>
             <div style={{ display: 'flex', gap: 10 }}>
-              <button
-                onClick={handleDeleteUser}
-                disabled={deleting}
-                style={{
-                  flex: 1, padding: '12px',
-                  background: deleting ? 'rgba(239,68,68,0.3)' : 'linear-gradient(135deg, #dc2626, #ef4444)',
-                  border: 'none', borderRadius: 10, color: '#fff',
-                  fontSize: 14, fontWeight: 600, cursor: deleting ? 'not-allowed' : 'pointer',
-                }}
-              >
+              <button onClick={handleDeleteUser} disabled={deleting} style={{ flex: 1, padding: '12px', background: deleting ? 'rgba(239,68,68,0.3)' : 'linear-gradient(135deg, #dc2626, #ef4444)', border: 'none', borderRadius: 10, color: '#fff', fontSize: 14, fontWeight: 600, cursor: deleting ? 'not-allowed' : 'pointer' }}>
                 {deleting ? 'Siliniyor...' : 'Sil'}
               </button>
-              <button
-                type="button"
-                onClick={() => setDeleteTarget(null)}
-                disabled={deleting}
-                style={{
-                  flex: 1, padding: '12px', background: 'rgba(255,255,255,0.05)',
-                  border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10,
-                  color: '#9ca3af', fontSize: 14, cursor: 'pointer',
-                }}
-              >
+              <button type="button" onClick={() => setDeleteTarget(null)} disabled={deleting} style={{ flex: 1, padding: '12px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, color: '#9ca3af', fontSize: 14, cursor: 'pointer' }}>
                 İptal
               </button>
             </div>
@@ -563,35 +556,16 @@ export default function AdminPage() {
         </div>
       )}
 
-      {/* User detail modal */}
+      {/* ── Detail Modal ── */}
       {(detailLoading || detailUser) && (
-        <div
-          onClick={() => { setDetailUser(null); setDetailLoading(false); }}
-          style={{
-            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)',
-            backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center',
-            justifyContent: 'center', zIndex: 100, padding: 24,
-          }}
-        >
-          <div
-            onClick={e => e.stopPropagation()}
-            style={{
-              background: 'rgba(13,13,24,0.98)', border: '1px solid rgba(139,92,246,0.25)',
-              borderRadius: 20, padding: '36px 32px', width: '100%', maxWidth: 460,
-              boxShadow: '0 30px 60px rgba(0,0,0,0.6)',
-            }}
-          >
+        <div onClick={() => { setDetailUser(null); setDetailLoading(false); }} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: 24 }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: 'rgba(13,13,24,0.98)', border: '1px solid rgba(139,92,246,0.25)', borderRadius: 20, padding: '36px 32px', width: '100%', maxWidth: 460, boxShadow: '0 30px 60px rgba(0,0,0,0.6)' }}>
             {detailLoading ? (
               <div style={{ textAlign: 'center', color: '#6b7280', padding: '32px 0' }}>Yükleniyor...</div>
             ) : detailUser && (
               <>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 28 }}>
-                  <div style={{
-                    width: 48, height: 48, borderRadius: 12,
-                    background: 'linear-gradient(135deg, #7c3aed, #a855f7)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 18, fontWeight: 700, color: '#fff', flexShrink: 0,
-                  }}>
+                  <div style={{ width: 48, height: 48, borderRadius: 12, background: 'linear-gradient(135deg, #7c3aed, #a855f7)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, fontWeight: 700, color: '#fff', flexShrink: 0 }}>
                     {(detailUser.name || detailUser.email).slice(0, 2).toUpperCase()}
                   </div>
                   <div>
@@ -599,45 +573,29 @@ export default function AdminPage() {
                     <div style={{ color: '#6b7280', fontSize: 13 }}>{detailUser.email}</div>
                   </div>
                   {detailUser.isAdmin && (
-                    <span style={{
-                      marginLeft: 'auto', padding: '3px 10px', borderRadius: 6, fontSize: 11, fontWeight: 700,
-                      background: 'rgba(139,92,246,0.15)', border: '1px solid rgba(139,92,246,0.4)', color: '#a78bfa',
-                    }}>🛡️ Admin</span>
+                    <span style={{ marginLeft: 'auto', padding: '3px 10px', borderRadius: 6, fontSize: 11, fontWeight: 700, background: accentLight, border: `1px solid ${accentBorder}`, color: '#fca5a5' }}>🛡️ Admin</span>
                   )}
                 </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 24 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 20 }}>
                   {[
                     { label: 'SMS Kredisi', value: detailUser.smsCredits, color: detailUser.smsCredits === 0 ? '#f87171' : detailUser.smsCredits < 10 ? '#fbbf24' : '#34d399' },
                     { label: 'Mağaza Sayısı', value: detailUser.shopCount, color: '#e5e7eb' },
                     { label: 'Sipariş Sayısı', value: detailUser.orderCount, color: '#e5e7eb' },
                     { label: 'Kayıt Tarihi', value: new Date(detailUser.createdAt).toLocaleDateString('tr-TR'), color: '#9ca3af' },
                   ].map(({ label, value, color }) => (
-                    <div key={label} style={{
-                      background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)',
-                      borderRadius: 10, padding: '14px 16px',
-                    }}>
+                    <div key={label} style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 10, padding: '14px 16px' }}>
                       <div style={{ color: '#4b5563', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6 }}>{label}</div>
                       <div style={{ color, fontSize: 18, fontWeight: 700 }}>{value}</div>
                     </div>
                   ))}
                 </div>
-
                 <div style={{ marginBottom: 20, padding: '12px 16px', background: 'rgba(255,255,255,0.02)', borderRadius: 10, border: '1px solid rgba(255,255,255,0.06)' }}>
                   <div style={{ color: '#4b5563', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>Son Giriş</div>
                   <div style={{ color: '#9ca3af', fontSize: 13 }}>
                     {detailUser.lastLoginAt ? new Date(detailUser.lastLoginAt).toLocaleString('tr-TR') : 'Henüz giriş yapılmadı'}
                   </div>
                 </div>
-
-                <button
-                  onClick={() => { setDetailUser(null); setDetailLoading(false); }}
-                  style={{
-                    width: '100%', padding: '12px', background: 'rgba(255,255,255,0.05)',
-                    border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10,
-                    color: '#9ca3af', fontSize: 14, cursor: 'pointer',
-                  }}
-                >
+                <button onClick={() => { setDetailUser(null); setDetailLoading(false); }} style={{ width: '100%', padding: '12px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, color: '#9ca3af', fontSize: 14, cursor: 'pointer' }}>
                   Kapat
                 </button>
               </>
