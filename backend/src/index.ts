@@ -5,6 +5,7 @@ import authRouter from './routes/auth';
 import webhookRouter from './routes/webhook';
 import confirmRouter from './routes/confirm';
 import shopifyRouter from './routes/shopify';
+import ordersRouter from './routes/orders';
 import './workers/smsWorker';
 
 const app = express();
@@ -21,6 +22,7 @@ app.use('/auth', authRouter);
 app.use('/webhook', webhookRouter);
 app.use('/confirm', confirmRouter);
 app.use('/shopify', shopifyRouter);
+app.use('/orders', ordersRouter);
 
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok' });
