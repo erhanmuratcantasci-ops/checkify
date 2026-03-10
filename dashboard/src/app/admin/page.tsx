@@ -6,7 +6,7 @@ import Navbar from '@/components/Navbar';
 import GeometricBackground from '@/components/GeometricBackground';
 import { useToast } from '@/components/Toast';
 
-const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://127.0.0.1:3001';
+const API = 'https://checkify-production.up.railway.app'; // TODO: DNS yayılınca process.env.NEXT_PUBLIC_API_URL'e geri al
 
 function getToken() {
   return document.cookie.split('; ').find(r => r.startsWith('token='))?.split('=')[1] ?? null;
