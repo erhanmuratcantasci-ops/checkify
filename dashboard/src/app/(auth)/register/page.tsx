@@ -3,85 +3,142 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { auth } from '@/lib/api';
+
+const inputStyle: React.CSSProperties = {
+  width: '100%', padding: '12px 14px',
+  background: 'rgba(255,255,255,0.05)',
+  border: '1px solid rgba(255,255,255,0.1)',
+  borderRadius: 10, color: '#fff', fontSize: 14,
+  outline: 'none', boxSizing: 'border-box',
+};
 
 export default function RegisterPage() {
   const router = useRouter();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError('');
     setLoading(true);
     try {
-      const { token } = await auth.register(email, password, name);
-      localStorage.setItem('token', token);
-      router.push('/dashboard');
+      const res = await fetch('http://localhost:3001/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, password }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Kayıt başarısız');
+      router.push('/login');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Kayıt başarısız');
+      setError(err instanceof Error ? err.message : 'Hata oluştu');
     } finally {
       setLoading(false);
     }
   }
 
-  const inputStyle = { background: 'var(--bg-elevated)', border: '1px solid var(--border)', color: 'var(--text-primary)' };
-
   return (
-    <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--bg-base)' }}>
-      <div className="w-full max-w-md p-8 rounded-2xl border" style={{ background: 'var(--bg-surface)', borderColor: 'var(--border)' }}>
-        <h1 className="text-2xl font-bold mb-1" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-syne)' }}>
-          Hesap oluştur
-        </h1>
-        <p className="text-sm mb-6" style={{ color: 'var(--text-secondary)' }}>
-          Zaten hesabın var mı?{' '}
-          <Link href="/login" className="hover:underline" style={{ color: 'var(--accent)' }}>
-            Giriş yap
-          </Link>
-        </p>
+    <div style={{
+      minHeight: '100vh',
+      background: '#0a0a0f',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      fontFamily: "'DM Sans', sans-serif",
+      position: 'relative', overflow: 'hidden',
+    }}>
+      <div style={{
+        position: 'absolute', inset: 0,
+        background: 'radial-gradient(ellipse 80% 50% at 50% -20%, rgba(120,60,220,0.25) 0%, transparent 70%)',
+        pointerEvents: 'none',
+      }} />
+      <div style={{
+        position: 'absolute', top: '20%', left: '10%', width: 300, height: 300,
+        borderRadius: '50%',
+        background: 'radial-gradient(circle, rgba(139,92,246,0.08) 0%, transparent 70%)',
+        filter: 'blur(40px)', pointerEvents: 'none',
+      }} />
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {[
-            { label: 'Ad Soyad', type: 'text', value: name, onChange: setName, placeholder: 'Ad Soyad', required: false },
-            { label: 'Email', type: 'email', value: email, onChange: setEmail, placeholder: 'ornek@email.com', required: true },
-            { label: 'Şifre', type: 'password', value: password, onChange: setPassword, placeholder: '••••••••', required: true },
-          ].map((field) => (
-            <div key={field.label}>
-              <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>{field.label}</label>
-              <input
-                type={field.type}
-                required={field.required}
-                value={field.value}
-                onChange={(e) => field.onChange(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg text-sm outline-none transition-all"
-                style={inputStyle}
-                onFocus={(e) => e.currentTarget.style.borderColor = 'var(--accent)'}
-                onBlur={(e) => e.currentTarget.style.borderColor = 'var(--border)'}
-                placeholder={field.placeholder}
-              />
+      <div style={{ width: '100%', maxWidth: 420, padding: '0 24px', position: 'relative', zIndex: 1 }}>
+        {/* Logo */}
+        <div style={{ textAlign: 'center', marginBottom: 40 }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+            <div style={{
+              width: 36, height: 36,
+              background: 'linear-gradient(135deg, #7c3aed, #a855f7)',
+              borderRadius: 10,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: '0 0 20px rgba(139,92,246,0.4)',
+            }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
             </div>
-          ))}
+            <span style={{ fontSize: 22, fontWeight: 700, color: '#fff', fontFamily: "'Syne', sans-serif", letterSpacing: '-0.5px' }}>Checkify</span>
+          </div>
+          <p style={{ color: '#6b7280', fontSize: 14, margin: 0 }}>COD doğrulama platformu</p>
+        </div>
+
+        {/* Card */}
+        <div style={{
+          background: 'rgba(255,255,255,0.03)',
+          border: '1px solid rgba(255,255,255,0.08)',
+          borderRadius: 20, padding: '36px 32px',
+          backdropFilter: 'blur(10px)',
+          boxShadow: '0 25px 50px rgba(0,0,0,0.4)',
+        }}>
+          <h1 style={{ fontSize: 22, fontWeight: 700, color: '#fff', margin: '0 0 6px', fontFamily: "'Syne', sans-serif" }}>Hesap oluştur</h1>
+          <p style={{ color: '#6b7280', fontSize: 14, margin: '0 0 28px' }}>Checkify'a üye ol, ücretsiz başla</p>
 
           {error && (
-            <p className="text-sm rounded-lg px-3 py-2" style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', color: '#f87171' }}>
-              {error}
-            </p>
+            <div style={{
+              background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)',
+              borderRadius: 10, padding: '10px 14px', color: '#f87171', fontSize: 14, marginBottom: 20,
+            }}>{error}</div>
           )}
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-2 px-4 rounded-lg text-sm font-semibold transition-all disabled:opacity-50"
-            style={{ background: 'var(--accent)', color: 'var(--accent-fg)' }}
-            onMouseEnter={(e) => e.currentTarget.style.background = 'var(--accent-hover)'}
-            onMouseLeave={(e) => e.currentTarget.style.background = 'var(--accent)'}
-          >
-            {loading ? 'Hesap oluşturuluyor...' : 'Kayıt ol'}
-          </button>
-        </form>
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div>
+              <label style={{ display: 'block', color: '#9ca3af', fontSize: 13, fontWeight: 500, marginBottom: 8 }}>Ad Soyad</label>
+              <input type="text" required value={name} onChange={e => setName(e.target.value)} placeholder="Adınız Soyadınız"
+                style={inputStyle}
+                onFocus={e => e.target.style.borderColor = 'rgba(139,92,246,0.6)'}
+                onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.1)'}
+              />
+            </div>
+            <div>
+              <label style={{ display: 'block', color: '#9ca3af', fontSize: 13, fontWeight: 500, marginBottom: 8 }}>Email</label>
+              <input type="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder="ornek@email.com"
+                style={inputStyle}
+                onFocus={e => e.target.style.borderColor = 'rgba(139,92,246,0.6)'}
+                onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.1)'}
+              />
+            </div>
+            <div>
+              <label style={{ display: 'block', color: '#9ca3af', fontSize: 13, fontWeight: 500, marginBottom: 8 }}>Şifre</label>
+              <input type="password" required value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••"
+                style={inputStyle}
+                onFocus={e => e.target.style.borderColor = 'rgba(139,92,246,0.6)'}
+                onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.1)'}
+              />
+            </div>
+            <button type="submit" disabled={loading} style={{
+              width: '100%', padding: '13px',
+              background: loading ? 'rgba(139,92,246,0.5)' : 'linear-gradient(135deg, #7c3aed, #a855f7)',
+              border: 'none', borderRadius: 10, color: '#fff', fontSize: 15, fontWeight: 600,
+              cursor: loading ? 'not-allowed' : 'pointer', marginTop: 4,
+              boxShadow: loading ? 'none' : '0 4px 20px rgba(139,92,246,0.35)',
+            }}>
+              {loading ? 'Kayıt yapılıyor...' : 'Kayıt Ol'}
+            </button>
+          </form>
+
+          <p style={{ textAlign: 'center', marginTop: 24, marginBottom: 0, color: '#6b7280', fontSize: 14 }}>
+            Zaten hesabın var mı?{' '}
+            <Link href="/login" style={{ color: '#a855f7', textDecoration: 'none', fontWeight: 500 }}>Giriş yap</Link>
+          </p>
+        </div>
       </div>
     </div>
   );
