@@ -71,7 +71,7 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
 router.get('/me', authenticate, async (req: AuthRequest, res: Response): Promise<void> => {
   const user = await prisma.user.findUnique({
     where: { id: req.userId },
-    select: { id: true, email: true, name: true, createdAt: true, lastLoginAt: true },
+    select: { id: true, email: true, name: true, smsCredits: true, createdAt: true, lastLoginAt: true },
   });
 
   if (!user) {
@@ -126,7 +126,7 @@ router.patch('/me', authenticate, async (req: AuthRequest, res: Response): Promi
   const user = await prisma.user.update({
     where: { id: req.userId },
     data,
-    select: { id: true, email: true, name: true, createdAt: true, lastLoginAt: true },
+    select: { id: true, email: true, name: true, smsCredits: true, createdAt: true, lastLoginAt: true },
   });
 
   res.json({ user });

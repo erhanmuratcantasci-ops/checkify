@@ -13,11 +13,29 @@ model User {
   email        String    @unique
   name         String?
   password     String
+  smsCredits   Int       @default(0)
   lastLoginAt  DateTime?
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
-  shops        Shop[]
+  shops              Shop[]
+  creditTransactions CreditTransaction[]
+}
+
+model CreditTransaction {
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  amount      Int
+  type        CreditType
+  description String
+  createdAt   DateTime @default(now())
+
+  user        User     @relation(fields: [userId], references: [id])
+}
+
+enum CreditType {
+  PURCHASE
+  USAGE
 }
 
 model Shop {

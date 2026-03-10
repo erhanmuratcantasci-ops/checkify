@@ -61,9 +61,27 @@ async function processJob(job: Job<SMSJobData>): Promise<void> {
     throw new Error(msgCheck.error);
   }
 
-  // Shop başına saatlik SMS rate limit
-  const order = await prisma.order.findUnique({ where: { id: orderId }, select: { shopId: true } });
+  // Shop başına saatlik SMS rate limit + kredi kontrolü
+  const order = await prisma.order.findUnique({
+    where: { id: orderId },
+    select: { shopId: true, shop: { select: { userId: true } } },
+  });
   if (order) {
+    // Kredi kontrolü
+    const user = await prisma.user.findUnique({
+      where: { id: order.shop.userId },
+      select: { id: true, smsCredits: true },
+    });
+    if (!user || user.smsCredits <= 0) {
+      const errMsg = 'Yetersiz kredi';
+      console.error(`[SMS] Kredi yetersiz — Order #${orderId}: ${errMsg}`);
+      await prisma.sMSLog.create({
+        data: { phone, message, status: 'FAILED', errorMessage: errMsg, orderId },
+      });
+      throw new Error(errMsg);
+    }
+
+    // Rate limit
     const rateCheck = await checkSmsRateLimit(order.shopId);
     if (!rateCheck.allowed) {
       const errMsg = `Shop #${order.shopId} saatlik SMS limitine ulaştı (max ${100})`;
@@ -78,14 +96,30 @@ async function processJob(job: Job<SMSJobData>): Promise<void> {
 
   await sendSMS(phone, message);
 
-  await prisma.sMSLog.create({
-    data: {
-      phone,
-      message,
-      status: 'SENT',
-      orderId,
-    },
-  });
+  // SMS logu + kredi düşümü atomik
+  if (order) {
+    await prisma.$transaction([
+      prisma.sMSLog.create({
+        data: { phone, message, status: 'SENT', orderId },
+      }),
+      prisma.user.update({
+        where: { id: order.shop.userId },
+        data: { smsCredits: { decrement: 1 } },
+      }),
+      prisma.creditTransaction.create({
+        data: {
+          userId: order.shop.userId,
+          amount: -1,
+          type: 'USAGE',
+          description: `Sipariş #${orderId} için SMS gönderildi`,
+        },
+      }),
+    ]);
+  } else {
+    await prisma.sMSLog.create({
+      data: { phone, message, status: 'SENT', orderId },
+    });
+  }
 
   console.log(`[SMS] ✓ Gönderildi — Order #${orderId}, ${phone}`);
 }

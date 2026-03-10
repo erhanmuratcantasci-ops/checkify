@@ -16,6 +16,7 @@ export default function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
   const [userName, setUserName] = useState<string | null>(null);
+  const [smsCredits, setSmsCredits] = useState<number | null>(null);
 
   useEffect(() => {
     const token = getToken();
@@ -23,7 +24,11 @@ export default function Navbar() {
     fetch(`${API}/auth/me`, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.ok ? r.json() : null)
       .then(data => {
-        if (data) setUserName((data.user ?? data).name ?? null);
+        if (data) {
+          const u = data.user ?? data;
+          setUserName(u.name ?? null);
+          setSmsCredits(u.smsCredits ?? null);
+        }
       })
       .catch(() => null);
   }, []);
@@ -37,6 +42,7 @@ export default function Navbar() {
     { href: '/dashboard', label: 'Dashboard' },
     { href: '/orders', label: 'Siparişler' },
     { href: '/shops', label: 'Mağazalar' },
+    { href: '/credits', label: 'Krediler' },
     { href: '/profile', label: 'Profil' },
   ];
 
@@ -78,6 +84,25 @@ export default function Navbar() {
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        {smsCredits !== null && (
+          <Link href="/credits" style={{
+            display: 'flex', alignItems: 'center', gap: 5,
+            textDecoration: 'none',
+            padding: '4px 10px',
+            borderRadius: 20,
+            border: '1px solid rgba(139,92,246,0.25)',
+            background: 'rgba(139,92,246,0.08)',
+            transition: 'all 0.15s',
+          }}
+          onMouseEnter={e => (e.currentTarget.style.borderColor = 'rgba(139,92,246,0.5)')}
+          onMouseLeave={e => (e.currentTarget.style.borderColor = 'rgba(139,92,246,0.25)')}
+          >
+            <span style={{ fontSize: 12 }}>📱</span>
+            <span style={{ color: '#a78bfa', fontSize: 12, fontWeight: 700 }}>
+              {smsCredits.toLocaleString('tr-TR')}
+            </span>
+          </Link>
+        )}
         {userName && (
           <Link href="/profile" style={{
             display: 'flex', alignItems: 'center', gap: 8,

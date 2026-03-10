@@ -8,6 +8,7 @@ import shopifyRouter from './routes/shopify';
 import ordersRouter from './routes/orders';
 import shopsRouter from './routes/shops';
 import smsTemplatesRouter from './routes/smsTemplates';
+import creditsRouter from './routes/credits';
 import { loginRateLimiter, webhookRateLimiter } from './middleware/rateLimiter';
 import './workers/smsWorker';
 
@@ -31,6 +32,7 @@ app.use('/shopify', shopifyRouter);
 app.use('/orders', ordersRouter);
 app.use('/shops', shopsRouter);
 app.use('/shops/:id/template', smsTemplatesRouter);
+app.use('/credits', creditsRouter);
 
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok' });

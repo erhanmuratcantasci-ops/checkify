@@ -1,0 +1,224 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import Navbar from '@/components/Navbar';
+import GeometricBackground from '@/components/GeometricBackground';
+
+const API = 'http://127.0.0.1:3001';
+
+function getToken() {
+  return document.cookie.split('; ').find(r => r.startsWith('token='))?.split('=')[1] ?? null;
+}
+function authHeaders() {
+  return { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` };
+}
+
+interface Transaction {
+  id: number;
+  amount: number;
+  type: 'PURCHASE' | 'USAGE';
+  description: string;
+  createdAt: string;
+}
+
+export default function CreditsPage() {
+  const router = useRouter();
+  const [credits, setCredits] = useState<number | null>(null);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showTooltip, setShowTooltip] = useState(false);
+
+  useEffect(() => {
+    const token = getToken();
+    if (!token) { router.push('/login'); return; }
+    fetch(`${API}/credits`, { headers: authHeaders() })
+      .then(r => r.json())
+      .then(data => {
+        setCredits(data.smsCredits ?? 0);
+        setTransactions(data.transactions || []);
+      })
+      .catch(() => router.push('/login'))
+      .finally(() => setLoading(false));
+  }, [router]);
+
+  return (
+    <div style={{ minHeight: '100vh', background: '#0a0a0f', fontFamily: "'Outfit', sans-serif", position: 'relative' }}>
+      <GeometricBackground />
+      <Navbar />
+
+      <main style={{ maxWidth: 760, margin: '0 auto', padding: '40px 24px' }}>
+        <div style={{ marginBottom: 32 }}>
+          <button
+            onClick={() => router.push('/dashboard')}
+            style={{ background: 'none', border: 'none', color: '#6b7280', fontSize: 13, cursor: 'pointer', padding: 0, marginBottom: 10 }}
+          >
+            ← Dashboard
+          </button>
+          <h1 style={{ fontSize: 26, fontWeight: 700, color: '#fff', margin: 0, letterSpacing: '-0.5px' }}>SMS Kredileri</h1>
+          <p style={{ color: '#6b7280', fontSize: 14, margin: '4px 0 0' }}>Kredi bakiyenizi ve işlem geçmişinizi görüntüleyin</p>
+        </div>
+
+        {/* Credit balance card */}
+        <div style={{
+          background: 'rgba(139,92,246,0.06)',
+          border: '1px solid rgba(139,92,246,0.25)',
+          borderRadius: 20, padding: '36px 32px',
+          marginBottom: 24, position: 'relative', overflow: 'hidden',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 24,
+        }}>
+          {/* Glow */}
+          <div style={{
+            position: 'absolute', top: -60, right: -60,
+            width: 200, height: 200, borderRadius: '50%',
+            background: 'radial-gradient(circle, rgba(139,92,246,0.15) 0%, transparent 70%)',
+            pointerEvents: 'none',
+          }} />
+
+          <div>
+            <div style={{ color: '#9ca3af', fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 10 }}>
+              Mevcut Kredi
+            </div>
+            {loading ? (
+              <div style={{ width: 80, height: 52, background: 'rgba(255,255,255,0.06)', borderRadius: 8 }} />
+            ) : (
+              <div style={{
+                fontSize: 56, fontWeight: 900, lineHeight: 1,
+                background: 'linear-gradient(135deg, #7c3aed, #a855f7, #c084fc)',
+                WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
+                letterSpacing: '-2px',
+              }}>
+                {credits?.toLocaleString('tr-TR')}
+              </div>
+            )}
+            <div style={{ color: '#6b7280', fontSize: 13, marginTop: 6 }}>SMS hakkı kaldı</div>
+          </div>
+
+          {/* Buy button */}
+          <div style={{ position: 'relative', flexShrink: 0 }}>
+            <button
+              onMouseEnter={() => setShowTooltip(true)}
+              onMouseLeave={() => setShowTooltip(false)}
+              style={{
+                padding: '13px 28px',
+                background: 'rgba(139,92,246,0.15)',
+                border: '1px solid rgba(139,92,246,0.35)',
+                borderRadius: 12, color: '#a78bfa',
+                fontSize: 14, fontWeight: 600, cursor: 'not-allowed',
+              }}
+            >
+              Kredi Satın Al
+            </button>
+            {showTooltip && (
+              <div style={{
+                position: 'absolute', bottom: 'calc(100% + 8px)', right: 0,
+                background: 'rgba(15,15,28,0.98)', border: '1px solid rgba(139,92,246,0.3)',
+                borderRadius: 8, padding: '8px 14px',
+                color: '#c4b5fd', fontSize: 12, fontWeight: 500, whiteSpace: 'nowrap',
+                boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
+              }}>
+                🚀 Yakında kullanıma açılacak
+                <div style={{
+                  position: 'absolute', bottom: -5, right: 20,
+                  width: 10, height: 10, background: 'rgba(15,15,28,0.98)',
+                  border: '1px solid rgba(139,92,246,0.3)', borderTop: 'none', borderLeft: 'none',
+                  transform: 'rotate(45deg)',
+                }} />
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Packages teaser */}
+        <div style={{
+          display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 28,
+        }}>
+          {[
+            { label: '100 SMS', price: '₺49', badge: null },
+            { label: '500 SMS', price: '₺199', badge: 'Popüler' },
+            { label: '1000 SMS', price: '₺349', badge: 'Avantajlı' },
+          ].map(pkg => (
+            <div key={pkg.label} style={{
+              background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)',
+              borderRadius: 14, padding: '20px 18px', textAlign: 'center', position: 'relative',
+              opacity: 0.6,
+            }}>
+              {pkg.badge && (
+                <div style={{
+                  position: 'absolute', top: -10, left: '50%', transform: 'translateX(-50%)',
+                  background: 'linear-gradient(135deg, #7c3aed, #a855f7)',
+                  borderRadius: 20, padding: '3px 10px', fontSize: 10, fontWeight: 700,
+                  color: '#fff', whiteSpace: 'nowrap',
+                }}>
+                  {pkg.badge}
+                </div>
+              )}
+              <div style={{ color: '#e5e7eb', fontSize: 16, fontWeight: 700, marginBottom: 4 }}>{pkg.label}</div>
+              <div style={{ color: '#a78bfa', fontSize: 20, fontWeight: 800 }}>{pkg.price}</div>
+              <div style={{ color: '#4b5563', fontSize: 11, marginTop: 6 }}>Yakında</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Transaction history */}
+        <div style={{
+          background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)',
+          borderRadius: 16, overflow: 'hidden',
+        }}>
+          <div style={{ padding: '18px 24px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+            <h2 style={{ color: '#9ca3af', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.8px', margin: 0 }}>
+              Son İşlemler
+            </h2>
+          </div>
+
+          {loading ? (
+            <div style={{ padding: 40, textAlign: 'center' }}>
+              {[1, 2, 3].map(i => (
+                <div key={i} style={{
+                  height: 20, background: 'rgba(255,255,255,0.05)', borderRadius: 6,
+                  marginBottom: 14, width: `${70 + i * 8}%`,
+                }} />
+              ))}
+            </div>
+          ) : transactions.length === 0 ? (
+            <div style={{ padding: 48, textAlign: 'center', color: '#4b5563', fontSize: 14 }}>
+              Henüz işlem yok
+            </div>
+          ) : (
+            <div>
+              {transactions.map((tx, i) => (
+                <div key={tx.id} style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  padding: '14px 24px',
+                  borderBottom: i < transactions.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div style={{
+                      width: 34, height: 34, borderRadius: 10, flexShrink: 0,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16,
+                      background: tx.type === 'PURCHASE' ? 'rgba(5,150,105,0.12)' : 'rgba(139,92,246,0.12)',
+                    }}>
+                      {tx.type === 'PURCHASE' ? '💳' : '📱'}
+                    </div>
+                    <div>
+                      <div style={{ color: '#e5e7eb', fontSize: 13, fontWeight: 500 }}>{tx.description}</div>
+                      <div style={{ color: '#4b5563', fontSize: 11, marginTop: 2 }}>
+                        {new Date(tx.createdAt).toLocaleString('tr-TR', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                      </div>
+                    </div>
+                  </div>
+                  <div style={{
+                    fontSize: 15, fontWeight: 700,
+                    color: tx.type === 'PURCHASE' ? '#34d399' : '#a78bfa',
+                  }}>
+                    {tx.type === 'PURCHASE' ? '+' : ''}{tx.amount}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </main>
+    </div>
+  );
+}
