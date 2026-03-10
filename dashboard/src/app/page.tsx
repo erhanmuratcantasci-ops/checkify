@@ -46,11 +46,11 @@ export default function LandingPage() {
           <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#a855f7', boxShadow: '0 0 6px #a855f7' }} />
           <span style={{ color: '#c4b5fd', fontSize: 13, fontWeight: 500 }}>Türkiye'nin COD doğrulama platformu</span>
         </div>
-        <h1 style={{ fontSize: 'clamp(38px, 6vw, 72px)', fontWeight: 900, lineHeight: 1.05, margin: '0 0 24px', letterSpacing: '-1px', fontFamily: "'Outfit', sans-serif" }}>
+        <h1 style={{ fontSize: 'clamp(58px, 6vw, 92px)', fontWeight: 900, lineHeight: 1.05, margin: '0 0 24px', letterSpacing: '-1px', fontFamily: "'Outfit', sans-serif" }}>
           Sahte Siparişlere<br />
           <span style={{ background: 'linear-gradient(135deg, #a78bfa, #7c3aed, #c4b5fd)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>Son Ver.</span>
         </h1>
-        <p style={{ fontSize: 18, color: '#9ca3af', lineHeight: 1.7, maxWidth: 560, margin: '0 auto 40px', fontWeight: 400 }}>
+        <p style={{ fontSize: 38, color: '#9ca3af', lineHeight: 1.7, maxWidth: 560, margin: '0 auto 40px', fontWeight: 400 }}>
           Kapıda ödeme siparişlerini SMS ile doğrula. İade oranını düşür, karlılığını artır.
         </p>
         <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
@@ -66,7 +66,7 @@ export default function LandingPage() {
         <div style={{ display: 'flex', gap: 48, justifyContent: 'center', marginTop: 72, flexWrap: 'wrap' }}>
           {[['%40', 'daha az iade'], ['5 dk', 'kurulum süresi'], ['7/24', 'otomatik çalışır']].map(([val, label]) => (
             <div key={label} style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: 32, fontWeight: 800, background: 'linear-gradient(135deg, #c4b5fd, #a855f7)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>{val}</div>
+              <div style={{ fontSize: 52, fontWeight: 800, background: 'linear-gradient(135deg, #c4b5fd, #a855f7)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>{val}</div>
               <div style={{ color: '#6b7280', fontSize: 13, marginTop: 4 }}>{label}</div>
             </div>
           ))}
@@ -76,16 +76,16 @@ export default function LandingPage() {
       {/* HOW IT WORKS */}
       <section id="how" style={{ maxWidth: 1000, margin: '0 auto', padding: '80px 24px', position: 'relative', zIndex: 1 }}>
         <div style={{ textAlign: 'center', marginBottom: 56 }}>
-          <h2 style={{ fontSize: 40, fontWeight: 800, margin: '0 0 12px', letterSpacing: '-0.5px' }}>Nasıl Çalışır?</h2>
-          <p style={{ color: '#6b7280', fontSize: 16 }}>3 adımda kurulum, otomatik çalışır</p>
+          <h2 style={{ fontSize: 60, fontWeight: 800, margin: '0 0 12px', letterSpacing: '-0.5px' }}>Nasıl Çalışır?</h2>
+          <p style={{ color: '#6b7280', fontSize: 36 }}>3 adımda kurulum, otomatik çalışır</p>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 24 }}>
           {steps.map((step, i) => (
-            <div key={i} style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 20, padding: '32px 28px', position: 'relative', overflow: 'hidden' }}>
+            <div key={i} style={{ background: '#0f0f18', border: '1px solid #1a1a2e', borderRadius: 20, padding: '32px 28px', position: 'relative', overflow: 'hidden' }}>
               <div style={{ position: 'absolute', top: -10, right: -10, fontSize: 64, fontWeight: 900, color: 'rgba(139,92,246,0.08)', fontFamily: "'Outfit', sans-serif", lineHeight: 1 }}>{step.num}</div>
               <div style={{ fontSize: 13, fontWeight: 700, color: '#7c3aed', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: 12 }}>{step.num}</div>
-              <h3 style={{ fontSize: 20, fontWeight: 700, margin: '0 0 10px' }}>{step.title}</h3>
-              <p style={{ color: '#6b7280', fontSize: 14, lineHeight: 1.6, margin: 0 }}>{step.desc}</p>
+              <h3 style={{ fontSize: 40, fontWeight: 700, margin: '0 0 10px' }}>{step.title}</h3>
+              <p style={{ color: '#6b7280', fontSize: 34, lineHeight: 1.6, margin: 0 }}>{step.desc}</p>
             </div>
           ))}
         </div>
@@ -94,12 +94,12 @@ export default function LandingPage() {
       {/* PRICING */}
       <section id="pricing" style={{ maxWidth: 1000, margin: '0 auto', padding: '80px 24px', position: 'relative', zIndex: 1 }}>
         <div style={{ textAlign: 'center', marginBottom: 56 }}>
-          <h2 style={{ fontSize: 40, fontWeight: 800, margin: '0 0 12px', letterSpacing: '-0.5px' }}>Fiyatlandırma</h2>
-          <p style={{ color: '#6b7280', fontSize: 16 }}>Abonelik yok. Sadece kullandığın kadar öde.</p>
+          <h2 style={{ fontSize: 60, fontWeight: 800, margin: '0 0 12px', letterSpacing: '-0.5px' }}>Fiyatlandırma</h2>
+          <p style={{ color: '#6b7280', fontSize: 36 }}>Abonelik yok. Sadece kullandığın kadar öde.</p>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 24 }}>
           {plans.map((plan, i) => (
-            <div key={i} style={{ background: plan.popular ? 'rgba(139,92,246,0.08)' : 'rgba(255,255,255,0.03)', border: `1px solid ${plan.popular ? 'rgba(139,92,246,0.4)' : 'rgba(255,255,255,0.07)'}`, borderRadius: 20, padding: '32px 28px', position: 'relative' }}>
+            <div key={i} style={{ background: plan.popular ? 'rgba(139,92,246,0.08)' : '#0f0f18', border: `1px solid ${plan.popular ? 'rgba(139,92,246,0.4)' : '#1a1a2e'}`, borderRadius: 20, padding: '32px 28px', position: 'relative' }}>
               {plan.popular && <div style={{ position: 'absolute', top: -12, left: '50%', transform: 'translateX(-50%)', background: 'linear-gradient(135deg, #7c3aed, #a855f7)', color: '#fff', fontSize: 11, fontWeight: 700, padding: '4px 14px', borderRadius: 100, letterSpacing: '0.5px', whiteSpace: 'nowrap' }}>EN POPÜLER</div>}
               <div style={{ fontSize: 13, color: '#9ca3af', marginBottom: 8 }}>{plan.name}</div>
               <div style={{ fontSize: 42, fontWeight: 900, margin: '0 0 4px' }}>₺{plan.price}</div>
@@ -122,11 +122,11 @@ export default function LandingPage() {
       {/* FAQ */}
       <section id="faq" style={{ maxWidth: 700, margin: '0 auto', padding: '80px 24px', position: 'relative', zIndex: 1 }}>
         <div style={{ textAlign: 'center', marginBottom: 56 }}>
-          <h2 style={{ fontSize: 40, fontWeight: 800, margin: '0 0 12px', letterSpacing: '-0.5px' }}>Sık Sorulan Sorular</h2>
+          <h2 style={{ fontSize: 60, fontWeight: 800, margin: '0 0 12px', letterSpacing: '-0.5px' }}>Sık Sorulan Sorular</h2>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {faqs.map((faq, i) => (
-            <div key={i} style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14, overflow: 'hidden' }}>
+            <div key={i} style={{ background: '#0f0f18', border: '1px solid #1a1a2e', borderRadius: 14, overflow: 'hidden' }}>
               <button onClick={() => setOpenFaq(openFaq === i ? null : i)} style={{ width: '100%', padding: '18px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'transparent', border: 'none', color: '#fff', fontSize: 15, fontWeight: 600, cursor: 'pointer', textAlign: 'left', gap: 16 }}>
                 {faq.q}
                 <span style={{ color: '#7c3aed', fontSize: 20, flexShrink: 0, transition: 'transform 0.2s', transform: openFaq === i ? 'rotate(45deg)' : 'none' }}>+</span>
@@ -142,8 +142,8 @@ export default function LandingPage() {
         <Logo size="sm" />
         <div style={{ color: '#4b5563', fontSize: 13 }}>© 2026 Checkify. Tüm hakları saklıdır.</div>
         <div style={{ display: 'flex', gap: 24 }}>
-          {['Gizlilik', 'KVKK', 'İletişim'].map(item => (
-            <span key={item} style={{ color: '#6b7280', fontSize: 13, cursor: 'pointer' }}>{item}</span>
+          {[['Gizlilik', '/gizlilik'], ['KVKK', '/kvkk'], ['İletişim', '/iletisim']].map(([label, href]) => (
+            <Link key={label} href={href} style={{ color: '#6b7280', fontSize: 13, textDecoration: 'none' }}>{label}</Link>
           ))}
         </div>
       </footer>
