@@ -7,6 +7,16 @@ import { signIn } from 'next-auth/react';
 import GeometricBackground from '@/components/GeometricBackground';
 import Logo from '@/components/Logo';
 
+const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://127.0.0.1:3001';
+
+const inputStyle: React.CSSProperties = {
+  width: '100%', padding: '12px 14px',
+  background: 'rgba(255,255,255,0.05)',
+  border: '1px solid rgba(255,255,255,0.1)',
+  borderRadius: 10, color: '#fff', fontSize: 14,
+  outline: 'none', boxSizing: 'border-box',
+};
+
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState('');
@@ -14,12 +24,19 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  // Forgot password modal
+  const [forgotOpen, setForgotOpen] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotLoading, setForgotLoading] = useState(false);
+  const [forgotSuccess, setForgotSuccess] = useState(false);
+  const [forgotError, setForgotError] = useState('');
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError('');
     setLoading(true);
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL ?? 'http://127.0.0.1:3001'}/auth/login`, {
+      const res = await fetch(`${API}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
@@ -33,6 +50,33 @@ export default function LoginPage() {
     } finally {
       setLoading(false);
     }
+  }
+
+  async function handleForgotSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setForgotError('');
+    setForgotLoading(true);
+    try {
+      const res = await fetch(`${API}/auth/forgot-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: forgotEmail }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Hata oluştu');
+      setForgotSuccess(true);
+    } catch (err) {
+      setForgotError(err instanceof Error ? err.message : 'Hata oluştu');
+    } finally {
+      setForgotLoading(false);
+    }
+  }
+
+  function openForgot() {
+    setForgotOpen(true);
+    setForgotEmail('');
+    setForgotSuccess(false);
+    setForgotError('');
   }
 
   return (
@@ -53,15 +97,20 @@ export default function LoginPage() {
             <div>
               <label style={{ display: 'block', color: '#9ca3af', fontSize: 13, fontWeight: 500, marginBottom: 8 }}>Email</label>
               <input type="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder="ornek@email.com"
-                style={{ width: '100%', padding: '12px 14px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, color: '#fff', fontSize: 14, outline: 'none', boxSizing: 'border-box' }}
+                style={inputStyle}
                 onFocus={e => e.target.style.borderColor = 'rgba(139,92,246,0.6)'}
                 onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.1)'}
               />
             </div>
             <div>
-              <label style={{ display: 'block', color: '#9ca3af', fontSize: 13, fontWeight: 500, marginBottom: 8 }}>Şifre</label>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                <label style={{ color: '#9ca3af', fontSize: 13, fontWeight: 500 }}>Şifre</label>
+                <button type="button" onClick={openForgot} style={{ background: 'none', border: 'none', color: '#7c3aed', fontSize: 12, cursor: 'pointer', padding: 0, fontWeight: 500 }}>
+                  Şifremi Unuttum
+                </button>
+              </div>
               <input type="password" required value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••"
-                style={{ width: '100%', padding: '12px 14px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, color: '#fff', fontSize: 14, outline: 'none', boxSizing: 'border-box' }}
+                style={inputStyle}
                 onFocus={e => e.target.style.borderColor = 'rgba(139,92,246,0.6)'}
                 onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.1)'}
               />
@@ -70,6 +119,7 @@ export default function LoginPage() {
               {loading ? 'Giriş yapılıyor...' : 'Giriş Yap'}
             </button>
           </form>
+
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '20px 0' }}>
             <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.08)' }} />
             <span style={{ color: '#4b5563', fontSize: 12 }}>veya</span>
@@ -93,12 +143,83 @@ export default function LoginPage() {
             </svg>
             Google ile Giriş Yap
           </button>
+
           <p style={{ textAlign: 'center', marginTop: 20, marginBottom: 0, color: '#6b7280', fontSize: 14 }}>
             Hesabın yok mu?{' '}
             <Link href="/register" style={{ color: '#a855f7', textDecoration: 'none', fontWeight: 500 }}>Kayıt ol</Link>
           </p>
         </div>
       </div>
+
+      {/* Şifremi Unuttum Modal */}
+      {forgotOpen && (
+        <div
+          onClick={() => setForgotOpen(false)}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: 24 }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{ background: 'rgba(13,13,24,0.98)', border: '1px solid rgba(139,92,246,0.25)', borderRadius: 20, padding: '36px 32px', width: '100%', maxWidth: 400, boxShadow: '0 30px 60px rgba(0,0,0,0.6)' }}
+          >
+            <div style={{ fontSize: 36, textAlign: 'center', marginBottom: 16 }}>🔑</div>
+            <h2 style={{ color: '#fff', fontSize: 18, fontWeight: 700, margin: '0 0 6px', textAlign: 'center' }}>Şifremi Unuttum</h2>
+
+            {forgotSuccess ? (
+              <>
+                <div style={{ textAlign: 'center', padding: '16px 0' }}>
+                  <div style={{ fontSize: 40, marginBottom: 12 }}>📬</div>
+                  <p style={{ color: '#9ca3af', fontSize: 14, lineHeight: 1.6, margin: 0 }}>
+                    Eğer bu email kayıtlıysa, sıfırlama linki gönderildi. Lütfen spam klasörünü de kontrol et.
+                  </p>
+                </div>
+                <button
+                  onClick={() => setForgotOpen(false)}
+                  style={{ width: '100%', marginTop: 20, padding: '12px', background: 'linear-gradient(135deg, #7c3aed, #a855f7)', border: 'none', borderRadius: 10, color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}
+                >
+                  Tamam
+                </button>
+              </>
+            ) : (
+              <>
+                <p style={{ color: '#6b7280', fontSize: 13, textAlign: 'center', margin: '0 0 24px' }}>
+                  Email adresini gir, şifre sıfırlama linki gönderelim.
+                </p>
+                {forgotError && (
+                  <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 10, padding: '10px 14px', color: '#f87171', fontSize: 14, marginBottom: 16 }}>{forgotError}</div>
+                )}
+                <form onSubmit={handleForgotSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  <input
+                    type="email"
+                    required
+                    value={forgotEmail}
+                    onChange={e => setForgotEmail(e.target.value)}
+                    placeholder="ornek@email.com"
+                    style={{ ...inputStyle, border: '1px solid rgba(139,92,246,0.3)' }}
+                    onFocus={e => e.target.style.borderColor = 'rgba(139,92,246,0.6)'}
+                    onBlur={e => e.target.style.borderColor = 'rgba(139,92,246,0.3)'}
+                  />
+                  <div style={{ display: 'flex', gap: 10 }}>
+                    <button
+                      type="submit"
+                      disabled={forgotLoading}
+                      style={{ flex: 1, padding: '12px', background: forgotLoading ? 'rgba(139,92,246,0.4)' : 'linear-gradient(135deg, #7c3aed, #a855f7)', border: 'none', borderRadius: 10, color: '#fff', fontSize: 14, fontWeight: 600, cursor: forgotLoading ? 'not-allowed' : 'pointer' }}
+                    >
+                      {forgotLoading ? 'Gönderiliyor...' : 'Link Gönder'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setForgotOpen(false)}
+                      style={{ flex: 1, padding: '12px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, color: '#9ca3af', fontSize: 14, cursor: 'pointer' }}
+                    >
+                      İptal
+                    </button>
+                  </div>
+                </form>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
