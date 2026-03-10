@@ -132,6 +132,45 @@ router.get('/shops', adminOnly, async (_req: AuthRequest, res: Response): Promis
   });
 });
 
+// GET /admin/shops/:id — mağaza detayı + son 5 sipariş
+router.get('/shops/:id', adminOnly, async (req: AuthRequest, res: Response): Promise<void> => {
+  const id = parseInt(req.params['id'] as string);
+  if (isNaN(id)) { res.status(400).json({ error: 'Geçersiz id' }); return; }
+
+  const shop = await prisma.shop.findUnique({
+    where: { id },
+    include: {
+      user: { select: { id: true, email: true, name: true } },
+      _count: { select: { orders: true } },
+      orders: {
+        orderBy: { createdAt: 'desc' },
+        take: 5,
+        select: { id: true, customerName: true, total: true, status: true, createdAt: true },
+      },
+    },
+  });
+  if (!shop) { res.status(404).json({ error: 'Mağaza bulunamadı' }); return; }
+
+  res.json({ shop: { ...shop, orderCount: shop._count.orders, _count: undefined } });
+});
+
+// GET /admin/orders/:id — sipariş detayı + SMS logları
+router.get('/orders/:id', adminOnly, async (req: AuthRequest, res: Response): Promise<void> => {
+  const id = parseInt(req.params['id'] as string);
+  if (isNaN(id)) { res.status(400).json({ error: 'Geçersiz id' }); return; }
+
+  const order = await prisma.order.findUnique({
+    where: { id },
+    include: {
+      shop: { include: { user: { select: { id: true, email: true, name: true } } } },
+      smsLogs: { orderBy: { createdAt: 'desc' } },
+    },
+  });
+  if (!order) { res.status(404).json({ error: 'Sipariş bulunamadı' }); return; }
+
+  res.json({ order });
+});
+
 // GET /admin/orders — tüm siparişler + kullanıcı + mağaza
 router.get('/orders', adminOnly, async (_req: AuthRequest, res: Response): Promise<void> => {
   const orders = await prisma.order.findMany({
