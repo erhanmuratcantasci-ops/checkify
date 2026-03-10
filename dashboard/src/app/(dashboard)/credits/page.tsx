@@ -136,7 +136,7 @@ export default function CreditsPage() {
           {[
             { label: '100 SMS', price: '₺49', badge: null },
             { label: '500 SMS', price: '₺199', badge: 'Popüler' },
-            { label: '1000 SMS', price: '₺349', badge: 'Avantajlı' },
+            { label: '2000 SMS', price: '₺599', badge: 'Pro' },
           ].map(pkg => (
             <div key={pkg.label} style={{
               background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)',
