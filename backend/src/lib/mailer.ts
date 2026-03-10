@@ -1,16 +1,7 @@
-import nodemailer from 'nodemailer';
+import { Resend } from 'resend';
 
-const transporter = nodemailer.createTransport({
-  host: process.env['SMTP_HOST'] || 'smtp.gmail.com',
-  port: parseInt(process.env['SMTP_PORT'] || '587'),
-  secure: false,
-  auth: {
-    user: process.env['SMTP_USER'],
-    pass: process.env['SMTP_PASS'],
-  },
-});
-
-const FROM = process.env['SMTP_FROM'] || 'noreply@chekkify.com';
+const resend = new Resend(process.env['RESEND_API_KEY']);
+const FROM = 'noreply@chekkify.com';
 
 // ── Shared layout ──────────────────────────────────────────────────────────────
 
@@ -101,17 +92,11 @@ export async function sendWelcomeEmail(to: string, name: string): Promise<void> 
       <li>SMS kredisi yükle</li>
     </ol>
     <div style="text-align:center;">
-      ${btn('https://app.chekkify.com/dashboard', 'Dashboard\'a Git')}
+      ${btn('https://chekkify.com/dashboard', 'Dashboard\'a Git')}
     </div>
   `);
 
-  await transporter.sendMail({
-    from: `"Chekkify" <${FROM}>`,
-    to,
-    subject: `Hoş geldin, ${name}! 🎉`,
-    html,
-  });
-
+  await resend.emails.send({ from: `Chekkify <${FROM}>`, to, subject: `Hoş geldin, ${name}! 🎉`, html });
   console.log(`[mailer] Welcome email → ${to}`);
 }
 
@@ -139,13 +124,7 @@ export async function sendOrderConfirmationEmail(
     ${para('Siparişiniz en kısa sürede hazırlanacak ve kargoya verilecektir.', true)}
   `);
 
-  await transporter.sendMail({
-    from: `"Chekkify" <${FROM}>`,
-    to,
-    subject: `Siparişiniz onaylandı ✓ — #${orderId}`,
-    html,
-  });
-
+  await resend.emails.send({ from: `Chekkify <${FROM}>`, to, subject: `Siparişiniz onaylandı ✓ — #${orderId}`, html });
   console.log(`[mailer] Confirmation email → ${to}`);
 }
 
@@ -173,13 +152,7 @@ export async function sendOrderCancellationEmail(
     ${para('Yeni bir sipariş oluşturmak için mağazamızı ziyaret edebilirsiniz.', true)}
   `);
 
-  await transporter.sendMail({
-    from: `"Chekkify" <${FROM}>`,
-    to,
-    subject: `Siparişiniz iptal edildi — #${orderId}`,
-    html,
-  });
-
+  await resend.emails.send({ from: `Chekkify <${FROM}>`, to, subject: `Siparişiniz iptal edildi — #${orderId}`, html });
   console.log(`[mailer] Cancellation email → ${to}`);
 }
 
@@ -204,17 +177,15 @@ export async function sendLowCreditEmail(
       ${para('Sipariş doğrulama SMS\'lerinin kesintisiz gönderilmesi için kredi yükleyin.', true)}
     </div>
     <div style="text-align:center;">
-      ${btn('https://app.chekkify.com/credits', 'Kredi Satın Al', '#d97706')}
+      ${btn('https://chekkify.com/credits', 'Kredi Satın Al', '#d97706')}
     </div>
   `);
 
-  await transporter.sendMail({
-    from: `"Chekkify" <${FROM}>`,
-    to,
+  await resend.emails.send({
+    from: `Chekkify <${FROM}>`, to,
     subject: isZero ? '🚫 SMS krediniz tükendi!' : `⚠️ Yalnızca ${credits} SMS krediniz kaldı`,
     html,
   });
-
   console.log(`[mailer] Low credit email → ${to} (${credits} credits)`);
 }
 
@@ -239,12 +210,6 @@ export async function sendPasswordResetEmail(
     </div>
   `);
 
-  await transporter.sendMail({
-    from: `"Chekkify" <${FROM}>`,
-    to,
-    subject: 'Şifre Sıfırlama Talebi',
-    html,
-  });
-
+  await resend.emails.send({ from: `Chekkify <${FROM}>`, to, subject: 'Şifre Sıfırlama Talebi', html });
   console.log(`[mailer] Password reset email → ${to}`);
 }
