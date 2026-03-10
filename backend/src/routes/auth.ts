@@ -3,7 +3,8 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import prisma from '../lib/prisma';
 import { authenticate, AuthRequest } from '../middleware/auth';
-import { sendWelcomeEmail } from '../lib/mailer';
+import { sendWelcomeEmail, sendPasswordResetEmail } from '../lib/mailer';
+import crypto from 'crypto';
 
 const router = Router();
 
@@ -190,6 +191,58 @@ router.delete('/me', authenticate, async (req: AuthRequest, res: Response): Prom
   await prisma.user.delete({ where: { id: req.userId } });
 
   res.json({ success: true });
+});
+
+// POST /auth/forgot-password
+router.post('/forgot-password', async (req: Request, res: Response): Promise<void> => {
+  const { email } = req.body as { email?: string };
+  if (!email) { res.status(400).json({ error: 'Email gerekli' }); return; }
+
+  const user = await prisma.user.findUnique({ where: { email } });
+
+  // Kullanıcı yoksa bile 200 dön (güvenlik: email enumeration önleme)
+  if (!user) {
+    res.json({ message: 'Eğer bu email kayıtlıysa sıfırlama linki gönderildi' });
+    return;
+  }
+
+  const token = crypto.randomBytes(32).toString('hex');
+  const expiry = new Date(Date.now() + 15 * 60 * 1000); // 15 dakika
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { passwordResetToken: token, passwordResetExpiry: expiry },
+  });
+
+  const resetUrl = `https://chekkify.com/reset-password/${token}`;
+  sendPasswordResetEmail(user.email, user.name ?? user.email, resetUrl)
+    .catch(err => console.error('[auth] Reset email gönderilemedi:', err));
+
+  res.json({ message: 'Eğer bu email kayıtlıysa sıfırlama linki gönderildi' });
+});
+
+// POST /auth/reset-password
+router.post('/reset-password', async (req: Request, res: Response): Promise<void> => {
+  const { token, newPassword } = req.body as { token?: string; newPassword?: string };
+  if (!token || !newPassword) { res.status(400).json({ error: 'Token ve yeni şifre gerekli' }); return; }
+  if (newPassword.length < 6) { res.status(400).json({ error: 'Şifre en az 6 karakter olmalı' }); return; }
+
+  const user = await prisma.user.findFirst({
+    where: {
+      passwordResetToken: token,
+      passwordResetExpiry: { gt: new Date() },
+    },
+  });
+
+  if (!user) { res.status(400).json({ error: 'Geçersiz veya süresi dolmuş link' }); return; }
+
+  const hashed = await bcrypt.hash(newPassword, 10);
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { password: hashed, passwordResetToken: null, passwordResetExpiry: null },
+  });
+
+  res.json({ message: 'Şifre başarıyla güncellendi' });
 });
 
 export default router;

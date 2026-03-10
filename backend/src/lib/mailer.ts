@@ -217,3 +217,34 @@ export async function sendLowCreditEmail(
 
   console.log(`[mailer] Low credit email → ${to} (${credits} credits)`);
 }
+
+export async function sendPasswordResetEmail(
+  to: string,
+  name: string,
+  resetUrl: string,
+): Promise<void> {
+  const html = layout(`
+    <div style="text-align:center;margin-bottom:28px;">
+      <div style="font-size:48px;">🔑</div>
+    </div>
+    ${heading('Şifre Sıfırlama')}
+    ${para(`Merhaba ${name}, şifrenizi sıfırlamak için aşağıdaki butona tıklayın.`)}
+    ${divider()}
+    <div style="background:rgba(139,92,246,0.08);border:1px solid rgba(139,92,246,0.2);
+      border-radius:12px;padding:16px 20px;margin-bottom:4px;">
+      ${para('Bu link <strong style="color:#e5e7eb;">15 dakika</strong> geçerlidir. Eğer şifre sıfırlama talebinde bulunmadıysanız bu emaili görmezden gelin.', true)}
+    </div>
+    <div style="text-align:center;">
+      ${btn(resetUrl, 'Şifremi Sıfırla')}
+    </div>
+  `);
+
+  await transporter.sendMail({
+    from: `"Chekkify" <${FROM}>`,
+    to,
+    subject: 'Şifre Sıfırlama Talebi',
+    html,
+  });
+
+  console.log(`[mailer] Password reset email → ${to}`);
+}
