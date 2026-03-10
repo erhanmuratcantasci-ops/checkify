@@ -99,9 +99,15 @@ export default function AdminPage() {
     const token = getToken();
     if (!token) { router.push('/login'); return; }
 
-    const meRes = await fetch(`${API}/auth/me`, { headers: authHeaders() });
-    const meData = await meRes.json();
-    if (!meData.user?.isAdmin) { router.push('/dashboard'); return; }
+    let meData: { user?: { isAdmin?: boolean } } = {};
+    try {
+      const meRes = await fetch(`${API}/auth/me`, { headers: authHeaders() });
+      meData = await meRes.json();
+    } catch {
+      // Network hatası — loading state'te kal, redirect etme
+      return;
+    }
+    if (meData.user && meData.user.isAdmin === false) { router.push('/dashboard'); return; }
 
     Promise.all([
       fetch(`${API}/admin/users`, { headers: authHeaders() }),
