@@ -4,11 +4,11 @@ import '@shopify/shopify-api/adapters/node';
 export { Session };
 
 export const shopify = shopifyApi({
-  apiKey: process.env['SHOPIFY_API_KEY'] || '',
-  apiSecretKey: process.env['SHOPIFY_API_SECRET'] || '',
+  apiKey: process.env['SHOPIFY_API_KEY'] || 'dummy_key',
+  apiSecretKey: process.env['SHOPIFY_API_SECRET'] || 'dummy_secret',
   scopes: ['read_orders', 'write_orders'],
-  hostName: (process.env['BASE_URL'] || 'http://localhost:3001').replace(/^https?:\/\//, ''),
-  apiVersion: ApiVersion.January25,
+  hostName: (process.env['HOST'] || process.env['BASE_URL'] || 'localhost').replace(/^https?:\/\//, ''),
+  apiVersion: ApiVersion.July25,
   isEmbeddedApp: false,
   logger: { level: LogSeverity.Warning },
 });
