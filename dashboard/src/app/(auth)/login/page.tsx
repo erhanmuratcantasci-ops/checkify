@@ -18,7 +18,7 @@ export default function LoginPage() {
     setError('');
     setLoading(true);
     try {
-      const res = await fetch('http://localhost:3001/auth/login', {
+      const res = await fetch('http://127.0.0.1:3001/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
@@ -35,53 +35,18 @@ export default function LoginPage() {
   }
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      background: '#0a0a0f',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      fontFamily: "'DM Sans', sans-serif",
-      position: 'relative',
-      overflow: 'hidden',
-    }}>
+    <div style={{ minHeight: '100vh', background: '#0a0a0f', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Outfit', sans-serif", position: 'relative', overflow: 'hidden' }}>
       <GeometricBackground />
-      <div style={{
-        position: 'absolute', inset: 0,
-        background: 'radial-gradient(ellipse 80% 50% at 50% -20%, rgba(120,60,220,0.25) 0%, transparent 70%)',
-        pointerEvents: 'none',
-      }} />
-      <div style={{
-        position: 'absolute', top: '20%', left: '10%', width: 300, height: 300,
-        borderRadius: '50%',
-        background: 'radial-gradient(circle, rgba(139,92,246,0.08) 0%, transparent 70%)',
-        filter: 'blur(40px)', pointerEvents: 'none',
-      }} />
-      <div style={{
-        width: '100%', maxWidth: 420,
-        padding: '0 24px',
-        position: 'relative', zIndex: 1,
-      }}>
+      <div style={{ width: '100%', maxWidth: 420, padding: '0 24px', position: 'relative', zIndex: 1 }}>
         <div style={{ textAlign: 'center', marginBottom: 40 }}>
-          <div style={{ marginBottom: 8 }}>
-            <Logo size="lg" />
-          </div>
-          <p style={{ color: '#6b7280', fontSize: 14, margin: 0 }}>COD doğrulama platformu</p>
+          <Logo size="lg" />
+          <p style={{ color: '#6b7280', fontSize: 14, margin: '8px 0 0' }}>COD doğrulama platformu</p>
         </div>
-        <div style={{
-          background: 'rgba(255,255,255,0.03)',
-          border: '1px solid rgba(255,255,255,0.08)',
-          borderRadius: 20, padding: '36px 32px',
-          backdropFilter: 'blur(10px)',
-          boxShadow: '0 25px 50px rgba(0,0,0,0.4)',
-        }}>
-          <h1 style={{ fontSize: 22, fontWeight: 700, color: '#fff', margin: '0 0 6px', fontFamily: "'Syne', sans-serif" }}>Hoş geldin</h1>
+        <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 20, padding: '36px 32px', backdropFilter: 'blur(10px)', boxShadow: '0 25px 50px rgba(0,0,0,0.4)' }}>
+          <h1 style={{ fontSize: 22, fontWeight: 700, color: '#fff', margin: '0 0 6px', fontFamily: "'Outfit', sans-serif" }}>Hoş geldin</h1>
           <p style={{ color: '#6b7280', fontSize: 14, margin: '0 0 28px' }}>Hesabına giriş yap</p>
           {error && (
-            <div style={{
-              background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)',
-              borderRadius: 10, padding: '10px 14px', color: '#f87171', fontSize: 14, marginBottom: 20,
-            }}>{error}</div>
+            <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 10, padding: '10px 14px', color: '#f87171', fontSize: 14, marginBottom: 20 }}>{error}</div>
           )}
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div>
@@ -100,13 +65,7 @@ export default function LoginPage() {
                 onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.1)'}
               />
             </div>
-            <button type="submit" disabled={loading} style={{
-              width: '100%', padding: '13px',
-              background: loading ? 'rgba(139,92,246,0.5)' : 'linear-gradient(135deg, #7c3aed, #a855f7)',
-              border: 'none', borderRadius: 10, color: '#fff', fontSize: 15, fontWeight: 600,
-              cursor: loading ? 'not-allowed' : 'pointer', marginTop: 4,
-              boxShadow: loading ? 'none' : '0 4px 20px rgba(139,92,246,0.35)',
-            }}>
+            <button type="submit" disabled={loading} style={{ width: '100%', padding: '13px', background: loading ? 'rgba(139,92,246,0.5)' : 'linear-gradient(135deg, #7c3aed, #a855f7)', border: 'none', borderRadius: 10, color: '#fff', fontSize: 15, fontWeight: 600, cursor: loading ? 'not-allowed' : 'pointer', marginTop: 4, boxShadow: loading ? 'none' : '0 4px 20px rgba(139,92,246,0.35)' }}>
               {loading ? 'Giriş yapılıyor...' : 'Giriş Yap'}
             </button>
           </form>
