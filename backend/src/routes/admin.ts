@@ -85,6 +85,51 @@ router.post('/users/:id/credits', adminOnly, async (req: AuthRequest, res: Respo
   res.json({ user, message: `${amount} kredi ${amount > 0 ? 'eklendi' : 'düşüldü'}` });
 });
 
+// GET /admin/users/:id — kullanıcı detayı
+router.get('/users/:id', adminOnly, async (req: AuthRequest, res: Response): Promise<void> => {
+  const id = parseInt(req.params['id'] as string);
+  if (isNaN(id)) { res.status(400).json({ error: 'Geçersiz id' }); return; }
+
+  const user = await prisma.user.findUnique({
+    where: { id },
+    select: {
+      id: true, email: true, name: true, smsCredits: true,
+      isAdmin: true, createdAt: true, lastLoginAt: true,
+      _count: { select: { shops: true, orders: true } },
+    },
+  });
+  if (!user) { res.status(404).json({ error: 'Kullanıcı bulunamadı' }); return; }
+
+  res.json({ user: { ...user, shopCount: user._count.shops, orderCount: user._count.orders, _count: undefined } });
+});
+
+// DELETE /admin/users/:id — kullanıcı sil
+router.delete('/users/:id', adminOnly, async (req: AuthRequest, res: Response): Promise<void> => {
+  const id = parseInt(req.params['id'] as string);
+  if (isNaN(id)) { res.status(400).json({ error: 'Geçersiz id' }); return; }
+
+  if (req.userId === id) { res.status(400).json({ error: 'Kendinizi silemezsiniz' }); return; }
+
+  await prisma.user.delete({ where: { id } });
+  res.json({ message: 'Kullanıcı silindi' });
+});
+
+// GET /admin/shops — tüm mağazalar
+router.get('/shops', adminOnly, async (_req: AuthRequest, res: Response): Promise<void> => {
+  const shops = await prisma.shop.findMany({
+    orderBy: { createdAt: 'desc' },
+    select: {
+      id: true, name: true, domain: true, createdAt: true,
+      user: { select: { id: true, email: true, name: true } },
+      _count: { select: { orders: true } },
+    },
+  });
+
+  res.json({
+    shops: shops.map(s => ({ ...s, orderCount: s._count.orders, _count: undefined })),
+  });
+});
+
 // GET /admin/stats — platform geneli istatistikler
 router.get('/stats', adminOnly, async (_req: AuthRequest, res: Response): Promise<void> => {
   const [totalUsers, totalOrders, totalSMS, totalCredits] = await Promise.all([
