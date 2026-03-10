@@ -46,6 +46,43 @@ export const auth = {
     }),
 };
 
+export const orders = {
+  list: (params?: { status?: string; page?: number; limit?: number }) => {
+    const qs = new URLSearchParams();
+    if (params?.status) qs.set('status', params.status);
+    if (params?.page) qs.set('page', String(params.page));
+    if (params?.limit) qs.set('limit', String(params.limit));
+    return apiRequest<OrdersResponse>(`/orders?${qs.toString()}`);
+  },
+
+  get: (id: number) => apiRequest<{ order: OrderDetail }>(`/orders/${id}`),
+};
+
+export type OrderStatus = 'PENDING' | 'CONFIRMED' | 'PREPARING' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED';
+
+export interface Order {
+  id: number;
+  shopifyOrderId: string | null;
+  customerName: string;
+  customerPhone: string;
+  total: number;
+  status: OrderStatus;
+  createdAt: string;
+  shop: { id: number; name: string; shopDomain: string | null };
+}
+
+export interface OrderDetail extends Order {
+  smsLogs: { id: number; phone: string; message: string; status: string; createdAt: string }[];
+}
+
+export interface OrdersResponse {
+  orders: Order[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
 export interface User {
   id: number;
   email: string;

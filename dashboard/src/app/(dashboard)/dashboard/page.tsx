@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { auth, User } from '@/lib/api';
+import Navbar from '@/components/Navbar';
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -26,11 +27,6 @@ export default function DashboardPage() {
       })
       .catch(() => router.push('/login'));
   }, [router]);
-
-  function handleLogout() {
-    localStorage.removeItem('token');
-    router.push('/login');
-  }
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
@@ -87,18 +83,7 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-        <h1 className="text-lg font-semibold text-gray-900">Checkify</h1>
-        <div className="flex items-center gap-4">
-          <span className="text-sm text-gray-600">{user.name ?? user.email}</span>
-          <button
-            onClick={handleLogout}
-            className="text-sm text-gray-500 hover:text-gray-900 transition-colors"
-          >
-            Çıkış yap
-          </button>
-        </div>
-      </header>
+      <Navbar userName={user.name ?? user.email} />
 
       <main className="max-w-4xl mx-auto px-6 py-10 space-y-6">
         <div>
