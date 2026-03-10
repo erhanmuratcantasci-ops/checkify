@@ -69,6 +69,7 @@ router.post('/orders/create', async (req: Request, res: Response): Promise<void>
 
     const order = await prisma.order.create({
       data: {
+        shopifyOrderId: BigInt(payload.id),
         customerName,
         customerPhone,
         total,

@@ -35,6 +35,7 @@ model Shop {
 
 model Order {
   id              Int         @id @default(autoincrement())
+  shopifyOrderId  BigInt?
   customerName    String
   customerPhone   String
   total           Float
