@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import crypto, { randomUUID } from 'crypto';
 import prisma from '../lib/prisma';
 import { smsQueue } from '../lib/queue';
+import { normalizePhone } from '../lib/phoneUtils';
 
 const router = Router();
 
@@ -65,11 +66,12 @@ router.post('/orders/create', async (req: Request, res: Response): Promise<void>
       .filter(Boolean)
       .join(' ') || 'Bilinmiyor';
 
-    const customerPhone =
+    const rawPhone =
       payload.customer?.phone ||
       payload.phone ||
       payload.billing_address?.phone ||
       '';
+    const customerPhone = normalizePhone(rawPhone);
 
     const total = parseFloat(payload.total_price ?? '0');
 
