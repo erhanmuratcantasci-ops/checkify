@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import GeometricBackground from '@/components/GeometricBackground';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -43,6 +44,7 @@ export default function LoginPage() {
       position: 'relative',
       overflow: 'hidden',
     }}>
+      <GeometricBackground />
       <div style={{
         position: 'absolute', inset: 0,
         background: 'radial-gradient(ellipse 80% 50% at 50% -20%, rgba(120,60,220,0.25) 0%, transparent 70%)',

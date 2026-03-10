@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Navbar from '@/components/Navbar';
+import GeometricBackground from '@/components/GeometricBackground';
 
 const STATUS_LABELS: Record<string, string> = {
   PENDING: 'Bekliyor', CONFIRMED: 'Onaylandı', PREPARING: 'Hazırlanıyor',
@@ -49,7 +50,8 @@ export default function OrdersPage() {
   }, [filter, router]);
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0a0a0f', fontFamily: "'DM Sans', sans-serif" }}>
+    <div style={{ minHeight: '100vh', background: '#0a0a0f', fontFamily: "'DM Sans', sans-serif", position: 'relative' }}>
+      <GeometricBackground />
       <Navbar />
       <main style={{ maxWidth: 1100, margin: '0 auto', padding: '40px 24px' }}>
         <div style={{ marginBottom: 28 }}>

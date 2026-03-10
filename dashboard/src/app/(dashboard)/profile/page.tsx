@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Navbar from '@/components/Navbar';
+import GeometricBackground from '@/components/GeometricBackground';
 
 interface User {
   name: string;
@@ -83,7 +84,8 @@ export default function ProfilePage() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0a0a0f', fontFamily: "'DM Sans', sans-serif" }}>
+    <div style={{ minHeight: '100vh', background: '#0a0a0f', fontFamily: "'DM Sans', sans-serif", position: 'relative' }}>
+      <GeometricBackground />
       <Navbar userName={user?.name} />
       <main style={{ maxWidth: 560, margin: '0 auto', padding: '40px 24px' }}>
         {/* Header */}

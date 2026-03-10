@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Navbar from '@/components/Navbar';
+import GeometricBackground from '@/components/GeometricBackground';
 
 interface Stats {
   total: number;
@@ -50,7 +51,8 @@ export default function DashboardPage() {
   ];
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0a0a0f', fontFamily: "'DM Sans', sans-serif" }}>
+    <div style={{ minHeight: '100vh', background: '#0a0a0f', fontFamily: "'DM Sans', sans-serif", position: 'relative' }}>
+      <GeometricBackground />
       <Navbar userName={user?.name} />
       <main style={{ maxWidth: 1100, margin: '0 auto', padding: '40px 24px' }}>
         {/* Header */}
