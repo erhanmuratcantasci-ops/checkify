@@ -13,7 +13,7 @@ export default function Logo({ size = 'md' }: { size?: 'sm' | 'md' | 'lg' }) {
       WebkitTextFillColor: 'transparent',
       backgroundClip: 'text',
     }}>
-      Checkify
+      Checkkify
     </span>
   );
 }

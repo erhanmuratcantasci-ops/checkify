@@ -59,7 +59,7 @@ export default function IletisimPage() {
           </div>
           <div>
             <div style={{ color: '#6b7280', fontSize: 12, marginBottom: 2 }}>Destek E-postası</div>
-            <a href="mailto:destek@checkify.com" style={{ color: '#a855f7', fontSize: 15, fontWeight: 600, textDecoration: 'none' }}>destek@checkify.com</a>
+            <a href="mailto:destek@checkkify.com" style={{ color: '#a855f7', fontSize: 15, fontWeight: 600, textDecoration: 'none' }}>destek@checkkify.com</a>
           </div>
         </div>
 

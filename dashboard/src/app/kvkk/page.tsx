@@ -7,7 +7,7 @@ import Logo from '@/components/Logo';
 const sections = [
   {
     title: '1. Veri Sorumlusunun Kimliği',
-    text: '6698 sayılı Kişisel Verilerin Korunması Kanunu ("KVKK") kapsamında veri sorumlusu sıfatıyla Checkify, kullanıcılarına ait kişisel verileri işlemektedir. Veri sorumlusuna destek@checkify.com adresi üzerinden ulaşılabilir.',
+    text: '6698 sayılı Kişisel Verilerin Korunması Kanunu ("KVKK") kapsamında veri sorumlusu sıfatıyla Checkkify, kullanıcılarına ait kişisel verileri işlemektedir. Veri sorumlusuna destek@checkkify.com adresi üzerinden ulaşılabilir.',
   },
   {
     title: '2. İşlenen Kişisel Veriler',
@@ -31,7 +31,7 @@ const sections = [
   },
   {
     title: '7. Başvuru Yöntemi',
-    text: 'Yukarıda belirtilen haklarınızı kullanmak için destek@checkify.com adresine kimliğinizi doğrulayan belgelerle birlikte yazılı başvuruda bulunabilirsiniz. Başvurularınız en geç 30 gün içinde sonuçlandırılacaktır.',
+    text: 'Yukarıda belirtilen haklarınızı kullanmak için destek@checkkify.com adresine kimliğinizi doğrulayan belgelerle birlikte yazılı başvuruda bulunabilirsiniz. Başvurularınız en geç 30 gün içinde sonuçlandırılacaktır.',
   },
 ];
 
@@ -71,7 +71,7 @@ export default function KVKKPage() {
         <div style={{ marginTop: 48, padding: '24px', background: '#0f0f18', border: '1px solid #1a1a2e', borderRadius: 14 }}>
           <p style={{ color: '#9ca3af', fontSize: 14, margin: 0, lineHeight: 1.7 }}>
             KVKK başvurularınız için:{' '}
-            <a href="mailto:destek@checkify.com" style={{ color: '#a855f7', textDecoration: 'none' }}>destek@checkify.com</a>
+            <a href="mailto:destek@checkkify.com" style={{ color: '#a855f7', textDecoration: 'none' }}>destek@checkkify.com</a>
           </p>
         </div>
       </main>

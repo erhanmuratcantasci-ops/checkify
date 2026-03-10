@@ -81,7 +81,7 @@ export default function RegisterPage() {
           boxShadow: '0 25px 50px rgba(0,0,0,0.4)',
         }}>
           <h1 style={{ fontSize: 22, fontWeight: 700, color: '#fff', margin: '0 0 6px', fontFamily: "'Syne', sans-serif" }}>Hesap oluştur</h1>
-          <p style={{ color: '#6b7280', fontSize: 14, margin: '0 0 28px' }}>Checkify'a üye ol, ücretsiz başla</p>
+          <p style={{ color: '#6b7280', fontSize: 14, margin: '0 0 28px' }}>Checkkify'a üye ol, ücretsiz başla</p>
 
           {error && (
             <div style={{

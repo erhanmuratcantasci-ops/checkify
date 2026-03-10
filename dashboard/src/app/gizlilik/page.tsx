@@ -7,7 +7,7 @@ import Logo from '@/components/Logo';
 const sections = [
   {
     title: '1. Toplanan Bilgiler',
-    text: 'Checkify olarak hizmetlerimizi sunabilmek amacıyla ad, e-posta adresi, şirket bilgileri ve ödeme bilgileri gibi kişisel verilerinizi toplayabiliriz. Ayrıca platformumuzu kullanırken otomatik olarak IP adresi, tarayıcı türü, işletim sistemi ve kullanım verileri gibi teknik bilgiler de toplanabilir.',
+    text: 'Checkkify olarak hizmetlerimizi sunabilmek amacıyla ad, e-posta adresi, şirket bilgileri ve ödeme bilgileri gibi kişisel verilerinizi toplayabiliriz. Ayrıca platformumuzu kullanırken otomatik olarak IP adresi, tarayıcı türü, işletim sistemi ve kullanım verileri gibi teknik bilgiler de toplanabilir.',
   },
   {
     title: '2. Bilgilerin Kullanım Amacı',
@@ -31,7 +31,7 @@ const sections = [
   },
   {
     title: '7. Haklarınız',
-    text: 'Kişisel verilerinize ilişkin erişim, düzeltme, silme, işlemeyi kısıtlama ve taşınabilirlik haklarına sahipsiniz. Bu haklarınızı kullanmak için destek@checkify.com adresine başvurabilirsiniz.',
+    text: 'Kişisel verilerinize ilişkin erişim, düzeltme, silme, işlemeyi kısıtlama ve taşınabilirlik haklarına sahipsiniz. Bu haklarınızı kullanmak için destek@checkkify.com adresine başvurabilirsiniz.',
   },
   {
     title: '8. Değişiklikler',
@@ -59,7 +59,7 @@ export default function GizlilikPage() {
 
         <div style={{ background: 'rgba(139,92,246,0.06)', border: '1px solid rgba(139,92,246,0.15)', borderRadius: 12, padding: '16px 20px', marginBottom: 40 }}>
           <p style={{ color: '#c4b5fd', fontSize: 14, margin: 0, lineHeight: 1.6 }}>
-            Bu Gizlilik Politikası, Checkify platformunu kullanırken kişisel verilerinizin nasıl toplandığını, kullanıldığını ve korunduğunu açıklamaktadır.
+            Bu Gizlilik Politikası, Checkkify platformunu kullanırken kişisel verilerinizin nasıl toplandığını, kullanıldığını ve korunduğunu açıklamaktadır.
           </p>
         </div>
 
@@ -75,7 +75,7 @@ export default function GizlilikPage() {
         <div style={{ marginTop: 48, padding: '24px', background: '#0f0f18', border: '1px solid #1a1a2e', borderRadius: 14 }}>
           <p style={{ color: '#9ca3af', fontSize: 14, margin: 0, lineHeight: 1.7 }}>
             Sorularınız için:{' '}
-            <a href="mailto:destek@checkify.com" style={{ color: '#a855f7', textDecoration: 'none' }}>destek@checkify.com</a>
+            <a href="mailto:destek@checkkify.com" style={{ color: '#a855f7', textDecoration: 'none' }}>destek@checkkify.com</a>
           </p>
         </div>
       </main>
