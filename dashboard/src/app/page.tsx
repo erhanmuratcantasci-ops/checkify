@@ -50,7 +50,7 @@ export default function LandingPage() {
           Sahte Siparişlere<br />
           <span style={{ background: 'linear-gradient(135deg, #a78bfa, #7c3aed, #c4b5fd)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>Son Ver.</span>
         </h1>
-        <p style={{ fontSize: 38, color: '#9ca3af', lineHeight: 1.7, maxWidth: 560, margin: '0 auto 40px', fontWeight: 400 }}>
+        <p style={{ fontSize: 22, color: '#9ca3af', lineHeight: 1.7, maxWidth: 640, margin: '0 auto 40px', fontWeight: 400 }}>
           Kapıda ödeme siparişlerini SMS ile doğrula. İade oranını düşür, karlılığını artır.
         </p>
         <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
