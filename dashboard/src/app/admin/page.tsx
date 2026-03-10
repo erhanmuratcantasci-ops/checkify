@@ -340,12 +340,12 @@ export default function AdminPage() {
                       <button
                         onClick={() => setDeleteTarget(user)}
                         style={{
-                          padding: '6px 10px', borderRadius: 7, fontSize: 12, fontWeight: 600,
-                          background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)',
-                          color: '#f87171', cursor: 'pointer',
+                          padding: '6px 14px', borderRadius: 7, fontSize: 12, fontWeight: 700,
+                          background: 'rgba(239,68,68,0.18)', border: '1px solid rgba(239,68,68,0.45)',
+                          color: '#f87171', cursor: 'pointer', whiteSpace: 'nowrap',
                         }}
                       >
-                        Sil
+                        🗑️ Sil
                       </button>
                     </div>
                   </td>
