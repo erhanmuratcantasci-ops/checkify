@@ -150,4 +150,72 @@ router.get('/:id', authenticate, async (req: AuthRequest, res: Response): Promis
   });
 });
 
+// PATCH /orders/:id — status update
+router.patch('/:id', authenticate, async (req: AuthRequest, res: Response): Promise<void> => {
+  const id = parseInt(req.params['id'] as string);
+  const { status } = req.body as { status?: string };
+
+  if (isNaN(id)) { res.status(400).json({ error: 'Geçersiz id' }); return; }
+  if (!status || !Object.values(OrderStatus).includes(status as OrderStatus)) {
+    res.status(400).json({ error: `Geçersiz status. Geçerli değerler: ${Object.values(OrderStatus).join(', ')}` });
+    return;
+  }
+
+  const order = await prisma.order.findFirst({
+    where: { id, shop: { userId: req.userId } },
+  });
+
+  if (!order) { res.status(404).json({ error: 'Sipariş bulunamadı' }); return; }
+
+  const updated = await prisma.order.update({
+    where: { id },
+    data: { status: status as OrderStatus },
+    include: {
+      shop: { select: { id: true, name: true, shopDomain: true } },
+      smsLogs: { orderBy: { createdAt: 'desc' } },
+    },
+  });
+
+  res.json({
+    order: {
+      ...updated,
+      shopifyOrderId: updated.shopifyOrderId?.toString() ?? null,
+    },
+  });
+});
+
+// POST /orders/:id/resend-sms — SMS yeniden gönder (sadece PENDING)
+router.post('/:id/resend-sms', authenticate, async (req: AuthRequest, res: Response): Promise<void> => {
+  const id = parseInt(req.params['id'] as string);
+  if (isNaN(id)) { res.status(400).json({ error: 'Geçersiz id' }); return; }
+
+  const order = await prisma.order.findFirst({
+    where: { id, shop: { userId: req.userId } },
+  });
+
+  if (!order) { res.status(404).json({ error: 'Sipariş bulunamadı' }); return; }
+  if (order.status !== 'PENDING') {
+    res.status(400).json({ error: 'Yalnızca bekleyen siparişlere SMS gönderilebilir' });
+    return;
+  }
+  if (!order.confirmToken) {
+    res.status(400).json({ error: 'Bu sipariş için onay token bulunamadı' });
+    return;
+  }
+
+  const { smsQueue } = await import('../lib/queue');
+  const baseUrl = process.env['BASE_URL'] || 'http://localhost:3001';
+
+  await smsQueue.add('send-sms', {
+    orderId: order.id,
+    phone: order.customerPhone,
+    customerName: order.customerName,
+    total: order.total,
+    confirmUrl: `${baseUrl}/confirm/${order.confirmToken}`,
+    cancelUrl: `${baseUrl}/confirm/cancel/${order.confirmToken}`,
+  });
+
+  res.json({ success: true, message: 'SMS kuyruğa eklendi' });
+});
+
 export default router;
