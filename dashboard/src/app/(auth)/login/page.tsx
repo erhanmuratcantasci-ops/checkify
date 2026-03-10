@@ -63,8 +63,8 @@ export default function LoginPage() {
         position: 'relative', zIndex: 1,
       }}>
         <div style={{ textAlign: 'center', marginBottom: 40 }}>
-          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 8 }}>
-            <Logo size="md" />
+          <div style={{ marginBottom: 8 }}>
+            <Logo size="lg" />
           </div>
           <p style={{ color: '#6b7280', fontSize: 14, margin: 0 }}>COD doğrulama platformu</p>
         </div>
