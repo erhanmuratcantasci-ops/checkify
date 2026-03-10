@@ -1,166 +1,118 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { orders, Order, OrderStatus, OrdersResponse } from '@/lib/api';
 import Navbar from '@/components/Navbar';
 
-const STATUS_LABELS: Record<OrderStatus, string> = {
-  PENDING: 'Bekliyor',
-  CONFIRMED: 'Onaylandı',
-  PREPARING: 'Hazırlanıyor',
-  SHIPPED: 'Kargoya Verildi',
-  DELIVERED: 'Teslim Edildi',
-  CANCELLED: 'İptal Edildi',
+const STATUS_LABELS: Record<string, string> = {
+  PENDING: 'Bekliyor', CONFIRMED: 'Onaylandı', PREPARING: 'Hazırlanıyor',
+  SHIPPED: 'Kargoda', DELIVERED: 'Teslim', CANCELLED: 'İptal',
+};
+const STATUS_COLORS: Record<string, { bg: string; color: string }> = {
+  PENDING:   { bg: 'rgba(217,119,6,0.15)',  color: '#fbbf24' },
+  CONFIRMED: { bg: 'rgba(5,150,105,0.15)',  color: '#34d399' },
+  PREPARING: { bg: 'rgba(59,130,246,0.15)', color: '#60a5fa' },
+  SHIPPED:   { bg: 'rgba(139,92,246,0.15)', color: '#a78bfa' },
+  DELIVERED: { bg: 'rgba(16,185,129,0.15)', color: '#6ee7b7' },
+  CANCELLED: { bg: 'rgba(239,68,68,0.12)',  color: '#f87171' },
 };
 
-const STATUS_COLORS: Record<OrderStatus, { bg: string; color: string }> = {
-  PENDING:   { bg: 'rgba(245,158,11,0.12)',  color: 'var(--status-pending)' },
-  CONFIRMED: { bg: 'rgba(16,185,129,0.12)',  color: 'var(--status-confirmed)' },
-  PREPARING: { bg: 'rgba(59,130,246,0.12)',  color: 'var(--status-preparing)' },
-  SHIPPED:   { bg: 'rgba(168,85,247,0.12)',  color: 'var(--status-shipped)' },
-  DELIVERED: { bg: 'rgba(6,214,160,0.12)',   color: 'var(--status-delivered)' },
-  CANCELLED: { bg: 'rgba(239,68,68,0.12)',   color: 'var(--status-cancelled)' },
+const FILTERS = ['Tümü','Bekliyor','Onaylandı','Hazırlanıyor','Kargoda','Teslim','İptal'];
+const FILTER_MAP: Record<string, string | null> = {
+  'Tümü': null, 'Bekliyor': 'PENDING', 'Onaylandı': 'CONFIRMED',
+  'Hazırlanıyor': 'PREPARING', 'Kargoda': 'SHIPPED', 'Teslim': 'DELIVERED', 'İptal': 'CANCELLED',
 };
 
-const ALL_STATUSES = Object.keys(STATUS_LABELS) as OrderStatus[];
+interface Order {
+  id: number; customerName: string; customerPhone: string;
+  total: number; status: string; createdAt: string;
+}
 
 export default function OrdersPage() {
   const router = useRouter();
-  const [data, setData] = useState<OrdersResponse | null>(null);
-  const [activeStatus, setActiveStatus] = useState<OrderStatus | ''>('');
-  const [page, setPage] = useState(1);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [total, setTotal] = useState(0);
+  const [filter, setFilter] = useState('Tümü');
   const [loading, setLoading] = useState(true);
 
-  const fetchOrders = useCallback(async () => {
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) { router.push('/login'); return; }
     setLoading(true);
-    try {
-      const res = await orders.list({ status: activeStatus || undefined, page, limit: 15 });
-      setData(res);
-    } catch {
-      router.push('/login');
-    } finally {
-      setLoading(false);
-    }
-  }, [activeStatus, page, router]);
-
-  useEffect(() => { fetchOrders(); }, [fetchOrders]);
-
-  function handleStatusChange(status: OrderStatus | '') {
-    setActiveStatus(status);
-    setPage(1);
-  }
+    const status = FILTER_MAP[filter];
+    const url = `http://localhost:3001/orders${status ? `?status=${status}` : ''}`;
+    fetch(url, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.json())
+      .then(data => { setOrders(data.orders || []); setTotal(data.total || 0); })
+      .catch(() => router.push('/login'))
+      .finally(() => setLoading(false));
+  }, [filter, router]);
 
   return (
-    <div className="min-h-screen" style={{ background: 'var(--bg-base)' }}>
+    <div style={{ minHeight: '100vh', background: '#0a0a0f', fontFamily: "'DM Sans', sans-serif" }}>
       <Navbar />
-
-      <main className="max-w-6xl mx-auto px-6 py-10">
-        <div className="mb-6">
-          <h2 className="text-2xl font-bold" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-syne)' }}>Siparişler</h2>
-          {data && <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>Toplam {data.total} sipariş</p>}
+      <main style={{ maxWidth: 1100, margin: '0 auto', padding: '40px 24px' }}>
+        <div style={{ marginBottom: 28 }}>
+          <h1 style={{ fontSize: 26, fontWeight: 700, color: '#fff', margin: '0 0 4px', fontFamily: "'Syne', sans-serif" }}>Siparişler</h1>
+          <p style={{ color: '#6b7280', fontSize: 14, margin: 0 }}>Toplam {total} sipariş</p>
         </div>
 
-        {/* Status Filtreleri */}
-        <div className="flex flex-wrap gap-2 mb-6">
-          {(['', ...ALL_STATUSES] as (OrderStatus | '')[]).map((s) => {
-            const active = activeStatus === s;
-            return (
-              <button
-                key={s}
-                onClick={() => handleStatusChange(s)}
-                className="px-3 py-1.5 rounded-lg text-sm font-medium transition-all"
-                style={{
-                  background: active ? 'var(--accent)' : 'var(--bg-surface)',
-                  color: active ? 'var(--accent-fg)' : 'var(--text-secondary)',
-                  border: `1px solid ${active ? 'var(--accent)' : 'var(--border)'}`,
-                }}
-              >
-                {s === '' ? 'Tümü' : STATUS_LABELS[s]}
-              </button>
-            );
-          })}
+        {/* Filter tabs */}
+        <div style={{ display: 'flex', gap: 6, marginBottom: 24, flexWrap: 'wrap' }}>
+          {FILTERS.map(f => (
+            <button key={f} onClick={() => setFilter(f)} style={{
+              padding: '7px 16px', borderRadius: 8, fontSize: 13, fontWeight: 500, cursor: 'pointer',
+              border: filter === f ? '1px solid rgba(139,92,246,0.4)' : '1px solid rgba(255,255,255,0.07)',
+              background: filter === f ? 'rgba(139,92,246,0.15)' : 'rgba(255,255,255,0.03)',
+              color: filter === f ? '#c4b5fd' : '#6b7280',
+              transition: 'all 0.15s',
+            }}>{f}</button>
+          ))}
         </div>
 
-        {/* Tablo */}
-        <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid var(--border)' }}>
+        {/* Table */}
+        <div style={{
+          background: 'rgba(255,255,255,0.02)',
+          border: '1px solid rgba(255,255,255,0.07)',
+          borderRadius: 16, overflow: 'hidden',
+        }}>
           {loading ? (
-            <div className="flex items-center justify-center py-20" style={{ background: 'var(--bg-surface)' }}>
-              <div className="w-6 h-6 rounded-full animate-spin" style={{ border: '2px solid var(--accent)', borderTopColor: 'transparent' }} />
-            </div>
-          ) : !data || data.orders.length === 0 ? (
-            <div className="text-center py-20 text-sm" style={{ background: 'var(--bg-surface)', color: 'var(--text-muted)' }}>
-              {activeStatus ? `"${STATUS_LABELS[activeStatus]}" durumunda sipariş yok` : 'Henüz sipariş yok'}
-            </div>
+            <div style={{ padding: 60, textAlign: 'center', color: '#4b5563' }}>Yükleniyor...</div>
+          ) : orders.length === 0 ? (
+            <div style={{ padding: 60, textAlign: 'center', color: '#4b5563', fontSize: 14 }}>Henüz sipariş yok</div>
           ) : (
-            <table className="w-full text-sm">
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
-                <tr style={{ background: 'var(--bg-elevated)', borderBottom: '1px solid var(--border)' }}>
-                  {['Sipariş', 'Müşteri', 'Telefon', 'Tutar', 'Durum', 'Tarih'].map((h) => (
-                    <th key={h} className="text-left px-6 py-3 text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
-                      {h}
-                    </th>
+                <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                  {['Sipariş', 'Müşteri', 'Telefon', 'Tutar', 'Durum', 'Tarih'].map(h => (
+                    <th key={h} style={{ padding: '14px 20px', textAlign: 'left', color: '#4b5563', fontSize: 11, fontWeight: 600, letterSpacing: '0.8px', textTransform: 'uppercase' }}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {data.orders.map((order: Order, i) => (
-                  <tr
-                    key={order.id}
-                    onClick={() => router.push(`/orders/${order.id}`)}
-                    className="cursor-pointer transition-colors"
-                    style={{
-                      background: 'var(--bg-surface)',
-                      borderBottom: i < data.orders.length - 1 ? '1px solid var(--border-subtle)' : 'none',
-                    }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-elevated)')}
-                    onMouseLeave={(e) => (e.currentTarget.style.background = 'var(--bg-surface)')}
-                  >
-                    <td className="px-6 py-4 font-medium" style={{ color: 'var(--text-primary)' }}>
-                      #{order.id}
-                      {order.shopifyOrderId && (
-                        <span className="ml-2 text-xs" style={{ color: 'var(--text-muted)' }}>#{order.shopifyOrderId}</span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4" style={{ color: 'var(--text-secondary)' }}>{order.customerName}</td>
-                    <td className="px-6 py-4" style={{ color: 'var(--text-muted)' }}>{order.customerPhone}</td>
-                    <td className="px-6 py-4 font-semibold" style={{ color: 'var(--text-primary)' }}>{order.total.toFixed(2)} ₺</td>
-                    <td className="px-6 py-4">
-                      <span className="inline-flex px-2 py-1 rounded-md text-xs font-semibold" style={STATUS_COLORS[order.status]}>
-                        {STATUS_LABELS[order.status]}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4" style={{ color: 'var(--text-muted)' }}>
-                      {new Date(order.createdAt).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', year: 'numeric' })}
-                    </td>
-                  </tr>
-                ))}
+                {orders.map((order, i) => {
+                  const sc = STATUS_COLORS[order.status] || { bg: 'rgba(255,255,255,0.05)', color: '#9ca3af' };
+                  return (
+                    <tr key={order.id} style={{ borderBottom: i < orders.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
+                      <td style={{ padding: '14px 20px', color: '#9ca3af', fontSize: 13 }}>#{order.id}</td>
+                      <td style={{ padding: '14px 20px', color: '#e5e7eb', fontSize: 14, fontWeight: 500 }}>{order.customerName}</td>
+                      <td style={{ padding: '14px 20px', color: '#9ca3af', fontSize: 13 }}>{order.customerPhone}</td>
+                      <td style={{ padding: '14px 20px', color: '#e5e7eb', fontSize: 14, fontWeight: 600 }}>{order.total.toFixed(2)} ₺</td>
+                      <td style={{ padding: '14px 20px' }}>
+                        <span style={{ padding: '4px 10px', borderRadius: 6, fontSize: 12, fontWeight: 600, background: sc.bg, color: sc.color }}>
+                          {STATUS_LABELS[order.status] || order.status}
+                        </span>
+                      </td>
+                      <td style={{ padding: '14px 20px', color: '#6b7280', fontSize: 13 }}>
+                        {new Date(order.createdAt).toLocaleDateString('tr-TR')}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           )}
         </div>
-
-        {/* Sayfalama */}
-        {data && data.totalPages > 1 && (
-          <div className="flex items-center justify-between mt-4">
-            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-              {(page - 1) * 15 + 1}–{Math.min(page * 15, data.total)} / {data.total}
-            </p>
-            <div className="flex gap-2">
-              {['Önceki', 'Sonraki'].map((label, i) => (
-                <button
-                  key={label}
-                  onClick={() => setPage((p) => p + (i === 0 ? -1 : 1))}
-                  disabled={i === 0 ? page === 1 : page === data.totalPages}
-                  className="px-3 py-1.5 text-sm rounded-lg disabled:opacity-40 transition-all"
-                  style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
       </main>
     </div>
   );

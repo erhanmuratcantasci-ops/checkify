@@ -3,12 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 
-const navItems = [
-  { href: '/dashboard', label: 'Profil' },
-  { href: '/orders', label: 'Siparişler' },
-];
-
-export default function Navbar({ userName }: { userName?: string | null }) {
+export default function Navbar({ userName }: { userName?: string }) {
   const pathname = usePathname();
   const router = useRouter();
 
@@ -17,43 +12,75 @@ export default function Navbar({ userName }: { userName?: string | null }) {
     router.push('/login');
   }
 
+  const navLinks = [
+    { href: '/dashboard', label: 'Dashboard' },
+    { href: '/orders', label: 'Siparişler' },
+  ];
+
   return (
-    <header className="px-6 py-4 flex items-center justify-between" style={{ background: 'var(--bg-surface)', borderBottom: '1px solid var(--border)' }}>
-      <div className="flex items-center gap-6">
-        <span className="text-lg font-bold" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-syne)' }}>
-          Checkify
-        </span>
-        <nav className="flex items-center gap-1">
-          {navItems.map((item) => {
-            const active = pathname === item.href;
+    <nav style={{
+      position: 'sticky', top: 0, zIndex: 50,
+      background: 'rgba(10,10,15,0.8)',
+      backdropFilter: 'blur(12px)',
+      borderBottom: '1px solid rgba(255,255,255,0.06)',
+      padding: '0 24px',
+      height: 56,
+      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 32 }}>
+        <Link href="/dashboard" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{
+            width: 28, height: 28,
+            background: 'linear-gradient(135deg, #7c3aed, #a855f7)',
+            borderRadius: 8,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow: '0 0 12px rgba(139,92,246,0.4)',
+          }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+              <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </div>
+          <span style={{ color: '#fff', fontWeight: 700, fontSize: 16, fontFamily: "'Syne', sans-serif", letterSpacing: '-0.3px' }}>
+            Checkify
+          </span>
+        </Link>
+        <div style={{ display: 'flex', gap: 4 }}>
+          {navLinks.map(link => {
+            const active = pathname === link.href;
             return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
-                style={{
-                  background: active ? 'var(--bg-overlay)' : 'transparent',
-                  color: active ? 'var(--text-primary)' : 'var(--text-secondary)',
-                }}
-              >
-                {item.label}
+              <Link key={link.href} href={link.href} style={{
+                textDecoration: 'none',
+                padding: '6px 14px',
+                borderRadius: 8,
+                fontSize: 14, fontWeight: 500,
+                color: active ? '#fff' : '#6b7280',
+                background: active ? 'rgba(139,92,246,0.15)' : 'transparent',
+                border: active ? '1px solid rgba(139,92,246,0.3)' : '1px solid transparent',
+                transition: 'all 0.15s',
+              }}>
+                {link.label}
               </Link>
             );
           })}
-        </nav>
+        </div>
       </div>
-      <div className="flex items-center gap-4">
-        {userName && <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>{userName}</span>}
-        <button
-          onClick={handleLogout}
-          className="text-sm transition-colors"
-          style={{ color: 'var(--text-muted)' }}
-          onMouseEnter={(e) => e.currentTarget.style.color = 'var(--text-primary)'}
-          onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-muted)'}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        {userName && (
+          <span style={{ color: '#6b7280', fontSize: 13 }}>{userName}</span>
+        )}
+        <button onClick={handleLogout} style={{
+          background: 'rgba(255,255,255,0.05)',
+          border: '1px solid rgba(255,255,255,0.08)',
+          borderRadius: 8, padding: '6px 14px',
+          color: '#9ca3af', fontSize: 13, cursor: 'pointer',
+          transition: 'all 0.15s',
+        }}
+        onMouseEnter={e => { (e.target as HTMLButtonElement).style.color = '#fff'; (e.target as HTMLButtonElement).style.borderColor = 'rgba(255,255,255,0.15)'; }}
+        onMouseLeave={e => { (e.target as HTMLButtonElement).style.color = '#9ca3af'; (e.target as HTMLButtonElement).style.borderColor = 'rgba(255,255,255,0.08)'; }}
         >
-          Çıkış yap
+          Çıkış
         </button>
       </div>
-    </header>
+    </nav>
   );
 }
