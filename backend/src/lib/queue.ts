@@ -20,4 +20,6 @@ export interface SMSJobData {
   phone: string;
   customerName: string;
   total: number;
+  confirmUrl: string;
+  cancelUrl: string;
 }

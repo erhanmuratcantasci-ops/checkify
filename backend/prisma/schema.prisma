@@ -32,17 +32,19 @@ model Shop {
 }
 
 model Order {
-  id             Int         @id @default(autoincrement())
-  customerName   String
-  customerPhone  String
-  total          Float
-  status         OrderStatus @default(PENDING)
-  shopId         Int
-  createdAt      DateTime    @default(now())
-  updatedAt      DateTime    @updatedAt
+  id              Int         @id @default(autoincrement())
+  customerName    String
+  customerPhone   String
+  total           Float
+  status          OrderStatus @default(PENDING)
+  shopId          Int
+  confirmToken    String?     @unique
+  tokenExpiresAt  DateTime?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
 
-  shop           Shop        @relation(fields: [shopId], references: [id])
-  smsLogs        SMSLog[]
+  shop            Shop        @relation(fields: [shopId], references: [id])
+  smsLogs         SMSLog[]
 }
 
 model SMSLog {

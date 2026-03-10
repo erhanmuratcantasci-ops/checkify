@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import crypto from 'crypto';
+import crypto, { randomUUID } from 'crypto';
 import prisma from '../lib/prisma';
 import { smsQueue } from '../lib/queue';
 
@@ -64,6 +64,9 @@ router.post('/orders/create', async (req: Request, res: Response): Promise<void>
       return;
     }
 
+    const confirmToken = randomUUID();
+    const tokenExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 saat
+
     const order = await prisma.order.create({
       data: {
         customerName,
@@ -71,16 +74,21 @@ router.post('/orders/create', async (req: Request, res: Response): Promise<void>
         total,
         status: 'PENDING',
         shopId: shop.id,
+        confirmToken,
+        tokenExpiresAt,
       },
     });
 
     console.log(`[webhook] Order oluşturuldu: #${order.id} — ${customerName} (${customerPhone}) — ${total}`);
 
+    const baseUrl = process.env['BASE_URL'] || 'http://localhost:3001';
     await smsQueue.add('send-sms', {
       orderId: order.id,
       phone: customerPhone,
       customerName,
       total,
+      confirmUrl: `${baseUrl}/confirm/${confirmToken}`,
+      cancelUrl: `${baseUrl}/confirm/cancel/${confirmToken}`,
     });
   } catch (err) {
     console.error('[webhook] Order kaydedilemedi:', err);

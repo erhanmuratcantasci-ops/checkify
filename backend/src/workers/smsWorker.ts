@@ -25,7 +25,7 @@ async function sendSMS(phone: string, message: string): Promise<void> {
 }
 
 async function processJob(job: Job<SMSJobData>): Promise<void> {
-  const { orderId, phone, customerName, total } = job.data;
+  const { orderId, phone, customerName, total, confirmUrl, cancelUrl } = job.data;
 
   if (!isWorkingHour()) {
     const delay = msUntilMorning();
@@ -36,7 +36,8 @@ async function processJob(job: Job<SMSJobData>): Promise<void> {
   }
 
   const message =
-    `Merhaba ${customerName}, ${total.toFixed(2)} TL tutarındaki siparişiniz alındı. Teşekkürler!`;
+    `Merhaba ${customerName}, ${total.toFixed(2)} TL tutarındaki siparişiniz alındı. ` +
+    `Onaylamak: ${confirmUrl} | İptal: ${cancelUrl}`;
 
   await sendSMS(phone, message);
 
