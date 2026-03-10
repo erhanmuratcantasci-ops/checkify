@@ -84,8 +84,8 @@ export default function LandingPage() {
             <div key={i} style={{ background: '#0f0f18', border: '1px solid #1a1a2e', borderRadius: 20, padding: '32px 28px', position: 'relative', overflow: 'hidden' }}>
               <div style={{ position: 'absolute', top: -10, right: -10, fontSize: 64, fontWeight: 900, color: 'rgba(139,92,246,0.08)', fontFamily: "'Outfit', sans-serif", lineHeight: 1 }}>{step.num}</div>
               <div style={{ fontSize: 13, fontWeight: 700, color: '#7c3aed', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: 12 }}>{step.num}</div>
-              <h3 style={{ fontSize: 40, fontWeight: 700, margin: '0 0 10px' }}>{step.title}</h3>
-              <p style={{ color: '#6b7280', fontSize: 34, lineHeight: 1.6, margin: 0 }}>{step.desc}</p>
+              <h3 style={{ fontSize: 22, fontWeight: 700, margin: '0 0 10px' }}>{step.title}</h3>
+              <p style={{ color: '#6b7280', fontSize: 15, lineHeight: 1.6, margin: 0 }}>{step.desc}</p>
             </div>
           ))}
         </div>
