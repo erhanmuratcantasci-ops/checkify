@@ -5,10 +5,7 @@ import { smsQueue } from '../lib/queue';
 
 const router = Router();
 
-function verifyShopifyHmac(rawBody: Buffer, hmacHeader: string): boolean {
-  const secret = process.env['SHOPIFY_WEBHOOK_SECRET'];
-  if (!secret) return false;
-
+function verifyHmac(rawBody: Buffer, hmacHeader: string, secret: string): boolean {
   const digest = crypto
     .createHmac('sha256', secret)
     .update(rawBody)
@@ -24,9 +21,27 @@ function verifyShopifyHmac(rawBody: Buffer, hmacHeader: string): boolean {
 // POST /webhook/orders/create
 router.post('/orders/create', async (req: Request, res: Response): Promise<void> => {
   const hmacHeader = req.headers['x-shopify-hmac-sha256'] as string | undefined;
+  const shopDomain = req.headers['x-shopify-shop-domain'] as string | undefined;
   const rawBody = req.body as Buffer;
 
-  if (!hmacHeader || !Buffer.isBuffer(rawBody) || !verifyShopifyHmac(rawBody, hmacHeader)) {
+  if (!hmacHeader || !Buffer.isBuffer(rawBody)) {
+    res.status(401).json({ error: 'Geçersiz istek' });
+    return;
+  }
+
+  // Shop domain'e göre shop bul
+  const shop = shopDomain
+    ? await prisma.shop.findFirst({ where: { shopDomain } })
+    : await prisma.shop.findFirst();
+
+  if (!shop) {
+    res.status(401).json({ error: 'Shop bulunamadı' });
+    return;
+  }
+
+  // Shop'un webhookSecret'ı varsa onu kullan, yoksa env'e bak
+  const secret = shop.webhookSecret || process.env['SHOPIFY_WEBHOOK_SECRET'] || '';
+  if (!secret || !verifyHmac(rawBody, hmacHeader, secret)) {
     res.status(401).json({ error: 'Geçersiz imza' });
     return;
   }
@@ -58,14 +73,8 @@ router.post('/orders/create', async (req: Request, res: Response): Promise<void>
 
     const total = parseFloat(payload.total_price ?? '0');
 
-    const shop = await prisma.shop.findFirst();
-    if (!shop) {
-      console.error('[webhook] Shop bulunamadı, order kaydedilemedi');
-      return;
-    }
-
     const confirmToken = randomUUID();
-    const tokenExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 saat
+    const tokenExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
     const order = await prisma.order.create({
       data: {
