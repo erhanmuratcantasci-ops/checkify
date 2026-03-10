@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import prisma from '../lib/prisma';
 import { authenticate, AuthRequest } from '../middleware/auth';
+import { sendWelcomeEmail } from '../lib/mailer';
 
 const router = Router();
 
@@ -32,6 +33,9 @@ router.post('/register', async (req: Request, res: Response): Promise<void> => {
   });
 
   const token = jwt.sign({ userId: user.id }, process.env['JWT_SECRET']!, { expiresIn: '7d' });
+
+  sendWelcomeEmail(user.email, user.name ?? user.email)
+    .catch(err => console.error('[auth] Welcome email gönderilemedi:', err));
 
   res.status(201).json({ user, token });
 });

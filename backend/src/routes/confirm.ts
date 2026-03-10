@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import prisma from '../lib/prisma';
 import { addTagToOrder } from '../lib/shopify';
+import { sendOrderConfirmationEmail, sendOrderCancellationEmail } from '../lib/mailer';
 
 const router = Router();
 
@@ -29,7 +30,7 @@ router.get('/:token', async (req: Request, res: Response): Promise<void> => {
     select: { id: true, customerName: true, total: true, status: true },
   });
 
-  // Shopify'a tag ekle (arka planda, cevabı geciktirme)
+  // Arka planda: Shopify tag + email
   if (order.shopifyOrderId && order.shop.shopDomain && order.shop.accessToken) {
     addTagToOrder(
       order.shop.shopDomain,
@@ -37,6 +38,17 @@ router.get('/:token', async (req: Request, res: Response): Promise<void> => {
       Number(order.shopifyOrderId),
       'onaylandi'
     ).catch((err) => console.error('[confirm] Shopify tag eklenemedi:', err));
+  }
+
+  // Müşteriye confirmation email gönder — müşteri emailini order üzerinden alabiliyorsak
+  // Şimdilik shop sahibine gönder (müşteri email alanı henüz yok)
+  const shopUser = await prisma.user.findFirst({
+    where: { shops: { some: { id: order.shopId } } },
+    select: { email: true, name: true },
+  });
+  if (shopUser) {
+    sendOrderConfirmationEmail(shopUser.email, order.customerName, order.total, order.id)
+      .catch(err => console.error('[confirm] Email gönderilemedi:', err));
   }
 
   res.json({ message: 'Sipariş onaylandı', order: updated });
@@ -74,6 +86,15 @@ router.get('/cancel/:token', async (req: Request, res: Response): Promise<void> 
       Number(order.shopifyOrderId),
       'iptal-edildi'
     ).catch((err) => console.error('[cancel] Shopify tag eklenemedi:', err));
+  }
+
+  const shopUserCancel = await prisma.user.findFirst({
+    where: { shops: { some: { id: order.shopId } } },
+    select: { email: true, name: true },
+  });
+  if (shopUserCancel) {
+    sendOrderCancellationEmail(shopUserCancel.email, order.customerName, order.total, order.id)
+      .catch(err => console.error('[cancel] Email gönderilemedi:', err));
   }
 
   res.json({ message: 'Sipariş iptal edildi', order: updated });

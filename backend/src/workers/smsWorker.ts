@@ -3,6 +3,9 @@ import prisma from '../lib/prisma';
 import { redisConnection, SMSJobData } from '../lib/queue';
 import { validateSMSMessage, validatePhone } from '../middleware/smsValidator';
 import { checkSmsRateLimit } from '../middleware/rateLimiter';
+import { sendLowCreditEmail } from '../lib/mailer';
+
+const LOW_CREDIT_THRESHOLD = 10;
 
 const DAY_START = 9;  // 09:00
 const DAY_END   = 22; // 22:00
@@ -98,13 +101,14 @@ async function processJob(job: Job<SMSJobData>): Promise<void> {
 
   // SMS logu + kredi düşümü atomik
   if (order) {
-    await prisma.$transaction([
-      prisma.sMSLog.create({
-        data: { phone, message, status: 'SENT', orderId },
-      }),
+    const [updatedUser] = await prisma.$transaction([
       prisma.user.update({
         where: { id: order.shop.userId },
         data: { smsCredits: { decrement: 1 } },
+        select: { id: true, email: true, name: true, smsCredits: true },
+      }),
+      prisma.sMSLog.create({
+        data: { phone, message, status: 'SENT', orderId },
       }),
       prisma.creditTransaction.create({
         data: {
@@ -115,6 +119,12 @@ async function processJob(job: Job<SMSJobData>): Promise<void> {
         },
       }),
     ]);
+
+    // Kredi eşiğinin altına düştüyse email bildir
+    if (updatedUser.smsCredits < LOW_CREDIT_THRESHOLD) {
+      sendLowCreditEmail(updatedUser.email, updatedUser.name ?? updatedUser.email, updatedUser.smsCredits)
+        .catch(err => console.error('[smsWorker] Low credit email gönderilemedi:', err));
+    }
   } else {
     await prisma.sMSLog.create({
       data: { phone, message, status: 'SENT', orderId },
