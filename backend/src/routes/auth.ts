@@ -40,6 +40,33 @@ router.post('/register', async (req: Request, res: Response): Promise<void> => {
   res.status(201).json({ user, token });
 });
 
+// POST /auth/google — Google OAuth ile giriş/kayıt
+router.post('/google', async (req: Request, res: Response): Promise<void> => {
+  const { email, name } = req.body as { email?: string; name?: string };
+
+  if (!email) {
+    res.status(400).json({ error: 'Email gerekli' });
+    return;
+  }
+
+  let user = await prisma.user.findUnique({ where: { email } });
+
+  if (!user) {
+    const randomPassword = await bcrypt.hash(Math.random().toString(36) + Date.now(), 10);
+    user = await prisma.user.create({
+      data: { email, name: name || null, password: randomPassword },
+    });
+    sendWelcomeEmail(user.email, user.name ?? user.email)
+      .catch(err => console.error('[auth] Welcome email gönderilemedi:', err));
+  }
+
+  await prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
+
+  const token = jwt.sign({ userId: user.id }, process.env['JWT_SECRET']!, { expiresIn: '7d' });
+
+  res.json({ token, user: { id: user.id, email: user.email, name: user.name } });
+});
+
 // POST /auth/login
 router.post('/login', async (req: Request, res: Response): Promise<void> => {
   const { email, password } = req.body as { email?: string; password?: string };
