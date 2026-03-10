@@ -44,9 +44,10 @@ export default function ProfilePage() {
     })
       .then(r => r.json())
       .then(data => {
-        setUser(data);
-        setName(data.name ?? '');
-        setEmail(data.email ?? '');
+        const u = data.user ?? data;
+        setUser(u);
+        setName(u.name ?? '');
+        setEmail(u.email ?? '');
       })
       .catch(() => router.push('/login'));
   }, [router]);

@@ -31,7 +31,7 @@ export default function DashboardPage() {
       fetch('http://localhost:3001/auth/me', { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()),
       fetch('http://localhost:3001/orders?limit=100', { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()),
     ]).then(([userData, ordersData]) => {
-      setUser(userData);
+      setUser(userData.user ?? userData);
       const orders = ordersData.orders || [];
       setStats({
         total: orders.filter((o: {status: string}) => o.status !== 'CANCELLED').length,
@@ -120,7 +120,7 @@ export default function DashboardPage() {
               <div style={{ color: '#6b7280', fontSize: 13 }}>{user?.email || '—'}</div>
             </div>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 0 }}>
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
             {[
               ['Email', user?.email],
               ['Kayıt tarihi', user?.createdAt ? new Date(user.createdAt).toLocaleDateString('tr-TR') : '—'],
