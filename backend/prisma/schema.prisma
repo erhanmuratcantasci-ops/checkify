@@ -53,14 +53,15 @@ model Order {
 }
 
 model SMSLog {
-  id        Int       @id @default(autoincrement())
-  phone     String
-  message   String
-  status    SMSStatus @default(PENDING)
-  orderId   Int
-  createdAt DateTime  @default(now())
+  id           Int       @id @default(autoincrement())
+  phone        String
+  message      String
+  status       SMSStatus @default(PENDING)
+  errorMessage String?
+  orderId      Int
+  createdAt    DateTime  @default(now())
 
-  order     Order     @relation(fields: [orderId], references: [id])
+  order        Order     @relation(fields: [orderId], references: [id])
 }
 
 enum OrderStatus {

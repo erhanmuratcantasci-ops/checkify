@@ -2,6 +2,7 @@ import { Worker, Job, DelayedError } from 'bullmq';
 import prisma from '../lib/prisma';
 import { redisConnection, SMSJobData } from '../lib/queue';
 import { validateSMSMessage, validatePhone } from '../middleware/smsValidator';
+import { checkSmsRateLimit } from '../middleware/rateLimiter';
 
 const DAY_START = 9;  // 09:00
 const DAY_END   = 22; // 22:00
@@ -41,7 +42,7 @@ async function processJob(job: Job<SMSJobData>): Promise<void> {
   if (!phoneCheck.valid) {
     console.error(`[SMS] Geçersiz telefon — Order #${orderId}: ${phoneCheck.error}`);
     await prisma.sMSLog.create({
-      data: { phone, message: '', status: 'FAILED', orderId },
+      data: { phone, message: '', status: 'FAILED', errorMessage: phoneCheck.error, orderId },
     });
     throw new Error(phoneCheck.error);
   }
@@ -55,9 +56,24 @@ async function processJob(job: Job<SMSJobData>): Promise<void> {
   if (!msgCheck.valid) {
     console.error(`[SMS] Geçersiz mesaj — Order #${orderId}: ${msgCheck.error}`);
     await prisma.sMSLog.create({
-      data: { phone, message, status: 'FAILED', orderId },
+      data: { phone, message, status: 'FAILED', errorMessage: msgCheck.error, orderId },
     });
     throw new Error(msgCheck.error);
+  }
+
+  // Shop başına saatlik SMS rate limit
+  const order = await prisma.order.findUnique({ where: { id: orderId }, select: { shopId: true } });
+  if (order) {
+    const rateCheck = await checkSmsRateLimit(order.shopId);
+    if (!rateCheck.allowed) {
+      const errMsg = `Shop #${order.shopId} saatlik SMS limitine ulaştı (max ${100})`;
+      console.error(`[SMS] Rate limit — Order #${orderId}: ${errMsg}`);
+      await prisma.sMSLog.create({
+        data: { phone, message, status: 'FAILED', errorMessage: errMsg, orderId },
+      });
+      throw new Error(errMsg);
+    }
+    console.log(`[SMS] Rate limit — Shop #${order.shopId} bu saat ${100 - rateCheck.remaining}/100 SMS kullandı`);
   }
 
   await sendSMS(phone, message);
