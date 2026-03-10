@@ -4,7 +4,7 @@ import type { NextRequest } from 'next/server';
 const publicPaths = ['/', '/login', '/register'];
 const protectedPaths = ['/dashboard', '/orders', '/profile', '/shops'];
 
-export function proxy(request: NextRequest) {
+export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const isProtected = protectedPaths.some((p) => pathname.startsWith(p));
 
@@ -17,8 +17,6 @@ export function proxy(request: NextRequest) {
 
   return NextResponse.next();
 }
-
-export default proxy;
 
 export const config = {
   matcher: ['/((?!_next|favicon.ico|.*\\..*).*)'],
