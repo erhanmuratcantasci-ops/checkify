@@ -8,6 +8,7 @@ import shopifyRouter from './routes/shopify';
 import ordersRouter from './routes/orders';
 import shopsRouter from './routes/shops';
 import smsTemplatesRouter from './routes/smsTemplates';
+import { loginRateLimiter, webhookRateLimiter } from './middleware/rateLimiter';
 import './workers/smsWorker';
 
 const app = express();
@@ -20,7 +21,10 @@ app.use('/webhook', express.raw({ type: 'application/json' }));
 
 app.use(express.json());
 
+app.use('/auth/login', loginRateLimiter);
+app.use('/auth/register', loginRateLimiter);
 app.use('/auth', authRouter);
+app.use('/webhook', webhookRateLimiter);
 app.use('/webhook', webhookRouter);
 app.use('/confirm', confirmRouter);
 app.use('/shopify', shopifyRouter);

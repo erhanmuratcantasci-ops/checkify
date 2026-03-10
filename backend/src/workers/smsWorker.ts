@@ -1,6 +1,7 @@
 import { Worker, Job, DelayedError } from 'bullmq';
 import prisma from '../lib/prisma';
 import { redisConnection, SMSJobData } from '../lib/queue';
+import { validateSMSMessage, validatePhone } from '../middleware/smsValidator';
 
 const DAY_START = 9;  // 09:00
 const DAY_END   = 22; // 22:00
@@ -35,9 +36,29 @@ async function processJob(job: Job<SMSJobData>): Promise<void> {
     throw new DelayedError();
   }
 
+  // Telefon validasyonu
+  const phoneCheck = validatePhone(phone);
+  if (!phoneCheck.valid) {
+    console.error(`[SMS] Geçersiz telefon — Order #${orderId}: ${phoneCheck.error}`);
+    await prisma.sMSLog.create({
+      data: { phone, message: '', status: 'FAILED', orderId },
+    });
+    throw new Error(phoneCheck.error);
+  }
+
   const message =
     `Merhaba ${customerName}, ${total.toFixed(2)} TL tutarındaki siparişiniz alındı. ` +
     `Onaylamak: ${confirmUrl} | İptal: ${cancelUrl}`;
+
+  // Mesaj validasyonu
+  const msgCheck = validateSMSMessage(message);
+  if (!msgCheck.valid) {
+    console.error(`[SMS] Geçersiz mesaj — Order #${orderId}: ${msgCheck.error}`);
+    await prisma.sMSLog.create({
+      data: { phone, message, status: 'FAILED', orderId },
+    });
+    throw new Error(msgCheck.error);
+  }
 
   await sendSMS(phone, message);
 
