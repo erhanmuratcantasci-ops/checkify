@@ -77,7 +77,7 @@ export default function ShopsPage() {
       const res = await fetch(`${API}/shops`, { headers: authHeaders() });
       if (!res.ok) throw new Error();
       const data = await res.json();
-      setShops(data);
+      setShops(data.shops ?? data);
     } catch {
       setShops([]);
     } finally {
@@ -97,7 +97,7 @@ export default function ShopsPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Oluşturulamadı');
-      setShops(prev => [data, ...prev]);
+      setShops(prev => [data.shop ?? data, ...prev]);
       setShowModal(false);
       setNewName('');
       setNewDomain('');
