@@ -59,7 +59,7 @@ export default function DashboardPage() {
   return (
     <div style={{ minHeight: '100vh', background: '#0a0a0f', fontFamily: "'DM Sans', sans-serif", position: 'relative' }}>
       <GeometricBackground />
-      <Navbar userName={user?.name} />
+      <Navbar />
       <main style={{ maxWidth: 1100, margin: '0 auto', padding: '40px 24px' }}>
         {/* Header */}
         <div style={{ marginBottom: 36 }}>

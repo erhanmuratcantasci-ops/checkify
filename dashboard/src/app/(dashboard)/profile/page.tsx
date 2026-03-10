@@ -142,7 +142,7 @@ export default function ProfilePage() {
   return (
     <div style={{ minHeight: '100vh', background: '#0a0a0f', fontFamily: "'Outfit', sans-serif", position: 'relative' }}>
       <GeometricBackground />
-      <Navbar userName={user?.name} />
+      <Navbar />
 
       <main style={{ maxWidth: 600, margin: '0 auto', padding: '40px 24px' }}>
         <div style={{ marginBottom: 28 }}>

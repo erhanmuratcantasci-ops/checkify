@@ -42,7 +42,6 @@ function validateTemplate(template: string): string | null {
 export default function ShopsPage() {
   const router = useRouter();
   const { showToast } = useToast();
-  const [userName, setUserName] = useState('');
   const [shops, setShops] = useState<Shop[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -64,17 +63,8 @@ export default function ShopsPage() {
   useEffect(() => {
     const token = getToken();
     if (!token) { router.push('/login'); return; }
-    fetchUser();
     fetchShops();
   }, []);
-
-  async function fetchUser() {
-    const res = await fetch(`${API}/auth/me`, { headers: authHeaders() });
-    if (!res.ok) { router.push('/login'); return; }
-    const data = await res.json();
-    const user = data.user ?? data;
-    setUserName(user.name || user.email || '');
-  }
 
   async function fetchShops() {
     setLoading(true);
@@ -165,7 +155,7 @@ export default function ShopsPage() {
   return (
     <div style={{ minHeight: '100vh', background: '#0a0a0f', fontFamily: "'Outfit', sans-serif", position: 'relative' }}>
       <GeometricBackground />
-      <Navbar userName={userName} />
+      <Navbar />
 
       <div style={{ maxWidth: 900, margin: '0 auto', padding: '40px 24px' }}>
         {/* Header */}
