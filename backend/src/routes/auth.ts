@@ -59,6 +59,8 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
 
   const token = jwt.sign({ userId: user.id }, process.env['JWT_SECRET']!, { expiresIn: '7d' });
 
+  await prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
+
   res.json({
     user: { id: user.id, email: user.email, name: user.name, createdAt: user.createdAt },
     token,
@@ -69,7 +71,7 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
 router.get('/me', authenticate, async (req: AuthRequest, res: Response): Promise<void> => {
   const user = await prisma.user.findUnique({
     where: { id: req.userId },
-    select: { id: true, email: true, name: true, createdAt: true },
+    select: { id: true, email: true, name: true, createdAt: true, lastLoginAt: true },
   });
 
   if (!user) {
@@ -124,10 +126,39 @@ router.patch('/me', authenticate, async (req: AuthRequest, res: Response): Promi
   const user = await prisma.user.update({
     where: { id: req.userId },
     data,
-    select: { id: true, email: true, name: true, createdAt: true },
+    select: { id: true, email: true, name: true, createdAt: true, lastLoginAt: true },
   });
 
   res.json({ user });
+});
+
+// DELETE /auth/me
+router.delete('/me', authenticate, async (req: AuthRequest, res: Response): Promise<void> => {
+  const { password } = req.body as { password?: string };
+
+  if (!password) {
+    res.status(400).json({ error: 'Şifre doğrulaması gerekli' });
+    return;
+  }
+
+  const user = await prisma.user.findUnique({ where: { id: req.userId } });
+  if (!user) { res.status(404).json({ error: 'Kullanıcı bulunamadı' }); return; }
+
+  const valid = await bcrypt.compare(password, user.password);
+  if (!valid) { res.status(401).json({ error: 'Şifre yanlış' }); return; }
+
+  // Cascade: user'a bağlı shop ve order'ları sil
+  const shops = await prisma.shop.findMany({ where: { userId: req.userId! }, select: { id: true } });
+  const shopIds = shops.map(s => s.id);
+  const orders = await prisma.order.findMany({ where: { shopId: { in: shopIds } }, select: { id: true } });
+  const orderIds = orders.map(o => o.id);
+
+  await prisma.sMSLog.deleteMany({ where: { orderId: { in: orderIds } } });
+  await prisma.order.deleteMany({ where: { shopId: { in: shopIds } } });
+  await prisma.shop.deleteMany({ where: { userId: req.userId! } });
+  await prisma.user.delete({ where: { id: req.userId } });
+
+  res.json({ success: true });
 });
 
 export default router;

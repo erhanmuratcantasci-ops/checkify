@@ -17,6 +17,7 @@ export default function Navbar({ userName }: { userName?: string }) {
     { href: '/dashboard', label: 'Dashboard' },
     { href: '/orders', label: 'Siparişler' },
     { href: '/shops', label: 'Mağazalar' },
+    { href: '/profile', label: 'Profil' },
   ];
 
   return (
