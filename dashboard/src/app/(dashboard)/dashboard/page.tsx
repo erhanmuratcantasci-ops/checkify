@@ -25,7 +25,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
+    const token = document.cookie.split('; ').find(r => r.startsWith('token='))?.split('=')[1];
     if (!token) { router.push('/login'); return; }
 
     Promise.all([

@@ -37,7 +37,7 @@ export default function OrdersPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
+    const token = document.cookie.split('; ').find(r => r.startsWith('token='))?.split('=')[1];
     if (!token) { router.push('/login'); return; }
     setLoading(true);
     const status = FILTER_MAP[filter];

@@ -25,7 +25,7 @@ export default function LoginPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Giriş başarısız');
-      localStorage.setItem('token', data.token);
+      document.cookie = `token=${data.token}; path=/; max-age=${7 * 24 * 60 * 60}`;
       router.push('/dashboard');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Hata oluştu');

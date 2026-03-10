@@ -37,7 +37,7 @@ export default function ProfilePage() {
   const [success, setSuccess] = useState('');
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
+    const token = document.cookie.split('; ').find(r => r.startsWith('token='))?.split('=')[1];
     if (!token) { router.push('/login'); return; }
 
     fetch('http://127.0.0.1:3001/auth/me', {
@@ -57,7 +57,7 @@ export default function ProfilePage() {
     e.preventDefault();
     setError(''); setSuccess(''); setSaving(true);
 
-    const token = localStorage.getItem('token');
+    const token = document.cookie.split('; ').find(r => r.startsWith('token='))?.split('=')[1];
     try {
       const body: Record<string, string> = {};
       if (name !== user?.name) body.name = name;

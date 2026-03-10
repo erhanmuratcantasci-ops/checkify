@@ -19,7 +19,8 @@ interface Shop {
 }
 
 function getToken() {
-  return typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+  if (typeof window === 'undefined') return null;
+  return document.cookie.split('; ').find(r => r.startsWith('token='))?.split('=')[1] ?? null;
 }
 
 function authHeaders() {
