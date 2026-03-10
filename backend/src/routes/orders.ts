@@ -5,6 +5,50 @@ import { OrderStatus } from '../../generated/prisma';
 
 const router = Router();
 
+// GET /orders/stats/daily — son 7 günlük sipariş sayısı
+router.get('/stats/daily', authenticate, async (req: AuthRequest, res: Response): Promise<void> => {
+  const shops = await prisma.shop.findMany({
+    where: { userId: req.userId },
+    select: { id: true },
+  });
+
+  if (shops.length === 0) {
+    res.json({ daily: [] });
+    return;
+  }
+
+  const shopIds = shops.map((s) => s.id);
+  const since = new Date();
+  since.setDate(since.getDate() - 6);
+  since.setHours(0, 0, 0, 0);
+
+  const rows = await prisma.$queryRaw<{ date: Date; count: bigint }[]>`
+    SELECT DATE("createdAt") AS date, COUNT(*)::int AS count
+    FROM "Order"
+    WHERE "shopId" = ANY(${shopIds})
+      AND "createdAt" >= ${since}
+    GROUP BY DATE("createdAt")
+    ORDER BY date ASC
+  `;
+
+  // Fill in missing days with 0
+  const map = new Map<string, number>();
+  for (const row of rows) {
+    const key = new Date(row.date).toISOString().slice(0, 10);
+    map.set(key, Number(row.count));
+  }
+
+  const daily: { date: string; count: number }[] = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const key = d.toISOString().slice(0, 10);
+    daily.push({ date: key, count: map.get(key) ?? 0 });
+  }
+
+  res.json({ daily });
+});
+
 // GET /orders/stats
 router.get('/stats', authenticate, async (req: AuthRequest, res: Response): Promise<void> => {
   const shops = await prisma.shop.findMany({

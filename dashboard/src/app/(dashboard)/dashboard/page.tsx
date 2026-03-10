@@ -2,9 +2,20 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import dynamic from 'next/dynamic';
 import Navbar from '@/components/Navbar';
 import GeometricBackground from '@/components/GeometricBackground';
 import { SkeletonCard } from '@/components/Skeleton';
+
+const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://127.0.0.1:3001';
+
+// SSR-safe recharts imports
+const ResponsiveContainer = dynamic(() => import('recharts').then(m => m.ResponsiveContainer), { ssr: false });
+const LineChart = dynamic(() => import('recharts').then(m => m.LineChart), { ssr: false });
+const Line = dynamic(() => import('recharts').then(m => m.Line), { ssr: false });
+const XAxis = dynamic(() => import('recharts').then(m => m.XAxis), { ssr: false });
+const YAxis = dynamic(() => import('recharts').then(m => m.YAxis), { ssr: false });
+const Tooltip = dynamic(() => import('recharts').then(m => m.Tooltip), { ssr: false });
 
 interface Stats {
   total: number;
@@ -21,10 +32,21 @@ interface User {
   createdAt: string;
 }
 
+interface DailyPoint {
+  date: string;
+  count: number;
+}
+
+function formatDay(iso: string) {
+  const d = new Date(iso);
+  return d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' });
+}
+
 export default function DashboardPage() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [stats, setStats] = useState<Stats>({ total: 0, revenue: 0, pending: 0, confirmed: 0, cancelled: 0, todayOrders: 0 });
+  const [daily, setDaily] = useState<DailyPoint[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -33,9 +55,10 @@ export default function DashboardPage() {
 
     const headers = { Authorization: `Bearer ${token}` };
     Promise.all([
-      fetch('http://127.0.0.1:3001/auth/me', { headers }).then(r => r.json()),
-      fetch('http://127.0.0.1:3001/orders/stats', { headers }).then(r => r.json()),
-    ]).then(([userData, statsData]) => {
+      fetch(`${API}/auth/me`, { headers }).then(r => r.json()),
+      fetch(`${API}/orders/stats`, { headers }).then(r => r.json()),
+      fetch(`${API}/orders/stats/daily`, { headers }).then(r => r.json()),
+    ]).then(([userData, statsData, dailyData]) => {
       setUser(userData.user ?? userData);
       const byStatus = statsData.byStatus || {};
       setStats({
@@ -46,6 +69,7 @@ export default function DashboardPage() {
         cancelled: byStatus['CANCELLED'] ?? 0,
         todayOrders: statsData.todayOrders ?? 0,
       });
+      setDaily((dailyData.daily || []).map((d: DailyPoint) => ({ ...d, date: formatDay(d.date) })));
     }).catch(() => router.push('/login')).finally(() => setLoading(false));
   }, [router]);
 
@@ -55,6 +79,8 @@ export default function DashboardPage() {
     { label: 'Bekleyen', value: stats.pending, sub: 'onay bekliyor', icon: '⏳', color: '#d97706' },
     { label: 'Bugün', value: stats.todayOrders, sub: 'bugünkü sipariş', icon: '📅', color: '#0891b2' },
   ];
+
+  const hasChartData = daily.some(d => d.count > 0);
 
   return (
     <div style={{ minHeight: '100vh', background: '#0a0a0f', fontFamily: "'DM Sans', sans-serif", position: 'relative' }}>
@@ -75,7 +101,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Stats Grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 32 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 28 }}>
           {loading ? Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />) : statCards.map((card, i) => (
             <div key={i} style={{
               background: 'rgba(255,255,255,0.03)',
@@ -90,12 +116,66 @@ export default function DashboardPage() {
               }} />
               <div style={{ fontSize: 22, marginBottom: 10 }}>{card.icon}</div>
               <div style={{ fontSize: 26, fontWeight: 700, color: '#fff', fontFamily: "'Syne', sans-serif", marginBottom: 4 }}>
-                {loading ? '—' : card.value}
+                {card.value}
               </div>
               <div style={{ fontSize: 13, color: '#9ca3af', fontWeight: 500 }}>{card.label}</div>
               <div style={{ fontSize: 12, color: '#4b5563', marginTop: 2 }}>{card.sub}</div>
             </div>
           ))}
+        </div>
+
+        {/* Chart */}
+        <div style={{
+          background: 'rgba(255,255,255,0.03)',
+          border: '1px solid rgba(255,255,255,0.07)',
+          borderRadius: 16, padding: '24px 28px', marginBottom: 24,
+        }}>
+          <h2 style={{ color: '#9ca3af', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.8px', margin: '0 0 20px' }}>
+            Son 7 Gün — Sipariş Trendi
+          </h2>
+          {loading || daily.length === 0 ? (
+            <div style={{ height: 160, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ color: '#374151', fontSize: 13 }}>
+                {loading ? 'Yükleniyor...' : 'Henüz veri yok'}
+              </div>
+            </div>
+          ) : (
+            <div style={{ height: 180 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={daily} margin={{ top: 4, right: 4, bottom: 0, left: -24 }}>
+                  <XAxis
+                    dataKey="date"
+                    tick={{ fill: '#4b5563', fontSize: 11 }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <YAxis
+                    allowDecimals={false}
+                    tick={{ fill: '#4b5563', fontSize: 11 }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      background: 'rgba(13,13,24,0.95)',
+                      border: '1px solid rgba(139,92,246,0.25)',
+                      borderRadius: 8, color: '#e5e7eb', fontSize: 13,
+                    }}
+                    cursor={{ stroke: 'rgba(139,92,246,0.2)', strokeWidth: 1 }}
+                    formatter={(v) => [v, 'Sipariş']}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="count"
+                    stroke={hasChartData ? '#a855f7' : '#374151'}
+                    strokeWidth={2}
+                    dot={{ fill: '#7c3aed', strokeWidth: 0, r: 4 }}
+                    activeDot={{ fill: '#c084fc', r: 5, strokeWidth: 0 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          )}
         </div>
 
         {/* Profile Card */}

@@ -7,7 +7,7 @@ import GeometricBackground from '@/components/GeometricBackground';
 import { SkeletonTable } from '@/components/Skeleton';
 import { useToast } from '@/components/Toast';
 
-const API = 'http://127.0.0.1:3001';
+const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://127.0.0.1:3001';
 
 const STATUS_LABELS: Record<string, string> = {
   PENDING: 'Bekliyor', CONFIRMED: 'Onaylandı', PREPARING: 'Hazırlanıyor',
@@ -317,6 +317,7 @@ export default function OrdersPage() {
   const [loading, setLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState<OrderDetail | null>(null);
   const [loadingDetail, setLoadingDetail] = useState<number | null>(null);
+  const [search, setSearch] = useState('');
 
   const fetchOrders = useCallback(() => {
     const token = getToken();
@@ -362,6 +363,32 @@ export default function OrdersPage() {
           <p style={{ color: '#6b7280', fontSize: 14, margin: 0 }}>Toplam {total} sipariş</p>
         </div>
 
+        {/* Search + filters row */}
+        <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
+          <input
+            type="text"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Müşteri adı veya telefon ara..."
+            style={{
+              padding: '8px 14px', borderRadius: 8, fontSize: 13,
+              background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
+              color: '#e5e7eb', outline: 'none', width: 260,
+              fontFamily: 'inherit',
+            }}
+            onFocus={e => e.target.style.borderColor = 'rgba(139,92,246,0.5)'}
+            onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.08)'}
+          />
+          {search && (
+            <button
+              onClick={() => setSearch('')}
+              style={{ background: 'none', border: 'none', color: '#6b7280', fontSize: 13, cursor: 'pointer', padding: '0 4px' }}
+            >
+              ✕ Temizle
+            </button>
+          )}
+        </div>
+
         {/* Filter tabs */}
         <div style={{ display: 'flex', gap: 6, marginBottom: 24, flexWrap: 'wrap' }}>
           {FILTERS.map(f => (
@@ -395,7 +422,18 @@ export default function OrdersPage() {
                 </tr>
               </thead>
               <tbody>
-                {orders.map((order, i) => {
+                {(() => {
+                  const q = search.toLowerCase().trim();
+                  const filtered = q
+                    ? orders.filter(o =>
+                        o.customerName.toLowerCase().includes(q) ||
+                        o.customerPhone.toLowerCase().includes(q)
+                      )
+                    : orders;
+                  if (filtered.length === 0) return (
+                    <tr><td colSpan={7} style={{ padding: '40px 20px', textAlign: 'center', color: '#4b5563', fontSize: 13 }}>Aramanızla eşleşen sipariş bulunamadı</td></tr>
+                  );
+                  return filtered.map((order, i) => {
                   const sc = STATUS_COLORS[order.status] || { bg: 'rgba(255,255,255,0.05)', color: '#9ca3af' };
                   const isLoadingThis = loadingDetail === order.id;
                   return (
@@ -430,7 +468,8 @@ export default function OrdersPage() {
                       </td>
                     </tr>
                   );
-                })}
+                  });
+                })()}
               </tbody>
             </table>
           )}

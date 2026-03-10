@@ -7,7 +7,7 @@ import GeometricBackground from '@/components/GeometricBackground';
 import { SkeletonShopCard } from '@/components/Skeleton';
 import { useToast } from '@/components/Toast';
 
-const API = 'http://127.0.0.1:3001';
+const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://127.0.0.1:3001';
 
 const ALLOWED_VARS = ['{isim}', '{siparis_no}', '{link}', '{tutar}'];
 const DEFAULT_TEMPLATE = 'Merhaba {isim}, {siparis_no} numaralı siparişinizi onaylamak için: {link}';

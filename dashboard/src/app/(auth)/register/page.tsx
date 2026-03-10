@@ -27,14 +27,15 @@ export default function RegisterPage() {
     setError('');
     setLoading(true);
     try {
-      const res = await fetch('http://127.0.0.1:3001/auth/register', {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL ?? 'http://127.0.0.1:3001'}/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, email, password }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Kayıt başarısız');
-      router.push('/login');
+      document.cookie = `token=${data.token}; path=/; max-age=${7 * 24 * 60 * 60}`;
+      router.push('/dashboard');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Hata oluştu');
     } finally {
