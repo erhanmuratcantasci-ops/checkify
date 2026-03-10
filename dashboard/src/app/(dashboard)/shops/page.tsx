@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Navbar from '@/components/Navbar';
+import GeometricBackground from '@/components/GeometricBackground';
 
 const API = 'http://127.0.0.1:3001';
 
@@ -150,7 +151,8 @@ export default function ShopsPage() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0a0a0f', fontFamily: "'Outfit', sans-serif" }}>
+    <div style={{ minHeight: '100vh', background: '#0a0a0f', fontFamily: "'Outfit', sans-serif", position: 'relative' }}>
+      <GeometricBackground />
       <Navbar userName={userName} />
 
       <div style={{ maxWidth: 900, margin: '0 auto', padding: '40px 24px' }}>
