@@ -14,19 +14,19 @@ const STATUS_LABELS: Record<OrderStatus, string> = {
   CANCELLED: 'İptal Edildi',
 };
 
-const STATUS_COLORS: Record<OrderStatus, string> = {
-  PENDING: 'bg-yellow-100 text-yellow-700',
-  CONFIRMED: 'bg-green-100 text-green-700',
-  PREPARING: 'bg-blue-100 text-blue-700',
-  SHIPPED: 'bg-purple-100 text-purple-700',
-  DELIVERED: 'bg-emerald-100 text-emerald-700',
-  CANCELLED: 'bg-red-100 text-red-700',
+const STATUS_COLORS: Record<OrderStatus, { bg: string; color: string }> = {
+  PENDING:   { bg: 'rgba(245,158,11,0.12)',  color: 'var(--status-pending)' },
+  CONFIRMED: { bg: 'rgba(16,185,129,0.12)',  color: 'var(--status-confirmed)' },
+  PREPARING: { bg: 'rgba(59,130,246,0.12)',  color: 'var(--status-preparing)' },
+  SHIPPED:   { bg: 'rgba(168,85,247,0.12)',  color: 'var(--status-shipped)' },
+  DELIVERED: { bg: 'rgba(6,214,160,0.12)',   color: 'var(--status-delivered)' },
+  CANCELLED: { bg: 'rgba(239,68,68,0.12)',   color: 'var(--status-cancelled)' },
 };
 
-const SMS_STATUS_COLORS: Record<string, string> = {
-  SENT: 'bg-green-100 text-green-700',
-  PENDING: 'bg-yellow-100 text-yellow-700',
-  FAILED: 'bg-red-100 text-red-700',
+const SMS_COLORS: Record<string, { bg: string; color: string }> = {
+  SENT:    { bg: 'rgba(16,185,129,0.12)', color: 'var(--status-confirmed)' },
+  PENDING: { bg: 'rgba(245,158,11,0.12)', color: 'var(--status-pending)' },
+  FAILED:  { bg: 'rgba(239,68,68,0.12)',  color: 'var(--status-cancelled)' },
 };
 
 export default function OrderDetailPage() {
@@ -38,7 +38,6 @@ export default function OrderDetailPage() {
   useEffect(() => {
     const id = parseInt(params['id'] as string);
     if (isNaN(id)) { router.push('/orders'); return; }
-
     orders.get(id)
       .then(({ order }) => setOrder(order))
       .catch(() => router.push('/orders'))
@@ -47,10 +46,10 @@ export default function OrderDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen" style={{ background: 'var(--bg-base)' }}>
         <Navbar />
         <div className="flex items-center justify-center py-40">
-          <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+          <div className="w-6 h-6 rounded-full animate-spin" style={{ border: '2px solid var(--accent)', borderTopColor: 'transparent' }} />
         </div>
       </div>
     );
@@ -59,68 +58,87 @@ export default function OrderDetailPage() {
   if (!order) return null;
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen" style={{ background: 'var(--bg-base)' }}>
       <Navbar />
 
       <main className="max-w-3xl mx-auto px-6 py-10 space-y-6">
         {/* Başlık */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-start justify-between">
           <div>
             <button
               onClick={() => router.push('/orders')}
-              className="text-sm text-gray-500 hover:text-gray-900 mb-2 flex items-center gap-1"
+              className="text-sm mb-2 flex items-center gap-1 transition-colors"
+              style={{ color: 'var(--text-muted)' }}
+              onMouseEnter={(e) => e.currentTarget.style.color = 'var(--text-primary)'}
+              onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-muted)'}
             >
               ← Siparişler
             </button>
-            <h2 className="text-2xl font-semibold text-gray-900">Sipariş #{order.id}</h2>
+            <h2 className="text-2xl font-bold" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-syne)' }}>
+              Sipariş #{order.id}
+            </h2>
             {order.shopifyOrderId && (
-              <p className="text-sm text-gray-400 mt-0.5">Shopify #{order.shopifyOrderId}</p>
+              <p className="text-sm mt-0.5" style={{ color: 'var(--text-muted)' }}>Shopify #{order.shopifyOrderId}</p>
             )}
           </div>
-          <span className={`px-3 py-1.5 rounded-lg text-sm font-medium ${STATUS_COLORS[order.status]}`}>
+          <span className="px-3 py-1.5 rounded-lg text-sm font-semibold" style={STATUS_COLORS[order.status]}>
             {STATUS_LABELS[order.status]}
           </span>
         </div>
 
         {/* Sipariş Bilgileri */}
-        <div className="bg-white border border-gray-200 rounded-2xl divide-y divide-gray-100">
+        <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid var(--border)' }}>
           {[
             ['Müşteri', order.customerName],
             ['Telefon', order.customerPhone],
             ['Tutar', `${order.total.toFixed(2)} ₺`],
             ['Mağaza', order.shop.name + (order.shop.shopDomain ? ` (${order.shop.shopDomain})` : '')],
             ['Tarih', new Date(order.createdAt).toLocaleString('tr-TR')],
-          ].map(([label, value]) => (
-            <div key={label} className="flex items-center justify-between px-6 py-4">
-              <span className="text-sm text-gray-500">{label}</span>
-              <span className="text-sm font-medium text-gray-900">{value}</span>
+          ].map(([label, value], i, arr) => (
+            <div
+              key={label}
+              className="flex items-center justify-between px-6 py-4"
+              style={{
+                background: 'var(--bg-surface)',
+                borderBottom: i < arr.length - 1 ? '1px solid var(--border-subtle)' : 'none',
+              }}
+            >
+              <span className="text-sm" style={{ color: 'var(--text-muted)' }}>{label}</span>
+              <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{value}</span>
             </div>
           ))}
         </div>
 
         {/* SMS Logları */}
         <div>
-          <h3 className="text-sm font-medium text-gray-500 mb-3">SMS Logları</h3>
+          <h3 className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: 'var(--text-muted)' }}>SMS Logları</h3>
           {order.smsLogs.length === 0 ? (
-            <div className="bg-white border border-gray-200 rounded-2xl px-6 py-8 text-center text-sm text-gray-400">
+            <div className="rounded-2xl px-6 py-8 text-center text-sm" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', color: 'var(--text-muted)' }}>
               SMS gönderilmedi
             </div>
           ) : (
-            <div className="bg-white border border-gray-200 rounded-2xl divide-y divide-gray-100">
-              {order.smsLogs.map((log) => (
-                <div key={log.id} className="px-6 py-4">
+            <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid var(--border)' }}>
+              {order.smsLogs.map((log, i) => (
+                <div
+                  key={log.id}
+                  className="px-6 py-4"
+                  style={{
+                    background: 'var(--bg-surface)',
+                    borderBottom: i < order.smsLogs.length - 1 ? '1px solid var(--border-subtle)' : 'none',
+                  }}
+                >
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-sm font-medium text-gray-700">{log.phone}</span>
+                    <span className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>{log.phone}</span>
                     <div className="flex items-center gap-3">
-                      <span className="text-xs text-gray-400">
+                      <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
                         {new Date(log.createdAt).toLocaleString('tr-TR')}
                       </span>
-                      <span className={`px-2 py-0.5 rounded text-xs font-medium ${SMS_STATUS_COLORS[log.status] ?? 'bg-gray-100 text-gray-600'}`}>
+                      <span className="px-2 py-0.5 rounded text-xs font-semibold" style={SMS_COLORS[log.status] ?? { bg: 'var(--bg-elevated)', color: 'var(--text-muted)' }}>
                         {log.status}
                       </span>
                     </div>
                   </div>
-                  <p className="text-sm text-gray-500 break-all">{log.message}</p>
+                  <p className="text-sm break-all" style={{ color: 'var(--text-muted)' }}>{log.message}</p>
                 </div>
               ))}
             </div>

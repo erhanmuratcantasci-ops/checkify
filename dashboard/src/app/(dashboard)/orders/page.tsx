@@ -14,13 +14,13 @@ const STATUS_LABELS: Record<OrderStatus, string> = {
   CANCELLED: 'İptal Edildi',
 };
 
-const STATUS_COLORS: Record<OrderStatus, string> = {
-  PENDING: 'bg-yellow-100 text-yellow-700',
-  CONFIRMED: 'bg-green-100 text-green-700',
-  PREPARING: 'bg-blue-100 text-blue-700',
-  SHIPPED: 'bg-purple-100 text-purple-700',
-  DELIVERED: 'bg-emerald-100 text-emerald-700',
-  CANCELLED: 'bg-red-100 text-red-700',
+const STATUS_COLORS: Record<OrderStatus, { bg: string; color: string }> = {
+  PENDING:   { bg: 'rgba(245,158,11,0.12)',  color: 'var(--status-pending)' },
+  CONFIRMED: { bg: 'rgba(16,185,129,0.12)',  color: 'var(--status-confirmed)' },
+  PREPARING: { bg: 'rgba(59,130,246,0.12)',  color: 'var(--status-preparing)' },
+  SHIPPED:   { bg: 'rgba(168,85,247,0.12)',  color: 'var(--status-shipped)' },
+  DELIVERED: { bg: 'rgba(6,214,160,0.12)',   color: 'var(--status-delivered)' },
+  CANCELLED: { bg: 'rgba(239,68,68,0.12)',   color: 'var(--status-cancelled)' },
 };
 
 const ALL_STATUSES = Object.keys(STATUS_LABELS) as OrderStatus[];
@@ -35,11 +35,7 @@ export default function OrdersPage() {
   const fetchOrders = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await orders.list({
-        status: activeStatus || undefined,
-        page,
-        limit: 15,
-      });
+      const res = await orders.list({ status: activeStatus || undefined, page, limit: 15 });
       setData(res);
     } catch {
       router.push('/login');
@@ -48,104 +44,94 @@ export default function OrdersPage() {
     }
   }, [activeStatus, page, router]);
 
-  useEffect(() => {
-    fetchOrders();
-  }, [fetchOrders]);
+  useEffect(() => { fetchOrders(); }, [fetchOrders]);
 
-  // Status değişince sayfa sıfırla
   function handleStatusChange(status: OrderStatus | '') {
     setActiveStatus(status);
     setPage(1);
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen" style={{ background: 'var(--bg-base)' }}>
       <Navbar />
 
       <main className="max-w-6xl mx-auto px-6 py-10">
         <div className="mb-6">
-          <h2 className="text-2xl font-semibold text-gray-900">Siparişler</h2>
-          {data && (
-            <p className="text-sm text-gray-500 mt-1">Toplam {data.total} sipariş</p>
-          )}
+          <h2 className="text-2xl font-bold" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-syne)' }}>Siparişler</h2>
+          {data && <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>Toplam {data.total} sipariş</p>}
         </div>
 
         {/* Status Filtreleri */}
         <div className="flex flex-wrap gap-2 mb-6">
-          <button
-            onClick={() => handleStatusChange('')}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-              activeStatus === ''
-                ? 'bg-gray-900 text-white'
-                : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
-            }`}
-          >
-            Tümü
-          </button>
-          {ALL_STATUSES.map((s) => (
-            <button
-              key={s}
-              onClick={() => handleStatusChange(s)}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                activeStatus === s
-                  ? 'bg-gray-900 text-white'
-                  : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
-              }`}
-            >
-              {STATUS_LABELS[s]}
-            </button>
-          ))}
+          {(['', ...ALL_STATUSES] as (OrderStatus | '')[]).map((s) => {
+            const active = activeStatus === s;
+            return (
+              <button
+                key={s}
+                onClick={() => handleStatusChange(s)}
+                className="px-3 py-1.5 rounded-lg text-sm font-medium transition-all"
+                style={{
+                  background: active ? 'var(--accent)' : 'var(--bg-surface)',
+                  color: active ? 'var(--accent-fg)' : 'var(--text-secondary)',
+                  border: `1px solid ${active ? 'var(--accent)' : 'var(--border)'}`,
+                }}
+              >
+                {s === '' ? 'Tümü' : STATUS_LABELS[s]}
+              </button>
+            );
+          })}
         </div>
 
         {/* Tablo */}
-        <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
+        <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid var(--border)' }}>
           {loading ? (
-            <div className="flex items-center justify-center py-20">
-              <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+            <div className="flex items-center justify-center py-20" style={{ background: 'var(--bg-surface)' }}>
+              <div className="w-6 h-6 rounded-full animate-spin" style={{ border: '2px solid var(--accent)', borderTopColor: 'transparent' }} />
             </div>
           ) : !data || data.orders.length === 0 ? (
-            <div className="text-center py-20 text-gray-400 text-sm">
+            <div className="text-center py-20 text-sm" style={{ background: 'var(--bg-surface)', color: 'var(--text-muted)' }}>
               {activeStatus ? `"${STATUS_LABELS[activeStatus]}" durumunda sipariş yok` : 'Henüz sipariş yok'}
             </div>
           ) : (
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-100 bg-gray-50">
-                  <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Sipariş</th>
-                  <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Müşteri</th>
-                  <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Telefon</th>
-                  <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Tutar</th>
-                  <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Durum</th>
-                  <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Tarih</th>
+                <tr style={{ background: 'var(--bg-elevated)', borderBottom: '1px solid var(--border)' }}>
+                  {['Sipariş', 'Müşteri', 'Telefon', 'Tutar', 'Durum', 'Tarih'].map((h) => (
+                    <th key={h} className="text-left px-6 py-3 text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+                      {h}
+                    </th>
+                  ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
-                {data.orders.map((order: Order) => (
+              <tbody>
+                {data.orders.map((order: Order, i) => (
                   <tr
                     key={order.id}
                     onClick={() => router.push(`/orders/${order.id}`)}
-                    className="hover:bg-gray-50 cursor-pointer transition-colors"
+                    className="cursor-pointer transition-colors"
+                    style={{
+                      background: 'var(--bg-surface)',
+                      borderBottom: i < data.orders.length - 1 ? '1px solid var(--border-subtle)' : 'none',
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-elevated)')}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = 'var(--bg-surface)')}
                   >
-                    <td className="px-6 py-4 font-medium text-gray-900">
+                    <td className="px-6 py-4 font-medium" style={{ color: 'var(--text-primary)' }}>
                       #{order.id}
                       {order.shopifyOrderId && (
-                        <span className="ml-2 text-xs text-gray-400">Shopify #{order.shopifyOrderId}</span>
+                        <span className="ml-2 text-xs" style={{ color: 'var(--text-muted)' }}>#{order.shopifyOrderId}</span>
                       )}
                     </td>
-                    <td className="px-6 py-4 text-gray-700">{order.customerName}</td>
-                    <td className="px-6 py-4 text-gray-500">{order.customerPhone}</td>
-                    <td className="px-6 py-4 font-medium text-gray-900">
-                      {order.total.toFixed(2)} ₺
-                    </td>
+                    <td className="px-6 py-4" style={{ color: 'var(--text-secondary)' }}>{order.customerName}</td>
+                    <td className="px-6 py-4" style={{ color: 'var(--text-muted)' }}>{order.customerPhone}</td>
+                    <td className="px-6 py-4 font-semibold" style={{ color: 'var(--text-primary)' }}>{order.total.toFixed(2)} ₺</td>
                     <td className="px-6 py-4">
-                      <span className={`inline-flex px-2 py-1 rounded-md text-xs font-medium ${STATUS_COLORS[order.status]}`}>
+                      <span className="inline-flex px-2 py-1 rounded-md text-xs font-semibold" style={STATUS_COLORS[order.status]}>
                         {STATUS_LABELS[order.status]}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-gray-500">
-                      {new Date(order.createdAt).toLocaleDateString('tr-TR', {
-                        day: 'numeric', month: 'short', year: 'numeric',
-                      })}
+                    <td className="px-6 py-4" style={{ color: 'var(--text-muted)' }}>
+                      {new Date(order.createdAt).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', year: 'numeric' })}
                     </td>
                   </tr>
                 ))}
@@ -157,24 +143,21 @@ export default function OrdersPage() {
         {/* Sayfalama */}
         {data && data.totalPages > 1 && (
           <div className="flex items-center justify-between mt-4">
-            <p className="text-sm text-gray-500">
+            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
               {(page - 1) * 15 + 1}–{Math.min(page * 15, data.total)} / {data.total}
             </p>
             <div className="flex gap-2">
-              <button
-                onClick={() => setPage((p) => p - 1)}
-                disabled={page === 1}
-                className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg disabled:opacity-40 hover:bg-gray-50 transition-colors"
-              >
-                Önceki
-              </button>
-              <button
-                onClick={() => setPage((p) => p + 1)}
-                disabled={page === data.totalPages}
-                className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg disabled:opacity-40 hover:bg-gray-50 transition-colors"
-              >
-                Sonraki
-              </button>
+              {['Önceki', 'Sonraki'].map((label, i) => (
+                <button
+                  key={label}
+                  onClick={() => setPage((p) => p + (i === 0 ? -1 : 1))}
+                  disabled={i === 0 ? page === 1 : page === data.totalPages}
+                  className="px-3 py-1.5 text-sm rounded-lg disabled:opacity-40 transition-all"
+                  style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}
+                >
+                  {label}
+                </button>
+              ))}
             </div>
           </div>
         )}
