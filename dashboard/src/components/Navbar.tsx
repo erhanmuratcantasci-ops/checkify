@@ -16,6 +16,7 @@ export default function Navbar({ userName }: { userName?: string }) {
   const navLinks = [
     { href: '/dashboard', label: 'Dashboard' },
     { href: '/orders', label: 'Siparişler' },
+    { href: '/shops', label: 'Mağazalar' },
   ];
 
   return (
