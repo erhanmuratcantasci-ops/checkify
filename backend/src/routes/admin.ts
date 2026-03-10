@@ -132,6 +132,25 @@ router.get('/shops', adminOnly, async (_req: AuthRequest, res: Response): Promis
   });
 });
 
+// GET /admin/orders — tüm siparişler + kullanıcı + mağaza
+router.get('/orders', adminOnly, async (_req: AuthRequest, res: Response): Promise<void> => {
+  const orders = await prisma.order.findMany({
+    orderBy: { createdAt: 'desc' },
+    take: 200,
+    select: {
+      id: true, customerName: true, customerPhone: true,
+      total: true, status: true, createdAt: true, shopifyOrderId: true,
+      shop: {
+        select: {
+          id: true, name: true, shopDomain: true,
+          user: { select: { id: true, email: true, name: true } },
+        },
+      },
+    },
+  });
+  res.json({ orders });
+});
+
 // GET /admin/stats — platform geneli istatistikler
 router.get('/stats', adminOnly, async (_req: AuthRequest, res: Response): Promise<void> => {
   const [totalUsers, totalOrders, totalSMS, totalCredits] = await Promise.all([
