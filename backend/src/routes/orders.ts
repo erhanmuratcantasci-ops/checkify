@@ -5,6 +5,44 @@ import { OrderStatus } from '../../generated/prisma';
 
 const router = Router();
 
+// GET /orders/stats
+router.get('/stats', authenticate, async (req: AuthRequest, res: Response): Promise<void> => {
+  const shops = await prisma.shop.findMany({
+    where: { userId: req.userId },
+    select: { id: true },
+  });
+
+  if (shops.length === 0) {
+    res.json({ total: 0, totalRevenue: 0, byStatus: {} });
+    return;
+  }
+
+  const shopIds = shops.map((s) => s.id);
+
+  const [groupedByStatus, revenueAgg] = await Promise.all([
+    prisma.order.groupBy({
+      by: ['status'],
+      where: { shopId: { in: shopIds } },
+      _count: { _all: true },
+    }),
+    prisma.order.aggregate({
+      where: { shopId: { in: shopIds }, status: { notIn: ['CANCELLED'] } },
+      _sum: { total: true },
+      _count: { _all: true },
+    }),
+  ]);
+
+  const byStatus = Object.fromEntries(
+    groupedByStatus.map((g) => [g.status, g._count._all])
+  );
+
+  res.json({
+    total: revenueAgg._count._all,
+    totalRevenue: revenueAgg._sum.total ?? 0,
+    byStatus,
+  });
+});
+
 // GET /orders
 router.get('/', authenticate, async (req: AuthRequest, res: Response): Promise<void> => {
   const { status, page = '1', limit = '20' } = req.query as {

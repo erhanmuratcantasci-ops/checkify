@@ -47,6 +47,8 @@ export const auth = {
 };
 
 export const orders = {
+  stats: () => apiRequest<OrderStats>('/orders/stats'),
+
   list: (params?: { status?: string; page?: number; limit?: number }) => {
     const qs = new URLSearchParams();
     if (params?.status) qs.set('status', params.status);
@@ -73,6 +75,12 @@ export interface Order {
 
 export interface OrderDetail extends Order {
   smsLogs: { id: number; phone: string; message: string; status: string; createdAt: string }[];
+}
+
+export interface OrderStats {
+  total: number;
+  totalRevenue: number;
+  byStatus: Partial<Record<OrderStatus, number>>;
 }
 
 export interface OrdersResponse {

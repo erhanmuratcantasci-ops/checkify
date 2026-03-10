@@ -2,12 +2,13 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { auth, User } from '@/lib/api';
+import { auth, orders, User, OrderStats } from '@/lib/api';
 import Navbar from '@/components/Navbar';
 
 export default function DashboardPage() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
+  const [stats, setStats] = useState<OrderStats | null>(null);
   const [editing, setEditing] = useState(false);
 
   const [name, setName] = useState('');
@@ -26,6 +27,8 @@ export default function DashboardPage() {
         setEmail(user.email);
       })
       .catch(() => router.push('/login'));
+
+    orders.stats().then(setStats).catch(() => {});
   }, [router]);
 
   async function handleSave(e: React.FormEvent) {
@@ -91,6 +94,38 @@ export default function DashboardPage() {
             Hoş geldin, {user.name ?? 'kullanıcı'}
           </h2>
           <p className="text-sm text-gray-500 mt-1">Dashboard'una genel bakış</p>
+        </div>
+
+        {/* Özet Kartları */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          {[
+            {
+              label: 'Toplam Sipariş',
+              value: stats ? String(stats.total) : '—',
+              sub: 'İptal hariç',
+            },
+            {
+              label: 'Toplam Gelir',
+              value: stats ? `${stats.totalRevenue.toFixed(2)} ₺` : '—',
+              sub: 'İptal hariç',
+            },
+            {
+              label: 'Bekleyen',
+              value: stats ? String(stats.byStatus['PENDING'] ?? 0) : '—',
+              sub: 'Onay bekliyor',
+            },
+            {
+              label: 'Onaylanan',
+              value: stats ? String(stats.byStatus['CONFIRMED'] ?? 0) : '—',
+              sub: 'Onaylandı',
+            },
+          ].map((card) => (
+            <div key={card.label} className="bg-white border border-gray-200 rounded-2xl px-5 py-4">
+              <p className="text-xs text-gray-500 mb-1">{card.label}</p>
+              <p className="text-2xl font-semibold text-gray-900">{card.value}</p>
+              <p className="text-xs text-gray-400 mt-1">{card.sub}</p>
+            </div>
+          ))}
         </div>
 
         {success && (
