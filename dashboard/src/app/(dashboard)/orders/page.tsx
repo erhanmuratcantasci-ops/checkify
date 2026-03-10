@@ -41,7 +41,7 @@ export default function OrdersPage() {
     if (!token) { router.push('/login'); return; }
     setLoading(true);
     const status = FILTER_MAP[filter];
-    const url = `http://localhost:3001/orders${status ? `?status=${status}` : ''}`;
+    const url = `http://127.0.0.1:3001/orders${status ? `?status=${status}` : ''}`;
     fetch(url, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.json())
       .then(data => { setOrders(data.orders || []); setTotal(data.total || 0); })

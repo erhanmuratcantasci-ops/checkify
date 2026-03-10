@@ -29,8 +29,8 @@ export default function DashboardPage() {
     if (!token) { router.push('/login'); return; }
 
     Promise.all([
-      fetch('http://localhost:3001/auth/me', { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()),
-      fetch('http://localhost:3001/orders?limit=100', { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()),
+      fetch('http://127.0.0.1:3001/auth/me', { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()),
+      fetch('http://127.0.0.1:3001/orders?limit=100', { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()),
     ]).then(([userData, ordersData]) => {
       setUser(userData.user ?? userData);
       const orders = ordersData.orders || [];

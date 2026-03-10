@@ -40,7 +40,7 @@ export default function ProfilePage() {
     const token = localStorage.getItem('token');
     if (!token) { router.push('/login'); return; }
 
-    fetch('http://localhost:3001/auth/me', {
+    fetch('http://127.0.0.1:3001/auth/me', {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then(r => r.json())
@@ -65,7 +65,7 @@ export default function ProfilePage() {
       if (currentPassword) body.currentPassword = currentPassword;
       if (newPassword) body.newPassword = newPassword;
 
-      const res = await fetch('http://localhost:3001/auth/me', {
+      const res = await fetch('http://127.0.0.1:3001/auth/me', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify(body),
