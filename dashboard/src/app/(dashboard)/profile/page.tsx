@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import GeometricBackground from '@/components/GeometricBackground';
+import { SkeletonProfile } from '@/components/Skeleton';
+import { useToast } from '@/components/Toast';
 
 interface User {
   name: string;
@@ -27,12 +29,14 @@ const inputStyle: React.CSSProperties = {
 
 export default function ProfilePage() {
   const router = useRouter();
+  const { showToast } = useToast();
   const [user, setUser] = useState<User | null>(null);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
@@ -49,8 +53,9 @@ export default function ProfilePage() {
         setUser(u);
         setName(u.name ?? '');
         setEmail(u.email ?? '');
+        setLoading(false);
       })
-      .catch(() => router.push('/login'));
+      .catch(() => { showToast('Profil yüklenemedi', 'error'); router.push('/login'); });
   }, [router]);
 
   async function handleSave(e: React.FormEvent) {
@@ -76,8 +81,11 @@ export default function ProfilePage() {
       setUser(data.user);
       setCurrentPassword(''); setNewPassword('');
       setSuccess('Profil başarıyla güncellendi.');
+      showToast('Profil güncellendi', 'success');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Hata oluştu');
+      const msg = err instanceof Error ? err.message : 'Hata oluştu';
+      setError(msg);
+      showToast(msg, 'error');
     } finally {
       setSaving(false);
     }
@@ -101,7 +109,7 @@ export default function ProfilePage() {
           </h1>
         </div>
 
-        <div style={{
+        {loading ? <SkeletonProfile /> : <div style={{
           background: 'rgba(255,255,255,0.03)',
           border: '1px solid rgba(255,255,255,0.07)',
           borderRadius: 16, padding: '28px 28px',
@@ -203,7 +211,7 @@ export default function ProfilePage() {
               {saving ? 'Kaydediliyor...' : 'Kaydet'}
             </button>
           </form>
-        </div>
+        </div>}
       </main>
     </div>
   );

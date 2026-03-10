@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import GeometricBackground from '@/components/GeometricBackground';
+import { SkeletonShopCard } from '@/components/Skeleton';
+import { useToast } from '@/components/Toast';
 
 const API = 'http://127.0.0.1:3001';
 
@@ -39,6 +41,7 @@ function validateTemplate(template: string): string | null {
 
 export default function ShopsPage() {
   const router = useRouter();
+  const { showToast } = useToast();
   const [userName, setUserName] = useState('');
   const [shops, setShops] = useState<Shop[]>([]);
   const [loading, setLoading] = useState(true);
@@ -80,8 +83,10 @@ export default function ShopsPage() {
       if (!res.ok) throw new Error();
       const data = await res.json();
       setShops(data.shops ?? data);
+      showToast('Mağazalar yüklendi', 'success');
     } catch {
       setShops([]);
+      showToast('Mağazalar yüklenemedi', 'error');
     } finally {
       setLoading(false);
     }
@@ -103,8 +108,11 @@ export default function ShopsPage() {
       setShowModal(false);
       setNewName('');
       setNewDomain('');
+      showToast('Mağaza başarıyla eklendi', 'success');
     } catch (err) {
-      setCreateError(err instanceof Error ? err.message : 'Hata oluştu');
+      const msg = err instanceof Error ? err.message : 'Hata oluştu';
+      setCreateError(msg);
+      showToast(msg, 'error');
     } finally {
       setCreating(false);
     }
@@ -115,6 +123,9 @@ export default function ShopsPage() {
     if (res.ok) {
       setShops(prev => prev.filter(s => s.id !== id));
       setDeleteConfirm(null);
+      showToast('Mağaza silindi', 'info');
+    } else {
+      showToast('Mağaza silinemedi', 'error');
     }
   }
 
@@ -137,8 +148,11 @@ export default function ShopsPage() {
       if (!res.ok) throw new Error(data.error || 'Kaydedilemedi');
       setShops(prev => prev.map(s => s.id === id ? { ...s, smsTemplate: data.template } : s));
       setTemplateOpen(prev => ({ ...prev, [id]: false }));
+      showToast('SMS şablonu kaydedildi', 'success');
     } catch (err) {
-      setTemplateError(prev => ({ ...prev, [id]: err instanceof Error ? err.message : 'Hata' }));
+      const msg = err instanceof Error ? err.message : 'Hata';
+      setTemplateError(prev => ({ ...prev, [id]: msg }));
+      showToast(msg, 'error');
     } finally {
       setTemplateSaving(prev => ({ ...prev, [id]: false }));
     }
@@ -177,7 +191,9 @@ export default function ShopsPage() {
 
         {/* Shop list */}
         {loading ? (
-          <div style={{ textAlign: 'center', color: '#6b7280', padding: 80 }}>Yükleniyor...</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {Array.from({ length: 2 }).map((_, i) => <SkeletonShopCard key={i} />)}
+          </div>
         ) : shops.length === 0 ? (
           <div style={{
             background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)',
