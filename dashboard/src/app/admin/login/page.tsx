@@ -29,8 +29,8 @@ export default function AdminLoginPage() {
         return;
       }
       // Save adminToken cookie (8 hours)
-      const expires = new Date(Date.now() + 8 * 60 * 60 * 1000).toUTCString();
-      document.cookie = `adminToken=${data.adminToken}; path=/; expires=${expires}; SameSite=Strict`;
+      const maxAge = 8 * 60 * 60;
+      document.cookie = `adminToken=${data.adminToken}; path=/; max-age=${maxAge}; SameSite=Lax`;
       router.push('/admin');
     } catch {
       setError('Sunucuya bağlanılamadı');

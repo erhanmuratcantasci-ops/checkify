@@ -198,11 +198,16 @@ export default function AdminPage() {
     const token = getAdminToken();
     if (!token) { router.push('/admin/login'); return; }
 
-    // Verify admin token
+    // Verify admin token — only redirect on explicit 401/403, not on network errors
     try {
       const meRes = await fetch(`${API}/admin-auth/me`, { headers: authHeaders() });
-      if (!meRes.ok) { router.push('/admin/login'); return; }
-    } catch { router.push('/admin/login'); return; }
+      if (meRes.status === 401 || meRes.status === 403) {
+        router.push('/admin/login'); return;
+      }
+    } catch (e) {
+      // Network error or Railway down — log and continue, token might still be valid
+      console.warn('[admin] /admin-auth/me unreachable, proceeding with stored token', e);
+    }
 
     Promise.all([
       fetch(`${API}/admin/users`, { headers: authHeaders() }),
@@ -211,14 +216,15 @@ export default function AdminPage() {
       fetch(`${API}/admin/orders`, { headers: authHeaders() }),
       fetch(`${API}/admin/security-logs`, { headers: authHeaders() }),
     ]).then(async ([uRes, sRes, shRes, oRes, secRes]) => {
-      if (uRes.status === 403 || uRes.status === 401) { router.push('/dashboard'); return; }
+      // Only redirect to login on auth failure, not other errors
+      if (uRes.status === 401 || uRes.status === 403) { router.push('/admin/login'); return; }
       const [uData, sData, shData, oData, secData] = await Promise.all([uRes.json(), sRes.json(), shRes.json(), oRes.json(), secRes.json()]);
       setUsers(uData.users || []);
       setStats(sData);
       setShops(shData.shops || []);
       setOrders(oData.orders || []);
       setSecurityLogs(secData.logs ?? []);
-    }).catch(() => router.push('/dashboard'))
+    }).catch(e => console.error('[admin] data fetch error', e))
       .finally(() => setLoading(false));
   })(); }, [router]);
 
