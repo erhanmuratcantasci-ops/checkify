@@ -16,7 +16,7 @@ const UPGRADE_PLANS: Record<string, PlanCard> = {
   STARTER: {
     label: 'Starter',
     price: '99₺/ay',
-    features: ['500 SMS/ay', '3 mağaza', 'OTP doğrulama', 'WhatsApp bildirimi'],
+    features: ['300 SMS/ay', '3 mağaza', 'OTP doğrulama', 'PDF fatura'],
     accent: '#3b82f6',
     bg: 'rgba(59,130,246,0.08)',
     border: 'rgba(59,130,246,0.3)',
@@ -24,7 +24,7 @@ const UPGRADE_PLANS: Record<string, PlanCard> = {
   PRO: {
     label: 'Pro',
     price: '249₺/ay',
-    features: ['2.000 SMS/ay', '10 mağaza', 'RTO analizi', 'PDF fatura'],
+    features: ['1.000 SMS/ay', '10 mağaza', 'WhatsApp', 'RTO analizi', 'Blocklist · Posta kodu'],
     accent: '#a855f7',
     bg: 'rgba(168,85,247,0.08)',
     border: 'rgba(168,85,247,0.3)',
@@ -32,7 +32,7 @@ const UPGRADE_PLANS: Record<string, PlanCard> = {
   BUSINESS: {
     label: 'Business',
     price: '499₺/ay',
-    features: ['5.000 SMS/ay', 'Sınırsız mağaza', 'API erişimi', 'Öncelikli destek'],
+    features: ['3.000 SMS/ay', 'Sınırsız mağaza', 'Tüm özellikler', 'Öncelikli destek'],
     accent: '#f59e0b',
     bg: 'rgba(245,158,11,0.08)',
     border: 'rgba(245,158,11,0.3)',
