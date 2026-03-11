@@ -55,7 +55,8 @@ router.post('/orders/create', async (req: Request, res: Response): Promise<void>
       id: number;
       customer?: { first_name?: string; last_name?: string; phone?: string };
       phone?: string;
-      billing_address?: { phone?: string };
+      billing_address?: { phone?: string; zip?: string };
+      shipping_address?: { zip?: string };
       total_price?: string;
     };
 
@@ -93,6 +94,12 @@ router.post('/orders/create', async (req: Request, res: Response): Promise<void>
 
     console.log(`[webhook] Order oluşturuldu: #${order.id} — ${customerName} (${customerPhone}) — ${total}`);
 
+    const statusToken = randomUUID();
+    await prisma.order.update({
+      where: { id: order.id },
+      data: { statusToken },
+    });
+
     // Blocklist kontrolü — engelli numara ise SMS gönderme
     const blocked = await prisma.blockedPhone.findFirst({
       where: { shopId: shop.id, phone: customerPhone },
@@ -102,7 +109,20 @@ router.post('/orders/create', async (req: Request, res: Response): Promise<void>
       return;
     }
 
+    // Posta kodu blocklist kontrolü
+    const postalCode = payload.shipping_address?.zip || payload.billing_address?.zip;
+    if (postalCode) {
+      const blockedPostal = await prisma.blockedPostalCode.findFirst({
+        where: { shopId: shop.id, postalCode: postalCode.trim() },
+      });
+      if (blockedPostal) {
+        console.log(`[webhook] Posta kodu ${postalCode} blocklist'te — SMS atlanıyor`);
+        return;
+      }
+    }
+
     const baseUrl = process.env['BASE_URL'] || 'http://localhost:3001';
+    const DASHBOARD_URL = process.env['DASHBOARD_URL'] || 'https://chekkify.com';
     await smsQueue.add('send-sms', {
       orderId: order.id,
       phone: customerPhone,
@@ -110,6 +130,7 @@ router.post('/orders/create', async (req: Request, res: Response): Promise<void>
       total,
       confirmUrl: `${baseUrl}/confirm/${confirmToken}`,
       cancelUrl: `${baseUrl}/confirm/cancel/${confirmToken}`,
+      statusUrl: `${DASHBOARD_URL}/status/${statusToken}`,
     });
   } catch (err) {
     console.error('[webhook] Order kaydedilemedi:', err);

@@ -63,6 +63,7 @@ model Shop {
   user          User           @relation(fields: [userId], references: [id])
   orders        Order[]
   blockedPhones BlockedPhone[]
+  blockedPostalCodes BlockedPostalCode[]
 }
 
 model BlockedPhone {
@@ -76,6 +77,17 @@ model BlockedPhone {
   @@unique([phone, shopId])
 }
 
+model BlockedPostalCode {
+  id         Int      @id @default(autoincrement())
+  postalCode String
+  shopId     Int
+  createdAt  DateTime @default(now())
+
+  shop       Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  @@unique([postalCode, shopId])
+}
+
 model Order {
   id              Int         @id @default(autoincrement())
   shopifyOrderId  BigInt?
@@ -85,6 +97,7 @@ model Order {
   status          OrderStatus @default(PENDING)
   shopId          Int
   confirmToken    String?     @unique
+  statusToken     String?     @unique
   tokenExpiresAt  DateTime?
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt

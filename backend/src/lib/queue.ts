@@ -22,4 +22,5 @@ export interface SMSJobData {
   total: number;
   confirmUrl: string;
   cancelUrl: string;
+  statusUrl?: string;
 }

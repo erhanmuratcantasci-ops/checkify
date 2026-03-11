@@ -36,7 +36,7 @@ router.get('/:token', async (req: Request, res: Response): Promise<void> => {
       order.shop.shopDomain,
       order.shop.accessToken,
       Number(order.shopifyOrderId),
-      'onaylandi'
+      'chekkify-confirmed'
     ).catch((err) => console.error('[confirm] Shopify tag eklenemedi:', err));
   }
 
@@ -84,7 +84,7 @@ router.get('/cancel/:token', async (req: Request, res: Response): Promise<void> 
       order.shop.shopDomain,
       order.shop.accessToken,
       Number(order.shopifyOrderId),
-      'iptal-edildi'
+      'chekkify-cancelled'
     ).catch((err) => console.error('[cancel] Shopify tag eklenemedi:', err));
   }
 

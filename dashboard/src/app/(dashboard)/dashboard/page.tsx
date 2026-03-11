@@ -17,6 +17,9 @@ const Line = dynamic(() => import('recharts').then(m => m.Line), { ssr: false })
 const XAxis = dynamic(() => import('recharts').then(m => m.XAxis), { ssr: false });
 const YAxis = dynamic(() => import('recharts').then(m => m.YAxis), { ssr: false });
 const Tooltip = dynamic(() => import('recharts').then(m => m.Tooltip), { ssr: false });
+const PieChart = dynamic(() => import('recharts').then(m => m.PieChart), { ssr: false });
+const Pie = dynamic(() => import('recharts').then(m => m.Pie), { ssr: false });
+const Cell = dynamic(() => import('recharts').then(m => m.Cell), { ssr: false });
 
 interface Stats {
   total: number;
@@ -38,6 +41,12 @@ interface DailyPoint {
   count: number;
 }
 
+interface VerificationStats {
+  confirmed: number;
+  cancelled: number;
+  pending: number;
+}
+
 function formatDay(iso: string) {
   const d = new Date(iso);
   return d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' });
@@ -50,6 +59,7 @@ export default function DashboardPage() {
   const [user, setUser] = useState<User | null>(null);
   const [stats, setStats] = useState<Stats>({ total: 0, revenue: 0, pending: 0, confirmed: 0, cancelled: 0, todayOrders: 0 });
   const [daily, setDaily] = useState<DailyPoint[]>([]);
+  const [verification, setVerification] = useState<VerificationStats>({ confirmed: 0, cancelled: 0, pending: 0 });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -61,7 +71,8 @@ export default function DashboardPage() {
       fetch(`${API}/auth/me`, { headers }).then(r => r.json()),
       fetch(`${API}/orders/stats`, { headers }).then(r => r.json()),
       fetch(`${API}/orders/stats/daily`, { headers }).then(r => r.json()),
-    ]).then(([userData, statsData, dailyData]) => {
+      fetch(`${API}/orders/stats/verification`, { headers }).then(r => r.json()),
+    ]).then(([userData, statsData, dailyData, verifyData]) => {
       setUser(userData.user ?? userData);
       const byStatus = statsData.byStatus || {};
       setStats({
@@ -73,6 +84,11 @@ export default function DashboardPage() {
         todayOrders: statsData.todayOrders ?? 0,
       });
       setDaily((dailyData.daily || []).map((d: DailyPoint) => ({ ...d, date: formatDay(d.date) })));
+      setVerification({
+        confirmed: verifyData.confirmed ?? 0,
+        cancelled: verifyData.cancelled ?? 0,
+        pending: verifyData.pending ?? 0,
+      });
     }).catch(() => router.push('/login')).finally(() => setLoading(false));
   }, [router]);
 
@@ -185,6 +201,70 @@ export default function DashboardPage() {
                   />
                 </LineChart>
               </ResponsiveContainer>
+            </div>
+          )}
+        </div>
+
+        {/* Verification Rate Donut */}
+        <div style={{
+          background: 'rgba(255,255,255,0.03)',
+          border: '1px solid rgba(255,255,255,0.07)',
+          borderRadius: 16,
+          padding: isMobile ? '16px' : '24px 28px',
+          marginBottom: isMobile ? 16 : 24,
+        }}>
+          <h2 style={{ color: '#9ca3af', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.8px', margin: '0 0 16px' }}>
+            Doğrulama Oranı
+          </h2>
+          {loading ? (
+            <div style={{ height: 140, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ color: '#374151', fontSize: 13 }}>Yükleniyor...</div>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 16 : 32, flexWrap: 'wrap' }}>
+              <div style={{ height: isMobile ? 120 : 150, width: isMobile ? 120 : 150, flexShrink: 0 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={[
+                        { name: 'Onaylanan', value: verification.confirmed },
+                        { name: 'İptal', value: verification.cancelled },
+                        { name: 'Bekleyen', value: verification.pending },
+                      ]}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius="55%"
+                      outerRadius="80%"
+                      dataKey="value"
+                      strokeWidth={0}
+                    >
+                      <Cell fill="#059669" />
+                      <Cell fill="#dc2626" />
+                      <Cell fill="#d97706" />
+                    </Pie>
+                    <Tooltip
+                      contentStyle={{
+                        background: 'rgba(13,13,24,0.95)',
+                        border: '1px solid rgba(139,92,246,0.25)',
+                        borderRadius: 8, color: '#e5e7eb', fontSize: 13,
+                      }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {[
+                  { label: 'Onaylanan', value: verification.confirmed, color: '#059669' },
+                  { label: 'İptal Edilen', value: verification.cancelled, color: '#dc2626' },
+                  { label: 'Bekleyen', value: verification.pending, color: '#d97706' },
+                ].map(item => (
+                  <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <div style={{ width: 10, height: 10, borderRadius: '50%', background: item.color, flexShrink: 0 }} />
+                    <span style={{ color: '#9ca3af', fontSize: 13 }}>{item.label}:</span>
+                    <span style={{ color: '#fff', fontSize: 13, fontWeight: 600 }}>{item.value}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>

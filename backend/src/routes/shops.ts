@@ -151,4 +151,52 @@ router.delete('/:id/blocked-phones/:phone', async (req: AuthRequest, res: Respon
   res.json({ success: true });
 });
 
+// GET /shops/:id/blocked-postal-codes
+router.get('/:id/blocked-postal-codes', async (req: AuthRequest, res: Response): Promise<void> => {
+  const id = parseInt(req.params['id'] as string);
+  const shop = await prisma.shop.findFirst({ where: { id, userId: req.userId! } });
+  if (!shop) { res.status(404).json({ error: 'Shop bulunamadı' }); return; }
+
+  const blocked = await prisma.blockedPostalCode.findMany({
+    where: { shopId: id },
+    orderBy: { createdAt: 'desc' },
+  });
+  res.json({ blocked });
+});
+
+// POST /shops/:id/blocked-postal-codes
+router.post('/:id/blocked-postal-codes', async (req: AuthRequest, res: Response): Promise<void> => {
+  const id = parseInt(req.params['id'] as string);
+  const { postalCode } = req.body as { postalCode?: string };
+
+  if (!postalCode || typeof postalCode !== 'string') {
+    res.status(400).json({ error: 'Posta kodu gerekli' });
+    return;
+  }
+
+  const shop = await prisma.shop.findFirst({ where: { id, userId: req.userId! } });
+  if (!shop) { res.status(404).json({ error: 'Shop bulunamadı' }); return; }
+
+  try {
+    const entry = await prisma.blockedPostalCode.create({
+      data: { postalCode: postalCode.trim(), shopId: id },
+    });
+    res.status(201).json({ entry });
+  } catch {
+    res.status(409).json({ error: 'Bu posta kodu zaten engellenmiş' });
+  }
+});
+
+// DELETE /shops/:id/blocked-postal-codes/:postalCode
+router.delete('/:id/blocked-postal-codes/:postalCode', async (req: AuthRequest, res: Response): Promise<void> => {
+  const id = parseInt(req.params['id'] as string);
+  const postalCode = decodeURIComponent(req.params['postalCode'] as string);
+
+  const shop = await prisma.shop.findFirst({ where: { id, userId: req.userId! } });
+  if (!shop) { res.status(404).json({ error: 'Shop bulunamadı' }); return; }
+
+  await prisma.blockedPostalCode.deleteMany({ where: { shopId: id, postalCode } });
+  res.json({ success: true });
+});
+
 export default router;

@@ -13,14 +13,14 @@ async function sendSMS(phone: string, message: string): Promise<void> {
 }
 
 async function processJob(job: Job<SMSJobData>): Promise<void> {
-  const { orderId, phone, customerName, total, confirmUrl, cancelUrl } = job.data;
+  const { orderId, phone, customerName, total, confirmUrl, cancelUrl, statusUrl } = job.data;
 
   // Fetch order + shop early (hours, credit, rate-limit)
   const order = await prisma.order.findUnique({
     where: { id: orderId },
     select: {
       shopId: true,
-      shop: { select: { userId: true, smsStartHour: true, smsEndHour: true } },
+      shop: { select: { userId: true, smsStartHour: true, smsEndHour: true, smsTemplate: true } },
     },
   });
 
@@ -50,9 +50,16 @@ async function processJob(job: Job<SMSJobData>): Promise<void> {
     throw new Error(phoneCheck.error);
   }
 
-  const message =
-    `Merhaba ${customerName}, ${total.toFixed(2)} TL tutarındaki siparişiniz alındı. ` +
-    `Onaylamak: ${confirmUrl} | İptal: ${cancelUrl}`;
+  const shopTemplate = order?.shop.smsTemplate;
+  const message = shopTemplate
+    ? shopTemplate
+        .replace('{isim}', customerName)
+        .replace('{tutar}', total.toFixed(2))
+        .replace('{link}', confirmUrl)
+        .replace('{status_link}', statusUrl ?? '')
+        .replace('{siparis_no}', String(orderId))
+    : `Merhaba ${customerName}, ${total.toFixed(2)} TL tutarındaki siparişiniz alındı. ` +
+      `Onaylamak: ${confirmUrl} | İptal: ${cancelUrl}${statusUrl ? ` | Durum: ${statusUrl}` : ''}`;
 
   // Mesaj validasyonu
   const msgCheck = validateSMSMessage(message);

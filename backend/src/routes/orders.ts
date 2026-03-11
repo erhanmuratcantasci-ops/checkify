@@ -49,6 +49,35 @@ router.get('/stats/daily', authenticate, async (req: AuthRequest, res: Response)
   res.json({ daily });
 });
 
+// GET /orders/stats/verification — doğrulama oranı
+router.get('/stats/verification', authenticate, async (req: AuthRequest, res: Response): Promise<void> => {
+  const shops = await prisma.shop.findMany({
+    where: { userId: req.userId },
+    select: { id: true },
+  });
+
+  if (shops.length === 0) {
+    res.json({ confirmed: 0, cancelled: 0, pending: 0 });
+    return;
+  }
+
+  const shopIds = shops.map((s) => s.id);
+
+  const grouped = await prisma.order.groupBy({
+    by: ['status'],
+    where: { shopId: { in: shopIds } },
+    _count: { _all: true },
+  });
+
+  const byStatus = Object.fromEntries(grouped.map(g => [g.status, g._count._all]));
+
+  res.json({
+    confirmed: byStatus['CONFIRMED'] ?? 0,
+    cancelled: byStatus['CANCELLED'] ?? 0,
+    pending: byStatus['PENDING'] ?? 0,
+  });
+});
+
 // GET /orders/stats
 router.get('/stats', authenticate, async (req: AuthRequest, res: Response): Promise<void> => {
   const shops = await prisma.shop.findMany({

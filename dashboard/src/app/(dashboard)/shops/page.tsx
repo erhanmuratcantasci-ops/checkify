@@ -10,7 +10,7 @@ import { useTranslation } from '@/lib/i18n';
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://127.0.0.1:3001';
 
-const ALLOWED_VARS = ['{isim}', '{siparis_no}', '{link}', '{tutar}'];
+const ALLOWED_VARS = ['{isim}', '{siparis_no}', '{link}', '{tutar}', '{status_link}'];
 const DEFAULT_TEMPLATE = 'Merhaba {isim}, {siparis_no} numaralı siparişinizi onaylamak için: {link}';
 
 interface Shop {
@@ -27,6 +27,12 @@ interface Shop {
 interface BlockedPhone {
   id: number;
   phone: string;
+  createdAt: string;
+}
+
+interface BlockedPostalCode {
+  id: number;
+  postalCode: string;
   createdAt: string;
 }
 
@@ -284,6 +290,12 @@ export default function ShopsPage() {
   const [blockInput, setBlockInput] = useState<Record<number, string>>({});
   const [blockLoading, setBlockLoading] = useState<Record<number, boolean>>({});
 
+  // Blocked postal codes state
+  const [blockedPostalCodes, setBlockedPostalCodes] = useState<Record<number, BlockedPostalCode[]>>({});
+  const [postalOpen, setPostalOpen] = useState<Record<number, boolean>>({});
+  const [newPostalCode, setNewPostalCode] = useState<Record<number, string>>({});
+  const [postalLoading, setPostalLoading] = useState<Record<number, boolean>>({});
+
   useEffect(() => {
     const token = getToken();
     if (!token) { router.push('/login'); return; }
@@ -455,6 +467,59 @@ export default function ShopsPage() {
     if (res.ok) {
       setBlockedPhones(prev => ({ ...prev, [shopId]: (prev[shopId] ?? []).filter(b => b.phone !== phone) }));
       showToast(t('shops_toast_blocked_removed'), 'info');
+    } else {
+      showToast(t('shops_toast_block_remove_error'), 'error');
+    }
+  }
+
+  async function loadPostalCodes(shopId: number) {
+    try {
+      const res = await fetch(`${API}/shops/${shopId}/blocked-postal-codes`, { headers: authHeaders() });
+      const data = await res.json();
+      setBlockedPostalCodes(prev => ({ ...prev, [shopId]: data.blocked ?? [] }));
+    } catch {
+      setBlockedPostalCodes(prev => ({ ...prev, [shopId]: [] }));
+    }
+  }
+
+  async function togglePostalSection(shopId: number) {
+    const isOpen = postalOpen[shopId];
+    if (!isOpen && !blockedPostalCodes[shopId]) {
+      await loadPostalCodes(shopId);
+    }
+    setPostalOpen(prev => ({ ...prev, [shopId]: !isOpen }));
+  }
+
+  async function addPostalCode(shopId: number) {
+    const postalCode = (newPostalCode[shopId] ?? '').trim();
+    if (!postalCode) return;
+    setPostalLoading(prev => ({ ...prev, [shopId]: true }));
+    try {
+      const res = await fetch(`${API}/shops/${shopId}/blocked-postal-codes`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({ postalCode }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || t('error_occurred'));
+      setBlockedPostalCodes(prev => ({ ...prev, [shopId]: [data.entry, ...(prev[shopId] ?? [])] }));
+      setNewPostalCode(prev => ({ ...prev, [shopId]: '' }));
+      showToast('Posta kodu engellendi', 'success');
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : t('error_occurred'), 'error');
+    } finally {
+      setPostalLoading(prev => ({ ...prev, [shopId]: false }));
+    }
+  }
+
+  async function removePostalCode(shopId: number, postalCode: string) {
+    const res = await fetch(`${API}/shops/${shopId}/blocked-postal-codes/${encodeURIComponent(postalCode)}`, {
+      method: 'DELETE',
+      headers: authHeaders(),
+    });
+    if (res.ok) {
+      setBlockedPostalCodes(prev => ({ ...prev, [shopId]: (prev[shopId] ?? []).filter(b => b.postalCode !== postalCode) }));
+      showToast('Posta kodu engeli kaldırıldı', 'info');
     } else {
       showToast(t('shops_toast_block_remove_error'), 'error');
     }

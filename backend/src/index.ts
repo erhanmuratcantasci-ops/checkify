@@ -10,6 +10,7 @@ import shopsRouter from './routes/shops';
 import smsTemplatesRouter from './routes/smsTemplates';
 import creditsRouter from './routes/credits';
 import adminRouter from './routes/admin';
+import statusRouter from './routes/status';
 import { loginRateLimiter, webhookRateLimiter } from './middleware/rateLimiter';
 import './workers/smsWorker';
 
@@ -43,6 +44,8 @@ app.use('/shops', shopsRouter);
 app.use('/shops/:id/template', smsTemplatesRouter);
 app.use('/credits', creditsRouter);
 app.use('/admin', adminRouter);
+
+app.use('/status', statusRouter);
 
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok' });
