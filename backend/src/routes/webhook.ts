@@ -93,6 +93,15 @@ router.post('/orders/create', async (req: Request, res: Response): Promise<void>
 
     console.log(`[webhook] Order oluşturuldu: #${order.id} — ${customerName} (${customerPhone}) — ${total}`);
 
+    // Blocklist kontrolü — engelli numara ise SMS gönderme
+    const blocked = await prisma.blockedPhone.findFirst({
+      where: { shopId: shop.id, phone: customerPhone },
+    });
+    if (blocked) {
+      console.log(`[webhook] ${customerPhone} blocklist'te — SMS atlanıyor`);
+      return;
+    }
+
     const baseUrl = process.env['BASE_URL'] || 'http://localhost:3001';
     await smsQueue.add('send-sms', {
       orderId: order.id,

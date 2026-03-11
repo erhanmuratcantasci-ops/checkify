@@ -7,23 +7,6 @@ import { sendLowCreditEmail } from '../lib/mailer';
 
 const LOW_CREDIT_THRESHOLD = 10;
 
-const DAY_START = 9;  // 09:00
-const DAY_END   = 22; // 22:00
-
-function isWorkingHour(): boolean {
-  const hour = new Date().getHours();
-  return hour >= DAY_START && hour < DAY_END;
-}
-
-/** Gece ise, sabah 09:00'a kaç ms kaldığını döner */
-function msUntilMorning(): number {
-  const now = new Date();
-  const morning = new Date(now);
-  morning.setHours(DAY_START, 0, 0, 0);
-  if (morning <= now) morning.setDate(morning.getDate() + 1);
-  return morning.getTime() - now.getTime();
-}
-
 async function sendSMS(phone: string, message: string): Promise<void> {
   // TODO: Netgsm entegrasyonu buraya gelecek
   console.log(`[SMS] → ${phone}: ${message}`);
@@ -32,10 +15,27 @@ async function sendSMS(phone: string, message: string): Promise<void> {
 async function processJob(job: Job<SMSJobData>): Promise<void> {
   const { orderId, phone, customerName, total, confirmUrl, cancelUrl } = job.data;
 
-  if (!isWorkingHour()) {
-    const delay = msUntilMorning();
-    const retryAt = new Date(Date.now() + delay).toLocaleTimeString('tr-TR');
-    console.log(`[SMS] Gece saati — job #${job.id} ${retryAt}'de yeniden denenecek`);
+  // Fetch order + shop early (hours, credit, rate-limit)
+  const order = await prisma.order.findUnique({
+    where: { id: orderId },
+    select: {
+      shopId: true,
+      shop: { select: { userId: true, smsStartHour: true, smsEndHour: true } },
+    },
+  });
+
+  // Shop-specific SMS hour check
+  const startHour = order?.shop.smsStartHour ?? 9;
+  const endHour   = order?.shop.smsEndHour   ?? 21;
+  const currHour  = new Date().getHours();
+
+  if (currHour < startHour || currHour >= endHour) {
+    const now  = new Date();
+    const next = new Date(now);
+    next.setHours(startHour, 0, 0, 0);
+    if (next <= now) next.setDate(next.getDate() + 1);
+    const delay = next.getTime() - now.getTime();
+    console.log(`[SMS] Saat ${currHour} — job #${job.id} ${startHour}:00'da yeniden denenecek`);
     await job.moveToDelayed(Date.now() + delay, job.token);
     throw new DelayedError();
   }
@@ -65,12 +65,7 @@ async function processJob(job: Job<SMSJobData>): Promise<void> {
   }
 
   // Shop başına saatlik SMS rate limit + kredi kontrolü
-  const order = await prisma.order.findUnique({
-    where: { id: orderId },
-    select: { shopId: true, shop: { select: { userId: true } } },
-  });
   if (order) {
-    // Kredi kontrolü
     const user = await prisma.user.findUnique({
       where: { id: order.shop.userId },
       select: { id: true, smsCredits: true },
@@ -84,7 +79,6 @@ async function processJob(job: Job<SMSJobData>): Promise<void> {
       throw new Error(errMsg);
     }
 
-    // Rate limit
     const rateCheck = await checkSmsRateLimit(order.shopId);
     if (!rateCheck.allowed) {
       const errMsg = `Shop #${order.shopId} saatlik SMS limitine ulaştı (max ${100})`;
@@ -120,7 +114,6 @@ async function processJob(job: Job<SMSJobData>): Promise<void> {
       }),
     ]);
 
-    // Kredi eşiğinin altına düştüyse email bildir
     if (updatedUser.smsCredits < LOW_CREDIT_THRESHOLD) {
       sendLowCreditEmail(updatedUser.email, updatedUser.name ?? updatedUser.email, updatedUser.smsCredits)
         .catch(err => console.error('[smsWorker] Low credit email gönderilemedi:', err));

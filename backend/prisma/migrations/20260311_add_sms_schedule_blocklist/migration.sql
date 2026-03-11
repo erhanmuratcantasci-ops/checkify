@@ -1,0 +1,12 @@
+-- Add SMS schedule hours to Shop
+ALTER TABLE "Shop" ADD COLUMN IF NOT EXISTS "smsStartHour" INTEGER NOT NULL DEFAULT 9;
+ALTER TABLE "Shop" ADD COLUMN IF NOT EXISTS "smsEndHour"   INTEGER NOT NULL DEFAULT 21;
+
+-- BlockedPhone table
+CREATE TABLE IF NOT EXISTS "BlockedPhone" (
+  "id"        SERIAL PRIMARY KEY,
+  "phone"     TEXT NOT NULL,
+  "shopId"    INTEGER NOT NULL REFERENCES "Shop"("id") ON DELETE CASCADE,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE ("phone", "shopId")
+);

@@ -9,7 +9,7 @@ export const smsQueue = new Queue('sms-queue', {
   connection: redisConnection,
   defaultJobOptions: {
     attempts: 3,
-    backoff: { type: 'exponential', delay: 5000 },
+    backoff: { type: 'exponential', delay: 60000 },
     removeOnComplete: 100,
     removeOnFail: 500,
   },
