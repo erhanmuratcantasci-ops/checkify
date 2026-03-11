@@ -516,9 +516,9 @@ export default function AdminPage() {
                     {(() => {
                       const planCards = [
                         { key: 'FREE',     label: 'Free',     price: 'Ücretsiz', desc: '100 SMS/ay · 1 mağaza · Temel OTP', days: 0 },
-                        { key: 'STARTER',  label: 'Starter',  price: '199₺/ay',  desc: '500 SMS/ay · 3 mağaza · WhatsApp', days: 30 },
-                        { key: 'PRO',      label: 'Pro',      price: '399₺/ay',  desc: '2.000 SMS/ay · 10 mağaza · RTO', days: 30 },
-                        { key: 'BUSINESS', label: 'Business', price: '799₺/ay',  desc: '5.000 SMS/ay · Sınırsız · API', days: 30 },
+                        { key: 'STARTER',  label: 'Starter',  price: '99₺/ay',   desc: '500 SMS/ay · 3 mağaza · WhatsApp', days: 30 },
+                        { key: 'PRO',      label: 'Pro',      price: '249₺/ay',  desc: '2.000 SMS/ay · 10 mağaza · RTO', days: 30 },
+                        { key: 'BUSINESS', label: 'Business', price: '499₺/ay',  desc: '5.000 SMS/ay · Sınırsız · API', days: 30 },
                       ] as const;
                       const colors: Record<string, { border: string; bg: string; badge: string; text: string }> = {
                         FREE:     { border: 'rgba(107,114,128,0.5)', bg: 'rgba(107,114,128,0.12)', badge: '#6b7280', text: '#9ca3af' },
