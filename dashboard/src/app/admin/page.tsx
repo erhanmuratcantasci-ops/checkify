@@ -233,7 +233,7 @@ export default function AdminPage() {
   async function openUserDetail(user: AdminUser) {
     setDetailUserLoading(true); setDetailUser(null);
     try {
-      const res = await fetch(`${API}/admin/users/${user.id}`, { headers: authHeaders() });
+      const res = await fetch(`${API}/admin/users/${parseInt(String(user.id))}`, { headers: authHeaders() });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       setDetailUser(data.user);
@@ -244,7 +244,7 @@ export default function AdminPage() {
   async function openOrderDetail(order: AdminOrder) {
     setDetailOrderLoading(true); setDetailOrder(null);
     try {
-      const res = await fetch(`${API}/admin/orders/${order.id}`, { headers: authHeaders() });
+      const res = await fetch(`${API}/admin/orders/${parseInt(String(order.id))}`, { headers: authHeaders() });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       setDetailOrder(data.order);
@@ -255,7 +255,7 @@ export default function AdminPage() {
   async function openShopDetail(shop: AdminShop) {
     setDetailShopLoading(true); setDetailShop(null);
     try {
-      const res = await fetch(`${API}/admin/shops/${shop.id}`, { headers: authHeaders() });
+      const res = await fetch(`${API}/admin/shops/${parseInt(String(shop.id))}`, { headers: authHeaders() });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       setDetailShop(data.shop);
