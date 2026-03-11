@@ -7,6 +7,7 @@ import Navbar from '@/components/Navbar';
 import GeometricBackground from '@/components/GeometricBackground';
 import { SkeletonCard } from '@/components/Skeleton';
 import { useIsMobile } from '@/hooks/useIsMobile';
+import { useTranslation } from '@/lib/i18n';
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://127.0.0.1:3001';
 
@@ -45,6 +46,7 @@ function formatDay(iso: string) {
 export default function DashboardPage() {
   const router = useRouter();
   const isMobile = useIsMobile();
+  const { t } = useTranslation();
   const [user, setUser] = useState<User | null>(null);
   const [stats, setStats] = useState<Stats>({ total: 0, revenue: 0, pending: 0, confirmed: 0, cancelled: 0, todayOrders: 0 });
   const [daily, setDaily] = useState<DailyPoint[]>([]);
@@ -75,10 +77,10 @@ export default function DashboardPage() {
   }, [router]);
 
   const statCards = [
-    { label: 'Toplam Sipariş', value: stats.total, sub: 'iptal hariç', icon: '📦', color: '#7c3aed' },
-    { label: 'Toplam Gelir', value: `${stats.revenue.toFixed(2)} ₺`, sub: 'iptal hariç', icon: '💰', color: '#059669' },
-    { label: 'Bekleyen', value: stats.pending, sub: 'onay bekliyor', icon: '⏳', color: '#d97706' },
-    { label: 'Bugün', value: stats.todayOrders, sub: 'bugünkü sipariş', icon: '📅', color: '#0891b2' },
+    { label: t('dash_total_orders'), value: stats.total, sub: t('dash_sub_excl_cancelled'), icon: '📦', color: '#7c3aed' },
+    { label: t('dash_revenue'), value: `${stats.revenue.toFixed(2)} ₺`, sub: t('dash_sub_excl_cancelled'), icon: '💰', color: '#059669' },
+    { label: t('dash_pending'), value: stats.pending, sub: t('dash_sub_awaiting'), icon: '⏳', color: '#d97706' },
+    { label: t('dash_today'), value: stats.todayOrders, sub: t('dash_sub_today'), icon: '📅', color: '#0891b2' },
   ];
 
   const hasChartData = daily.some(d => d.count > 0);
@@ -95,10 +97,10 @@ export default function DashboardPage() {
             fontSize: isMobile ? 22 : 28, fontWeight: 700, color: '#fff', margin: '0 0 6px',
             fontFamily: "'Syne', sans-serif", letterSpacing: '-0.5px',
           }}>
-            {loading ? 'Yükleniyor...' : `Hoş geldin, ${user?.name?.split(' ')[0]} 👋`}
+            {loading ? t('dash_loading') : `${t('dash_welcome')} ${user?.name?.split(' ')[0]} 👋`}
           </h1>
           <p style={{ color: '#6b7280', fontSize: 14, margin: 0 }}>
-            Chekkify dashboard — siparişlerini ve onaylarını yönet
+            {t('dash_subtitle')}
           </p>
         </div>
 
@@ -140,12 +142,12 @@ export default function DashboardPage() {
           marginBottom: isMobile ? 16 : 24,
         }}>
           <h2 style={{ color: '#9ca3af', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.8px', margin: '0 0 16px' }}>
-            Son 7 Gün — Sipariş Trendi
+            {t('dash_chart_title')}
           </h2>
           {loading || daily.length === 0 ? (
             <div style={{ height: 140, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <div style={{ color: '#374151', fontSize: 13 }}>
-                {loading ? 'Yükleniyor...' : 'Henüz veri yok'}
+                {loading ? t('dash_loading') : t('dash_no_data')}
               </div>
             </div>
           ) : (
@@ -171,7 +173,7 @@ export default function DashboardPage() {
                       borderRadius: 8, color: '#e5e7eb', fontSize: 13,
                     }}
                     cursor={{ stroke: 'rgba(139,92,246,0.2)', strokeWidth: 1 }}
-                    formatter={(v) => [v, 'Sipariş']}
+                    formatter={(v) => [v, t('dash_tooltip_orders')]}
                   />
                   <Line
                     type="monotone"
@@ -195,12 +197,12 @@ export default function DashboardPage() {
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
             <h2 style={{ color: '#9ca3af', fontSize: 11, fontWeight: 600, letterSpacing: '1px', textTransform: 'uppercase', margin: 0 }}>
-              Profil Bilgileri
+              {t('dash_profile_title')}
             </h2>
             <button onClick={() => router.push('/profile')} style={{
               background: 'transparent', border: 'none',
               color: '#a855f7', fontSize: 13, fontWeight: 500, cursor: 'pointer',
-            }}>Düzenle →</button>
+            }}>{t('edit')} →</button>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 20 }}>
             <div style={{
@@ -218,8 +220,8 @@ export default function DashboardPage() {
           </div>
           <div style={{ display: 'flex', flexDirection: 'column' }}>
             {[
-              ['Email', user?.email],
-              ['Kayıt tarihi', user?.createdAt ? new Date(user.createdAt).toLocaleDateString('tr-TR') : '—'],
+              [t('dash_profile_email'), user?.email],
+              [t('dash_profile_created'), user?.createdAt ? new Date(user.createdAt).toLocaleDateString('tr-TR') : '—'],
             ].map(([label, value]) => (
               <div key={label} style={{
                 padding: '12px 0',

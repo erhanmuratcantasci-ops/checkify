@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import GeometricBackground from '@/components/GeometricBackground';
 import { useIsMobile } from '@/hooks/useIsMobile';
+import { useTranslation } from '@/lib/i18n';
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://127.0.0.1:3001';
 
@@ -26,6 +27,7 @@ interface Transaction {
 export default function CreditsPage() {
   const router = useRouter();
   const isMobile = useIsMobile();
+  const { t } = useTranslation();
   const [credits, setCredits] = useState<number | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
@@ -57,10 +59,10 @@ export default function CreditsPage() {
             onClick={() => router.push('/dashboard')}
             style={{ background: 'none', border: 'none', color: '#6b7280', fontSize: 13, cursor: 'pointer', padding: 0, marginBottom: 10 }}
           >
-            ← Dashboard
+            {t('back_dashboard')}
           </button>
-          <h1 style={{ fontSize: isMobile ? 22 : 26, fontWeight: 700, color: '#fff', margin: 0, letterSpacing: '-0.5px' }}>SMS Kredileri</h1>
-          <p style={{ color: '#6b7280', fontSize: 14, margin: '4px 0 0' }}>Kredi bakiyenizi ve işlem geçmişinizi görüntüleyin</p>
+          <h1 style={{ fontSize: isMobile ? 22 : 26, fontWeight: 700, color: '#fff', margin: 0, letterSpacing: '-0.5px' }}>{t('credits_title')}</h1>
+          <p style={{ color: '#6b7280', fontSize: 14, margin: '4px 0 0' }}>{t('credits_subtitle')}</p>
         </div>
 
         {/* Credit balance card */}
@@ -83,7 +85,7 @@ export default function CreditsPage() {
 
           <div>
             <div style={{ color: '#9ca3af', fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 10 }}>
-              Mevcut Kredi
+              {t('credits_current')}
             </div>
             {loading ? (
               <div style={{ width: 80, height: 48, background: 'rgba(255,255,255,0.06)', borderRadius: 8 }} />
@@ -97,7 +99,7 @@ export default function CreditsPage() {
                 {credits?.toLocaleString('tr-TR')}
               </div>
             )}
-            <div style={{ color: '#6b7280', fontSize: 13, marginTop: 6 }}>SMS hakkı kaldı</div>
+            <div style={{ color: '#6b7280', fontSize: 13, marginTop: 6 }}>{t('credits_remaining')}</div>
           </div>
 
           <div style={{ position: 'relative', flexShrink: 0, width: isMobile ? '100%' : 'auto' }}>
@@ -114,7 +116,7 @@ export default function CreditsPage() {
                 width: isMobile ? '100%' : 'auto', minHeight: 44,
               }}
             >
-              Kredi Satın Al
+              {t('credits_buy')}
             </button>
             {showTooltip && (
               <div style={{
@@ -124,7 +126,7 @@ export default function CreditsPage() {
                 color: '#c4b5fd', fontSize: 12, fontWeight: 500, whiteSpace: 'nowrap',
                 boxShadow: '0 8px 24px rgba(0,0,0,0.4)', zIndex: 10,
               }}>
-                🚀 Yakında kullanıma açılacak
+                {t('credits_coming_soon')}
                 <div style={{
                   position: 'absolute', bottom: -5, right: 20,
                   width: 10, height: 10, background: 'rgba(15,15,28,0.98)',
@@ -144,8 +146,8 @@ export default function CreditsPage() {
         }}>
           {[
             { label: '100 SMS', price: '₺49', badge: null },
-            { label: '500 SMS', price: '₺199', badge: 'Popüler' },
-            { label: '2000 SMS', price: '₺599', badge: 'Pro' },
+            { label: '500 SMS', price: '₺199', badge: t('landing_pkg_popular') },
+            { label: '2000 SMS', price: '₺599', badge: t('landing_pkg_pro') },
           ].map(pkg => (
             <div key={pkg.label} style={{
               background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)',
@@ -176,9 +178,9 @@ export default function CreditsPage() {
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <div style={{ color: '#a78bfa', fontSize: 20, fontWeight: 800 }}>{pkg.price}</div>
-                {isMobile && <div style={{ color: '#4b5563', fontSize: 11 }}>Yakında</div>}
+                {isMobile && <div style={{ color: '#4b5563', fontSize: 11 }}>{t('credits_coming_soon_label')}</div>}
               </div>
-              {!isMobile && <div style={{ color: '#4b5563', fontSize: 11, marginTop: 6 }}>Yakında</div>}
+              {!isMobile && <div style={{ color: '#4b5563', fontSize: 11, marginTop: 6 }}>{t('credits_coming_soon_label')}</div>}
             </div>
           ))}
         </div>
@@ -187,7 +189,7 @@ export default function CreditsPage() {
         <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 16, overflow: 'hidden' }}>
           <div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
             <h2 style={{ color: '#9ca3af', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.8px', margin: 0 }}>
-              Son İşlemler
+              {t('credits_transactions')}
             </h2>
           </div>
 
@@ -198,7 +200,7 @@ export default function CreditsPage() {
               ))}
             </div>
           ) : transactions.length === 0 ? (
-            <div style={{ padding: 40, textAlign: 'center', color: '#4b5563', fontSize: 14 }}>Henüz işlem yok</div>
+            <div style={{ padding: 40, textAlign: 'center', color: '#4b5563', fontSize: 14 }}>{t('credits_no_transactions')}</div>
           ) : (
             <div>
               {transactions.map((tx, i) => (

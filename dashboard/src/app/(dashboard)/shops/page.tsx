@@ -6,6 +6,7 @@ import Navbar from '@/components/Navbar';
 import GeometricBackground from '@/components/GeometricBackground';
 import { SkeletonShopCard } from '@/components/Skeleton';
 import { useToast } from '@/components/Toast';
+import { useTranslation } from '@/lib/i18n';
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://127.0.0.1:3001';
 
@@ -40,33 +41,38 @@ function authHeaders() {
 
 const WEBHOOK_URL = 'https://api.chekkify.com/webhook/orders/create';
 
-const STEPS: { title: string; desc: React.ReactNode }[] = [
-  { title: 'Shopify Admin\'e Git', desc: 'Tarayıcınızda Shopify yönetim panelinizi açın.' },
-  {
-    title: 'Ayarlar → Bildirimler → Webhook\'lar',
-    desc: (
-      <>
-        Sol menüden <strong style={{ color: '#c4b5fd' }}>Ayarlar</strong> →{' '}
-        <strong style={{ color: '#c4b5fd' }}>Bildirimler</strong> bölümüne gidin.
-        Sayfanın en altında <strong style={{ color: '#c4b5fd' }}>Webhook&apos;lar</strong> bölümünü bulun.
-      </>
-    ),
-  },
-  { title: '"Webhook oluştur" Butonuna Tıkla', desc: 'Webhook\'lar bölümündeki "Webhook oluştur" butonuna tıklayın.' },
-  { title: 'Webhook Ayarlarını Gir', desc: null },
-  { title: 'Webhook Secret\'ı Kopyala', desc: 'Aşağıdaki secret\'ı kopyalayıp Shopify\'daki "İmzalama anahtarı" alanına yapıştırın.' },
-];
+function padHour(n: number) { return String(n).padStart(2, '0'); }
 
-const WEBHOOK_SETTINGS = [
-  { label: 'Olay', value: 'Sipariş oluşturuldu (orders/create)' },
-  { label: 'Format', value: 'JSON' },
-  { label: 'URL', value: WEBHOOK_URL },
-  { label: 'Webhook API sürümü', value: 'En güncel sürüm' },
-];
+const hourOptions = Array.from({ length: 24 }, (_, i) => i);
 
 function WebhookGuideModal({ shop, onClose }: { shop: Shop; onClose: () => void }) {
+  const { t } = useTranslation();
   const [secretVisible, setSecretVisible] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
+
+  const STEPS: { title: string; desc: React.ReactNode }[] = [
+    { title: t('shops_guide_s1'), desc: t('shops_guide_s1_desc') },
+    {
+      title: t('shops_guide_s2'),
+      desc: (
+        <>
+          Sol menüden <strong style={{ color: '#c4b5fd' }}>Ayarlar</strong> →{' '}
+          <strong style={{ color: '#c4b5fd' }}>Bildirimler</strong> bölümüne gidin.
+          Sayfanın en altında <strong style={{ color: '#c4b5fd' }}>Webhook&apos;lar</strong> bölümünü bulun.
+        </>
+      ),
+    },
+    { title: t('shops_guide_s3'), desc: t('shops_guide_s3_desc') },
+    { title: t('shops_guide_s4'), desc: null },
+    { title: t('shops_guide_s5'), desc: t('shops_guide_s5_desc') },
+  ];
+
+  const WEBHOOK_SETTINGS = [
+    { label: t('shops_guide_event'), value: t('shops_guide_event_val') },
+    { label: t('shops_guide_format'), value: 'JSON' },
+    { label: t('shops_guide_url_label'), value: WEBHOOK_URL },
+    { label: t('shops_guide_version'), value: t('shops_guide_version_val') },
+  ];
 
   function copy(text: string, key: string) {
     navigator.clipboard.writeText(text).then(() => {
@@ -103,7 +109,7 @@ function WebhookGuideModal({ shop, onClose }: { shop: Shop; onClose: () => void 
         }}>
           <div>
             <div style={{ color: '#7c3aed', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: 6 }}>
-              Webhook Kurulum Rehberi
+              {t('shops_guide_badge')}
             </div>
             <div style={{ color: '#fff', fontSize: 18, fontWeight: 700 }}>{shop.name}</div>
           </div>
@@ -155,13 +161,13 @@ function WebhookGuideModal({ shop, onClose }: { shop: Shop; onClose: () => void 
                           </span>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                             <span style={{
-                              color: s.label === 'URL' ? '#a78bfa' : '#e5e7eb',
-                              fontSize: 13, fontFamily: s.label === 'URL' ? 'monospace' : 'inherit',
+                              color: s.label === t('shops_guide_url_label') ? '#a78bfa' : '#e5e7eb',
+                              fontSize: 13, fontFamily: s.label === t('shops_guide_url_label') ? 'monospace' : 'inherit',
                               textAlign: 'right', wordBreak: 'break-all',
                             }}>
                               {s.value}
                             </span>
-                            {s.label === 'URL' && (
+                            {s.label === t('shops_guide_url_label') && (
                               <button
                                 onClick={() => copy(s.value, 'url')}
                                 style={{
@@ -172,7 +178,7 @@ function WebhookGuideModal({ shop, onClose }: { shop: Shop; onClose: () => void 
                                   fontSize: 11, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap',
                                 }}
                               >
-                                {copied === 'url' ? '✓ Kopyalandı' : 'Kopyala'}
+                                {copied === 'url' ? t('copied') : t('copy')}
                               </button>
                             )}
                           </div>
@@ -200,7 +206,7 @@ function WebhookGuideModal({ shop, onClose }: { shop: Shop; onClose: () => void 
                             cursor: 'pointer', whiteSpace: 'nowrap',
                           }}
                         >
-                          {secretVisible ? 'Gizle' : 'Göster'}
+                          {secretVisible ? t('hide') : t('show')}
                         </button>
                         <button
                           onClick={() => shop.webhookSecret && copy(shop.webhookSecret, 'secret')}
@@ -212,7 +218,7 @@ function WebhookGuideModal({ shop, onClose }: { shop: Shop; onClose: () => void 
                             fontSize: 12, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap',
                           }}
                         >
-                          {copied === 'secret' ? '✓ Kopyalandı' : 'Kopyala'}
+                          {copied === 'secret' ? t('copied') : t('copy')}
                         </button>
                       </div>
                     </div>
@@ -236,7 +242,7 @@ function WebhookGuideModal({ shop, onClose }: { shop: Shop; onClose: () => void 
               boxShadow: '0 4px 20px rgba(139,92,246,0.35)',
             }}
           >
-            Anladım, Kapat
+            {t('shops_guide_close')}
           </button>
         </div>
       </div>
@@ -244,20 +250,10 @@ function WebhookGuideModal({ shop, onClose }: { shop: Shop; onClose: () => void 
   );
 }
 
-function validateTemplate(template: string): string | null {
-  const found = template.match(/\{[^}]+\}/g) || [];
-  const invalid = found.filter(v => !ALLOWED_VARS.includes(v));
-  if (invalid.length > 0) return `Geçersiz değişkenler: ${invalid.join(', ')}`;
-  return null;
-}
-
-const hourOptions = Array.from({ length: 24 }, (_, i) => i);
-
-function pad(n: number) { return String(n).padStart(2, '0'); }
-
 export default function ShopsPage() {
   const router = useRouter();
   const { showToast } = useToast();
+  const { t } = useTranslation();
   const [shops, setShops] = useState<Shop[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -292,7 +288,15 @@ export default function ShopsPage() {
     const token = getToken();
     if (!token) { router.push('/login'); return; }
     fetchShops();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  function validateTemplate(template: string): string | null {
+    const found = template.match(/\{[^}]+\}/g) || [];
+    const invalid = found.filter(v => !ALLOWED_VARS.includes(v));
+    if (invalid.length > 0) return `${t('shops_invalid_vars')} ${invalid.join(', ')}`;
+    return null;
+  }
 
   async function fetchShops() {
     setLoading(true);
@@ -329,14 +333,14 @@ export default function ShopsPage() {
         body: JSON.stringify({ name: newName, shopDomain: newDomain || undefined }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Oluşturulamadı');
+      if (!res.ok) throw new Error(data.error || t('error_occurred'));
       setShops(prev => [data.shop ?? data, ...prev]);
       setShowModal(false);
       setNewName('');
       setNewDomain('');
-      showToast('Mağaza başarıyla eklendi', 'success');
+      showToast(t('shops_toast_created'), 'success');
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Hata oluştu';
+      const msg = err instanceof Error ? err.message : t('error_occurred');
       setCreateError(msg);
       showToast(msg, 'error');
     } finally {
@@ -349,9 +353,9 @@ export default function ShopsPage() {
     if (res.ok) {
       setShops(prev => prev.filter(s => s.id !== id));
       setDeleteConfirm(null);
-      showToast('Mağaza silindi', 'info');
+      showToast(t('shops_toast_deleted'), 'info');
     } else {
-      showToast('Mağaza silinemedi', 'error');
+      showToast(t('shops_toast_delete_error'), 'error');
     }
   }
 
@@ -368,12 +372,12 @@ export default function ShopsPage() {
         body: JSON.stringify({ template }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Kaydedilemedi');
+      if (!res.ok) throw new Error(data.error || t('error_occurred'));
       setShops(prev => prev.map(s => s.id === id ? { ...s, smsTemplate: data.template } : s));
       setTemplateOpen(prev => ({ ...prev, [id]: false }));
-      showToast('SMS şablonu kaydedildi', 'success');
+      showToast(t('shops_toast_template_saved'), 'success');
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Hata';
+      const msg = err instanceof Error ? err.message : t('error_occurred');
       setTemplateError(prev => ({ ...prev, [id]: msg }));
       showToast(msg, 'error');
     } finally {
@@ -402,12 +406,12 @@ export default function ShopsPage() {
         body: JSON.stringify({ smsStartHour: start, smsEndHour: end }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Kaydedilemedi');
+      if (!res.ok) throw new Error(data.error || t('error_occurred'));
       setShops(prev => prev.map(s => s.id === id ? { ...s, smsStartHour: start, smsEndHour: end } : s));
       setScheduleOpen(prev => ({ ...prev, [id]: false }));
-      showToast('SMS saatleri kaydedildi', 'success');
+      showToast(t('shops_toast_schedule_saved'), 'success');
     } catch (err) {
-      showToast(err instanceof Error ? err.message : 'Hata', 'error');
+      showToast(err instanceof Error ? err.message : t('error_occurred'), 'error');
     } finally {
       setScheduleSaving(prev => ({ ...prev, [id]: false }));
     }
@@ -432,12 +436,12 @@ export default function ShopsPage() {
         body: JSON.stringify({ phone }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Eklenemedi');
+      if (!res.ok) throw new Error(data.error || t('error_occurred'));
       setBlockedPhones(prev => ({ ...prev, [shopId]: [data.entry, ...(prev[shopId] ?? [])] }));
       setBlockInput(prev => ({ ...prev, [shopId]: '' }));
-      showToast('Numara engellendi', 'success');
+      showToast(t('shops_toast_blocked_added'), 'success');
     } catch (err) {
-      showToast(err instanceof Error ? err.message : 'Hata', 'error');
+      showToast(err instanceof Error ? err.message : t('error_occurred'), 'error');
     } finally {
       setBlockLoading(prev => ({ ...prev, [shopId]: false }));
     }
@@ -450,9 +454,9 @@ export default function ShopsPage() {
     });
     if (res.ok) {
       setBlockedPhones(prev => ({ ...prev, [shopId]: (prev[shopId] ?? []).filter(b => b.phone !== phone) }));
-      showToast('Engel kaldırıldı', 'info');
+      showToast(t('shops_toast_blocked_removed'), 'info');
     } else {
-      showToast('Kaldırılamadı', 'error');
+      showToast(t('shops_toast_block_remove_error'), 'error');
     }
   }
 
@@ -477,8 +481,8 @@ export default function ShopsPage() {
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 32 }}>
           <div>
-            <h1 style={{ color: '#fff', fontSize: 26, fontWeight: 700, margin: 0 }}>Mağazalar</h1>
-            <p style={{ color: '#6b7280', fontSize: 14, margin: '4px 0 0' }}>Shopify mağazalarınızı yönetin</p>
+            <h1 style={{ color: '#fff', fontSize: 26, fontWeight: 700, margin: 0 }}>{t('shops_title')}</h1>
+            <p style={{ color: '#6b7280', fontSize: 14, margin: '4px 0 0' }}>{t('shops_subtitle')}</p>
           </div>
           <button
             onClick={() => { setShowModal(true); setCreateError(''); }}
@@ -489,7 +493,7 @@ export default function ShopsPage() {
               boxShadow: '0 4px 20px rgba(139,92,246,0.35)',
             }}
           >
-            + Yeni Mağaza
+            {t('shops_new')}
           </button>
         </div>
 
@@ -504,8 +508,8 @@ export default function ShopsPage() {
             borderRadius: 16, padding: 60, textAlign: 'center',
           }}>
             <div style={{ fontSize: 40, marginBottom: 16 }}>🏪</div>
-            <p style={{ color: '#6b7280', fontSize: 15, margin: 0 }}>Henüz mağaza eklenmemiş</p>
-            <p style={{ color: '#4b5563', fontSize: 13, margin: '6px 0 0' }}>Sağ üstteki butonu kullanarak ilk mağazanızı ekleyin</p>
+            <p style={{ color: '#6b7280', fontSize: 15, margin: 0 }}>{t('shops_empty_title')}</p>
+            <p style={{ color: '#4b5563', fontSize: 13, margin: '6px 0 0' }}>{t('shops_empty_desc')}</p>
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -533,22 +537,22 @@ export default function ShopsPage() {
                         fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap',
                       }}
                     >
-                      Kurulum Rehberi
+                      {t('shops_setup_guide')}
                     </button>
                     {deleteConfirm === shop.id ? (
                       <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                        <span style={{ color: '#f87171', fontSize: 13 }}>Emin misiniz?</span>
+                        <span style={{ color: '#f87171', fontSize: 13 }}>{t('are_you_sure')}</span>
                         <button
                           onClick={() => handleDelete(shop.id)}
                           style={{ background: 'rgba(239,68,68,0.2)', border: '1px solid rgba(239,68,68,0.4)', borderRadius: 8, padding: '6px 14px', color: '#f87171', fontSize: 13, cursor: 'pointer' }}
                         >
-                          Evet, Sil
+                          {t('yes_delete')}
                         </button>
                         <button
                           onClick={() => setDeleteConfirm(null)}
                           style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, padding: '6px 14px', color: '#9ca3af', fontSize: 13, cursor: 'pointer' }}
                         >
-                          İptal
+                          {t('cancel')}
                         </button>
                       </div>
                     ) : (
@@ -556,7 +560,7 @@ export default function ShopsPage() {
                         onClick={() => setDeleteConfirm(shop.id)}
                         style={{ background: 'transparent', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 8, padding: '6px 14px', color: '#f87171', fontSize: 13, cursor: 'pointer' }}
                       >
-                        Sil
+                        {t('delete')}
                       </button>
                     )}
                   </div>
@@ -564,7 +568,7 @@ export default function ShopsPage() {
 
                 {/* Webhook Secret */}
                 <div style={{ marginBottom: 16 }}>
-                  <label style={sectionLabel}>Webhook Secret</label>
+                  <label style={sectionLabel}>{t('shops_webhook_secret')}</label>
                   <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                     <input
                       readOnly
@@ -575,13 +579,13 @@ export default function ShopsPage() {
                       onClick={() => setSecretVisible(prev => ({ ...prev, [shop.id]: !prev[shop.id] }))}
                       style={{ ...inputStyle, whiteSpace: 'nowrap', cursor: 'pointer', color: '#9ca3af' }}
                     >
-                      {secretVisible[shop.id] ? 'Gizle' : 'Göster'}
+                      {secretVisible[shop.id] ? t('hide') : t('show')}
                     </button>
                     <button
                       onClick={() => { if (shop.webhookSecret) navigator.clipboard.writeText(shop.webhookSecret); }}
                       style={{ ...inputStyle, whiteSpace: 'nowrap', cursor: 'pointer', color: '#9ca3af' }}
                     >
-                      Kopyala
+                      {t('copy')}
                     </button>
                   </div>
                 </div>
@@ -590,7 +594,7 @@ export default function ShopsPage() {
                 <div style={{ marginBottom: 16 }}>
                   {templateOpen[shop.id] ? (
                     <div>
-                      <label style={sectionLabel}>SMS Şablonu</label>
+                      <label style={sectionLabel}>{t('shops_sms_template')}</label>
                       <div style={{ marginBottom: 8, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                         {ALLOWED_VARS.map(v => (
                           <span key={v} style={{
@@ -627,20 +631,20 @@ export default function ShopsPage() {
                             color: '#fff', fontSize: 13, fontWeight: 600, cursor: templateSaving[shop.id] ? 'not-allowed' : 'pointer',
                           }}
                         >
-                          {templateSaving[shop.id] ? 'Kaydediliyor...' : 'Kaydet'}
+                          {templateSaving[shop.id] ? t('saving') : t('save')}
                         </button>
                         <button
                           onClick={() => setTemplateOpen(prev => ({ ...prev, [shop.id]: false }))}
                           style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, padding: '8px 18px', color: '#9ca3af', fontSize: 13, cursor: 'pointer' }}
                         >
-                          İptal
+                          {t('cancel')}
                         </button>
                       </div>
                     </div>
                   ) : (
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <div>
-                        <label style={sectionLabel}>SMS Şablonu</label>
+                        <label style={sectionLabel}>{t('shops_sms_template')}</label>
                         <p style={{ color: '#9ca3af', fontSize: 13, margin: 0, fontStyle: shop.smsTemplate ? 'normal' : 'italic' }}>
                           {shop.smsTemplate || DEFAULT_TEMPLATE}
                         </p>
@@ -652,39 +656,39 @@ export default function ShopsPage() {
                           borderRadius: 8, padding: '8px 16px', color: '#a78bfa', fontSize: 13, cursor: 'pointer', whiteSpace: 'nowrap', marginLeft: 16,
                         }}
                       >
-                        Düzenle
+                        {t('edit')}
                       </button>
                     </div>
                   )}
                 </div>
 
-                {/* ─── SMS Schedule ─── */}
+                {/* SMS Schedule */}
                 <div style={{ marginBottom: 16, borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: 16 }}>
                   {scheduleOpen[shop.id] ? (
                     <div>
-                      <label style={sectionLabel}>SMS Gönderim Saatleri</label>
+                      <label style={sectionLabel}>{t('shops_sms_hours')}</label>
                       <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 10 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <span style={{ color: '#9ca3af', fontSize: 13 }}>Başlangıç:</span>
+                          <span style={{ color: '#9ca3af', fontSize: 13 }}>{t('shops_start')}</span>
                           <select
                             value={scheduleEdit[shop.id]?.start ?? shop.smsStartHour}
                             onChange={e => setScheduleEdit(prev => ({ ...prev, [shop.id]: { ...prev[shop.id], start: parseInt(e.target.value) } }))}
                             style={{ ...inputStyle, cursor: 'pointer' }}
                           >
                             {hourOptions.map(h => (
-                              <option key={h} value={h}>{pad(h)}:00</option>
+                              <option key={h} value={h}>{padHour(h)}:00</option>
                             ))}
                           </select>
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <span style={{ color: '#9ca3af', fontSize: 13 }}>Bitiş:</span>
+                          <span style={{ color: '#9ca3af', fontSize: 13 }}>{t('shops_end')}</span>
                           <select
                             value={scheduleEdit[shop.id]?.end ?? shop.smsEndHour}
                             onChange={e => setScheduleEdit(prev => ({ ...prev, [shop.id]: { ...prev[shop.id], end: parseInt(e.target.value) } }))}
                             style={{ ...inputStyle, cursor: 'pointer' }}
                           >
                             {hourOptions.map(h => (
-                              <option key={h} value={h}>{pad(h)}:00</option>
+                              <option key={h} value={h}>{padHour(h)}:00</option>
                             ))}
                           </select>
                         </div>
@@ -699,22 +703,22 @@ export default function ShopsPage() {
                             color: '#fff', fontSize: 13, fontWeight: 600, cursor: scheduleSaving[shop.id] ? 'not-allowed' : 'pointer',
                           }}
                         >
-                          {scheduleSaving[shop.id] ? 'Kaydediliyor...' : 'Kaydet'}
+                          {scheduleSaving[shop.id] ? t('saving') : t('save')}
                         </button>
                         <button
                           onClick={() => setScheduleOpen(prev => ({ ...prev, [shop.id]: false }))}
                           style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, padding: '8px 18px', color: '#9ca3af', fontSize: 13, cursor: 'pointer' }}
                         >
-                          İptal
+                          {t('cancel')}
                         </button>
                       </div>
                     </div>
                   ) : (
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <div>
-                        <label style={sectionLabel}>SMS Gönderim Saatleri</label>
+                        <label style={sectionLabel}>{t('shops_sms_hours')}</label>
                         <p style={{ color: '#9ca3af', fontSize: 13, margin: 0 }}>
-                          {pad(shop.smsStartHour ?? 9)}:00 — {pad(shop.smsEndHour ?? 21)}:00
+                          {padHour(shop.smsStartHour ?? 9)}:00 — {padHour(shop.smsEndHour ?? 21)}:00
                         </p>
                       </div>
                       <button
@@ -724,22 +728,22 @@ export default function ShopsPage() {
                           borderRadius: 8, padding: '8px 16px', color: '#a78bfa', fontSize: 13, cursor: 'pointer', whiteSpace: 'nowrap', marginLeft: 16,
                         }}
                       >
-                        Düzenle
+                        {t('edit')}
                       </button>
                     </div>
                   )}
                 </div>
 
-                {/* ─── Blocked Phones ─── */}
+                {/* Blocked Phones */}
                 <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: 16 }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: blockOpen[shop.id] ? 12 : 0 }}>
                     <div>
-                      <label style={{ ...sectionLabel, marginBottom: 0 }}>Engellenen Numaralar</label>
+                      <label style={{ ...sectionLabel, marginBottom: 0 }}>{t('shops_blocked_phones')}</label>
                       {!blockOpen[shop.id] && (
                         <p style={{ color: '#9ca3af', fontSize: 13, margin: '4px 0 0' }}>
                           {blockedPhones[shop.id]?.length
-                            ? `${blockedPhones[shop.id].length} numara engellendi`
-                            : 'Hiçbir numara engellenmemiş'}
+                            ? `${blockedPhones[shop.id].length} ${t('shops_blocked_count')}`
+                            : t('shops_no_blocked')}
                         </p>
                       )}
                     </div>
@@ -750,7 +754,7 @@ export default function ShopsPage() {
                         borderRadius: 8, padding: '8px 16px', color: '#f87171', fontSize: 13, cursor: 'pointer', whiteSpace: 'nowrap', marginLeft: 16,
                       }}
                     >
-                      {blockOpen[shop.id] ? 'Kapat' : 'Yönet'}
+                      {blockOpen[shop.id] ? t('close') : t('manage')}
                     </button>
                   </div>
 
@@ -774,13 +778,13 @@ export default function ShopsPage() {
                             fontWeight: 600, cursor: blockLoading[shop.id] ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap',
                           }}
                         >
-                          {blockLoading[shop.id] ? '...' : '+ Engelle'}
+                          {blockLoading[shop.id] ? '...' : t('shops_add_block')}
                         </button>
                       </div>
 
                       {/* List */}
                       {(blockedPhones[shop.id] ?? []).length === 0 ? (
-                        <p style={{ color: '#4b5563', fontSize: 13, margin: 0 }}>Hiçbir numara engellenmemiş</p>
+                        <p style={{ color: '#4b5563', fontSize: 13, margin: 0 }}>{t('shops_no_blocked')}</p>
                       ) : (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                           {(blockedPhones[shop.id] ?? []).map(b => (
@@ -834,7 +838,7 @@ export default function ShopsPage() {
               boxShadow: '0 25px 50px rgba(0,0,0,0.5)',
             }}
           >
-            <h2 style={{ color: '#fff', fontSize: 20, fontWeight: 700, margin: '0 0 24px' }}>Yeni Mağaza Ekle</h2>
+            <h2 style={{ color: '#fff', fontSize: 20, fontWeight: 700, margin: '0 0 24px' }}>{t('shops_modal_title')}</h2>
             {createError && (
               <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 10, padding: '10px 14px', color: '#f87171', fontSize: 14, marginBottom: 16 }}>
                 {createError}
@@ -842,12 +846,12 @@ export default function ShopsPage() {
             )}
             <form onSubmit={handleCreate} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               <div>
-                <label style={{ display: 'block', color: '#9ca3af', fontSize: 13, fontWeight: 500, marginBottom: 8 }}>Mağaza Adı *</label>
+                <label style={{ display: 'block', color: '#9ca3af', fontSize: 13, fontWeight: 500, marginBottom: 8 }}>{t('shops_name_label')}</label>
                 <input
                   required
                   value={newName}
                   onChange={e => setNewName(e.target.value)}
-                  placeholder="Mağazam"
+                  placeholder={t('shops_name_placeholder')}
                   style={{
                     width: '100%', padding: '12px 14px', background: 'rgba(255,255,255,0.05)',
                     border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10,
@@ -858,11 +862,11 @@ export default function ShopsPage() {
                 />
               </div>
               <div>
-                <label style={{ display: 'block', color: '#9ca3af', fontSize: 13, fontWeight: 500, marginBottom: 8 }}>Shopify Domain (opsiyonel)</label>
+                <label style={{ display: 'block', color: '#9ca3af', fontSize: 13, fontWeight: 500, marginBottom: 8 }}>{t('shops_domain_label')}</label>
                 <input
                   value={newDomain}
                   onChange={e => setNewDomain(e.target.value)}
-                  placeholder="magazam.myshopify.com"
+                  placeholder={t('shops_domain_placeholder')}
                   style={{
                     width: '100%', padding: '12px 14px', background: 'rgba(255,255,255,0.05)',
                     border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10,
@@ -882,7 +886,7 @@ export default function ShopsPage() {
                     cursor: creating ? 'not-allowed' : 'pointer', boxShadow: creating ? 'none' : '0 4px 20px rgba(139,92,246,0.35)',
                   }}
                 >
-                  {creating ? 'Oluşturuluyor...' : 'Oluştur'}
+                  {creating ? t('creating') : t('create')}
                 </button>
                 <button
                   type="button"
@@ -893,7 +897,7 @@ export default function ShopsPage() {
                     color: '#9ca3af', fontSize: 15, cursor: 'pointer',
                   }}
                 >
-                  İptal
+                  {t('cancel')}
                 </button>
               </div>
             </form>

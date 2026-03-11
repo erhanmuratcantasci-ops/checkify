@@ -7,6 +7,7 @@ import GeometricBackground from '@/components/GeometricBackground';
 import { SkeletonProfile } from '@/components/Skeleton';
 import { useToast } from '@/components/Toast';
 import { useIsMobile } from '@/hooks/useIsMobile';
+import { useTranslation } from '@/lib/i18n';
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://127.0.0.1:3001';
 
@@ -30,6 +31,7 @@ export default function ProfilePage() {
   const router = useRouter();
   const { showToast } = useToast();
   const isMobile = useIsMobile();
+  const { t } = useTranslation();
 
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -71,11 +73,11 @@ export default function ProfilePage() {
       if (email !== user?.email) body.email = email;
       const res = await fetch(`${API}/auth/me`, { method: 'PATCH', headers: authHeaders(), body: JSON.stringify(body) });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Güncelleme başarısız');
+      if (!res.ok) throw new Error(data.error || t('error_occurred'));
       setUser(data.user);
-      showToast('Bilgiler güncellendi', 'success');
+      showToast(t('profile_toast_info_updated'), 'success');
     } catch (err) {
-      showToast(err instanceof Error ? err.message : 'Hata oluştu', 'error');
+      showToast(err instanceof Error ? err.message : t('error_occurred'), 'error');
     } finally {
       setSavingInfo(false);
     }
@@ -83,8 +85,8 @@ export default function ProfilePage() {
 
   async function handleSavePassword(e: React.FormEvent) {
     e.preventDefault();
-    if (newPassword !== confirmPassword) { showToast('Yeni şifreler eşleşmiyor', 'error'); return; }
-    if (newPassword.length < 6) { showToast('Şifre en az 6 karakter olmalı', 'error'); return; }
+    if (newPassword !== confirmPassword) { showToast(t('profile_pw_mismatch'), 'error'); return; }
+    if (newPassword.length < 6) { showToast(t('profile_pw_too_short'), 'error'); return; }
     setSavingPassword(true);
     try {
       const res = await fetch(`${API}/auth/me`, {
@@ -92,11 +94,11 @@ export default function ProfilePage() {
         body: JSON.stringify({ currentPassword, newPassword }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Şifre değiştirilemedi');
+      if (!res.ok) throw new Error(data.error || t('error_occurred'));
       setCurrentPassword(''); setNewPassword(''); setConfirmPassword('');
-      showToast('Şifre güncellendi', 'success');
+      showToast(t('profile_toast_pw_updated'), 'success');
     } catch (err) {
-      showToast(err instanceof Error ? err.message : 'Hata oluştu', 'error');
+      showToast(err instanceof Error ? err.message : t('error_occurred'), 'error');
     } finally {
       setSavingPassword(false);
     }
@@ -111,11 +113,11 @@ export default function ProfilePage() {
         body: JSON.stringify({ password: deletePassword }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Hesap silinemedi');
+      if (!res.ok) throw new Error(data.error || t('error_occurred'));
       document.cookie = 'token=; path=/; max-age=0';
       router.push('/');
     } catch (err) {
-      showToast(err instanceof Error ? err.message : 'Hata oluştu', 'error');
+      showToast(err instanceof Error ? err.message : t('error_occurred'), 'error');
       setDeleting(false);
     }
   }
@@ -147,9 +149,9 @@ export default function ProfilePage() {
       <main style={{ maxWidth: 600, margin: '0 auto', padding: pad }}>
         <div style={{ marginBottom: isMobile ? 20 : 28 }}>
           <button onClick={() => router.push('/dashboard')} style={{ background: 'none', border: 'none', color: '#6b7280', fontSize: 13, cursor: 'pointer', padding: 0, marginBottom: 10 }}>
-            ← Dashboard
+            {t('back_dashboard')}
           </button>
-          <h1 style={{ fontSize: isMobile ? 22 : 24, fontWeight: 700, color: '#fff', margin: 0, letterSpacing: '-0.5px' }}>Profil</h1>
+          <h1 style={{ fontSize: isMobile ? 22 : 24, fontWeight: 700, color: '#fff', margin: 0, letterSpacing: '-0.5px' }}>{t('profile_title')}</h1>
         </div>
 
         {loading ? <SkeletonProfile /> : <>
@@ -170,8 +172,8 @@ export default function ProfilePage() {
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 10 }}>
               {[
-                ['Kayıt tarihi', user?.createdAt ? new Date(user.createdAt).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' }) : '—'],
-                ['Son giriş', user?.lastLoginAt ? new Date(user.lastLoginAt).toLocaleString('tr-TR', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Bilinmiyor'],
+                [t('profile_created_at'), user?.createdAt ? new Date(user.createdAt).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' }) : '—'],
+                [t('profile_last_login'), user?.lastLoginAt ? new Date(user.lastLoginAt).toLocaleString('tr-TR', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : t('profile_last_login_unknown')],
               ].map(([label, value]) => (
                 <div key={label} style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 10, padding: '12px 14px' }}>
                   <div style={{ color: '#4b5563', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: 4 }}>{label}</div>
@@ -181,19 +183,19 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          {/* Bilgi düzenleme */}
+          {/* Account info */}
           <div style={cardStyle}>
-            <h2 style={{ color: '#9ca3af', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.8px', margin: '0 0 16px' }}>Hesap Bilgileri</h2>
+            <h2 style={{ color: '#9ca3af', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.8px', margin: '0 0 16px' }}>{t('profile_account_info')}</h2>
             <form onSubmit={handleSaveInfo} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div>
-                <label style={{ display: 'block', color: '#9ca3af', fontSize: 13, marginBottom: 6 }}>Ad Soyad</label>
-                <input value={name} onChange={e => setName(e.target.value)} placeholder="Adınız Soyadınız"
+                <label style={{ display: 'block', color: '#9ca3af', fontSize: 13, marginBottom: 6 }}>{t('profile_name')}</label>
+                <input value={name} onChange={e => setName(e.target.value)} placeholder={t('profile_name_placeholder')}
                   style={inputStyle}
                   onFocus={e => e.target.style.borderColor = 'rgba(139,92,246,0.6)'}
                   onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.1)'} />
               </div>
               <div>
-                <label style={{ display: 'block', color: '#9ca3af', fontSize: 13, marginBottom: 6 }}>Email</label>
+                <label style={{ display: 'block', color: '#9ca3af', fontSize: 13, marginBottom: 6 }}>{t('profile_email')}</label>
                 <input type="email" required value={email} onChange={e => setEmail(e.target.value)}
                   style={inputStyle}
                   onFocus={e => e.target.style.borderColor = 'rgba(139,92,246,0.6)'}
@@ -204,19 +206,19 @@ export default function ProfilePage() {
                 border: 'none', borderRadius: 10, color: '#fff', fontSize: 14, fontWeight: 600,
                 cursor: savingInfo ? 'not-allowed' : 'pointer', minHeight: 44,
               }}>
-                {savingInfo ? 'Kaydediliyor...' : 'Bilgileri Kaydet'}
+                {savingInfo ? t('profile_saving_info') : t('profile_save_info')}
               </button>
             </form>
           </div>
 
-          {/* Şifre */}
+          {/* Password */}
           <div style={cardStyle}>
-            <h2 style={{ color: '#9ca3af', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.8px', margin: '0 0 16px' }}>Şifre Değiştir</h2>
+            <h2 style={{ color: '#9ca3af', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.8px', margin: '0 0 16px' }}>{t('profile_change_password')}</h2>
             <form onSubmit={handleSavePassword} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               {[
-                { label: 'Mevcut Şifre', value: currentPassword, onChange: setCurrentPassword },
-                { label: 'Yeni Şifre', value: newPassword, onChange: setNewPassword },
-                { label: 'Yeni Şifre (tekrar)', value: confirmPassword, onChange: setConfirmPassword },
+                { label: t('profile_current_password'), value: currentPassword, onChange: setCurrentPassword },
+                { label: t('profile_new_password'), value: newPassword, onChange: setNewPassword },
+                { label: t('profile_confirm_password'), value: confirmPassword, onChange: setConfirmPassword },
               ].map(f => (
                 <div key={f.label}>
                   <label style={{ display: 'block', color: '#9ca3af', fontSize: 13, marginBottom: 6 }}>{f.label}</label>
@@ -231,16 +233,16 @@ export default function ProfilePage() {
                 border: 'none', borderRadius: 10, color: '#fff', fontSize: 14, fontWeight: 600,
                 cursor: savingPassword ? 'not-allowed' : 'pointer', minHeight: 44,
               }}>
-                {savingPassword ? 'Değiştiriliyor...' : 'Şifreyi Değiştir'}
+                {savingPassword ? t('profile_changing_pw') : t('profile_change_pw')}
               </button>
             </form>
           </div>
 
-          {/* Hesap silme */}
+          {/* Danger zone */}
           <div style={{ ...cardStyle, border: '1px solid rgba(239,68,68,0.15)', background: 'rgba(239,68,68,0.04)', marginBottom: 0 }}>
-            <h2 style={{ color: '#f87171', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.8px', margin: '0 0 8px' }}>Tehlikeli Bölge</h2>
+            <h2 style={{ color: '#f87171', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.8px', margin: '0 0 8px' }}>{t('profile_danger_zone')}</h2>
             <p style={{ color: '#6b7280', fontSize: 13, margin: '0 0 14px' }}>
-              Hesabınızı sildiğinizde tüm mağazalar, siparişler ve veriler kalıcı olarak silinir.
+              {t('profile_danger_desc')}
             </p>
             <button onClick={() => setShowDelete(true)} style={{
               background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)',
@@ -248,7 +250,7 @@ export default function ProfilePage() {
               fontSize: 14, fontWeight: 600, cursor: 'pointer', minHeight: 44,
               width: isMobile ? '100%' : 'auto',
             }}>
-              Hesabı Sil
+              {t('profile_delete_account')}
             </button>
           </div>
 
@@ -266,13 +268,13 @@ export default function ProfilePage() {
             borderRadius: 20, padding: isMobile ? '24px 20px' : '36px 32px',
             width: '100%', maxWidth: 420,
           }}>
-            <h2 style={{ color: '#f87171', fontSize: 18, fontWeight: 700, margin: '0 0 8px' }}>Hesabı Sil</h2>
+            <h2 style={{ color: '#f87171', fontSize: 18, fontWeight: 700, margin: '0 0 8px' }}>{t('profile_delete_modal_title')}</h2>
             <p style={{ color: '#6b7280', fontSize: 14, margin: '0 0 20px', lineHeight: 1.6 }}>
-              Bu işlem geri alınamaz. Tüm verileriniz silinecek.
+              {t('profile_delete_modal_desc')}
             </p>
             <form onSubmit={handleDelete} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div>
-                <label style={{ display: 'block', color: '#9ca3af', fontSize: 13, marginBottom: 6 }}>Şifreniz</label>
+                <label style={{ display: 'block', color: '#9ca3af', fontSize: 13, marginBottom: 6 }}>{t('profile_delete_password_label')}</label>
                 <input type="password" required value={deletePassword} onChange={e => setDeletePassword(e.target.value)} placeholder="••••••••"
                   style={{ ...inputStyle }}
                   onFocus={e => e.target.style.borderColor = 'rgba(239,68,68,0.6)'}
@@ -285,14 +287,14 @@ export default function ProfilePage() {
                   border: 'none', borderRadius: 10, color: '#fff', fontSize: 14, fontWeight: 600,
                   cursor: deleting ? 'not-allowed' : 'pointer', minHeight: 44,
                 }}>
-                  {deleting ? 'Siliniyor...' : 'Kalıcı Sil'}
+                  {deleting ? t('profile_delete_deleting') : t('profile_delete_confirm')}
                 </button>
                 <button type="button" onClick={() => { setShowDelete(false); setDeletePassword(''); }} style={{
                   flex: 1, padding: '13px', background: 'rgba(255,255,255,0.05)',
                   border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10,
                   color: '#9ca3af', fontSize: 14, cursor: 'pointer', minHeight: 44,
                 }}>
-                  İptal
+                  {t('cancel')}
                 </button>
               </div>
             </form>

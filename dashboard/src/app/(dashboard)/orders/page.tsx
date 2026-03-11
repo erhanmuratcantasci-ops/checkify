@@ -7,13 +7,10 @@ import GeometricBackground from '@/components/GeometricBackground';
 import { SkeletonTable } from '@/components/Skeleton';
 import { useToast } from '@/components/Toast';
 import { useIsMobile } from '@/hooks/useIsMobile';
+import { useTranslation } from '@/lib/i18n';
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://127.0.0.1:3001';
 
-const STATUS_LABELS: Record<string, string> = {
-  PENDING: 'Bekliyor', CONFIRMED: 'Onaylandı', PREPARING: 'Hazırlanıyor',
-  SHIPPED: 'Kargoda', DELIVERED: 'Teslim', CANCELLED: 'İptal',
-};
 const STATUS_COLORS: Record<string, { bg: string; color: string }> = {
   PENDING:   { bg: 'rgba(217,119,6,0.15)',  color: '#fbbf24' },
   CONFIRMED: { bg: 'rgba(5,150,105,0.15)',  color: '#34d399' },
@@ -22,20 +19,6 @@ const STATUS_COLORS: Record<string, { bg: string; color: string }> = {
   DELIVERED: { bg: 'rgba(16,185,129,0.15)', color: '#6ee7b7' },
   CANCELLED: { bg: 'rgba(239,68,68,0.12)',  color: '#f87171' },
 };
-
-const FILTERS = ['Tümü','Bekliyor','Onaylandı','Hazırlanıyor','Kargoda','Teslim','İptal'];
-const FILTER_MAP: Record<string, string | null> = {
-  'Tümü': null, 'Bekliyor': 'PENDING', 'Onaylandı': 'CONFIRMED',
-  'Hazırlanıyor': 'PREPARING', 'Kargoda': 'SHIPPED', 'Teslim': 'DELIVERED', 'İptal': 'CANCELLED',
-};
-
-const STATUS_ACTIONS: { label: string; status: string; color: string }[] = [
-  { label: 'Onayla',         status: 'CONFIRMED', color: '#059669' },
-  { label: 'Hazırlanıyor',   status: 'PREPARING', color: '#3b82f6' },
-  { label: 'Kargoya Verildi',status: 'SHIPPED',   color: '#7c3aed' },
-  { label: 'Teslim Edildi',  status: 'DELIVERED', color: '#10b981' },
-  { label: 'İptal Et',       status: 'CANCELLED', color: '#dc2626' },
-];
 
 interface Order {
   id: number;
@@ -68,14 +51,14 @@ function authHeaders() {
   return { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` };
 }
 
-function StatusBadge({ status }: { status: string }) {
+function StatusBadge({ status, label }: { status: string; label: string }) {
   const sc = STATUS_COLORS[status] || { bg: 'rgba(255,255,255,0.05)', color: '#9ca3af' };
   return (
     <span style={{
       padding: '5px 12px', borderRadius: 8, fontSize: 12, fontWeight: 600,
       background: sc.bg, color: sc.color, display: 'inline-block',
     }}>
-      {STATUS_LABELS[status] || status}
+      {label}
     </span>
   );
 }
@@ -88,8 +71,26 @@ function OrderModal({
   onUpdate: (updated: OrderDetail) => void;
 }) {
   const { showToast } = useToast();
+  const { t } = useTranslation();
   const [updatingStatus, setUpdatingStatus] = useState<string | null>(null);
   const [resending, setResending] = useState(false);
+
+  const STATUS_LABELS: Record<string, string> = {
+    PENDING: t('orders_status_pending'),
+    CONFIRMED: t('orders_status_confirmed'),
+    PREPARING: 'Hazırlanıyor',
+    SHIPPED: 'Kargoda',
+    DELIVERED: 'Teslim',
+    CANCELLED: t('orders_status_cancelled'),
+  };
+
+  const STATUS_ACTIONS: { label: string; status: string; color: string }[] = [
+    { label: t('orders_confirm_action'), status: 'CONFIRMED', color: '#059669' },
+    { label: 'Hazırlanıyor',   status: 'PREPARING', color: '#3b82f6' },
+    { label: 'Kargoya Verildi', status: 'SHIPPED',   color: '#7c3aed' },
+    { label: 'Teslim Edildi',  status: 'DELIVERED', color: '#10b981' },
+    { label: t('orders_cancel_action'), status: 'CANCELLED', color: '#dc2626' },
+  ];
 
   async function handleStatusChange(status: string) {
     setUpdatingStatus(status);
@@ -98,11 +99,11 @@ function OrderModal({
         method: 'PATCH', headers: authHeaders(), body: JSON.stringify({ status }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Durum güncellenemedi');
+      if (!res.ok) throw new Error(data.error || t('error_occurred'));
       onUpdate(data.order);
-      showToast(`Durum güncellendi: ${STATUS_LABELS[status]}`, 'success');
+      showToast(`${t('orders_col_status')}: ${STATUS_LABELS[status]}`, 'success');
     } catch (err) {
-      showToast(err instanceof Error ? err.message : 'Hata oluştu', 'error');
+      showToast(err instanceof Error ? err.message : t('error_occurred'), 'error');
     } finally {
       setUpdatingStatus(null);
     }
@@ -115,10 +116,10 @@ function OrderModal({
         method: 'POST', headers: authHeaders(),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'SMS gönderilemedi');
+      if (!res.ok) throw new Error(data.error || t('error_occurred'));
       showToast('SMS kuyruğa eklendi', 'success');
     } catch (err) {
-      showToast(err instanceof Error ? err.message : 'Hata oluştu', 'error');
+      showToast(err instanceof Error ? err.message : t('error_occurred'), 'error');
     } finally {
       setResending(false);
     }
@@ -152,7 +153,7 @@ function OrderModal({
           borderRadius: '20px 20px 0 0', zIndex: 1,
         }}>
           <div>
-            <div style={{ color: '#6b7280', fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 4 }}>Sipariş Detayı</div>
+            <div style={{ color: '#6b7280', fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 4 }}>{t('orders_detail_title')}</div>
             <div style={{ color: '#fff', fontSize: 18, fontWeight: 700 }}>#{order.id}</div>
           </div>
           <button
@@ -166,14 +167,14 @@ function OrderModal({
         </div>
 
         <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: 16 }}>
-          {/* Müşteri */}
+          {/* Customer info */}
           <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14, padding: '14px 16px' }}>
-            <div style={{ color: '#6b7280', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 12 }}>Müşteri</div>
+            <div style={{ color: '#6b7280', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 12 }}>{t('orders_detail_customer')}</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
               {[
                 ['Ad Soyad', order.customerName],
-                ['Telefon', order.customerPhone],
-                ['Tutar', `${order.total.toFixed(2)} ₺`],
+                [t('orders_detail_phone'), order.customerPhone],
+                [t('orders_detail_total'), `${order.total.toFixed(2)} ₺`],
                 ['Mağaza', order.shop?.name || '—'],
               ].map(([label, value]) => (
                 <div key={label}>
@@ -184,16 +185,16 @@ function OrderModal({
             </div>
           </div>
 
-          {/* Durum */}
+          {/* Order info */}
           <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14, padding: '14px 16px' }}>
             <div style={{ color: '#6b7280', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 12 }}>Sipariş Bilgileri</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
               <div>
-                <div style={{ color: '#4b5563', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6 }}>Durum</div>
-                <StatusBadge status={order.status} />
+                <div style={{ color: '#4b5563', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6 }}>{t('orders_detail_status')}</div>
+                <StatusBadge status={order.status} label={STATUS_LABELS[order.status] || order.status} />
               </div>
               <div>
-                <div style={{ color: '#4b5563', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 3 }}>Oluşturulma</div>
+                <div style={{ color: '#4b5563', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 3 }}>{t('orders_detail_date')}</div>
                 <div style={{ color: '#e5e7eb', fontSize: 13 }}>
                   {new Date(order.createdAt).toLocaleString('tr-TR', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                 </div>
@@ -207,7 +208,7 @@ function OrderModal({
             </div>
           </div>
 
-          {/* Durum değiştirme */}
+          {/* Status actions */}
           <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14, padding: '14px 16px' }}>
             <div style={{ color: '#6b7280', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 12 }}>Durumu Güncelle</div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
@@ -241,11 +242,11 @@ function OrderModal({
                 border: 'none', color: '#fff', cursor: resending ? 'not-allowed' : 'pointer',
               }}
             >
-              {resending ? 'Gönderiliyor...' : '📱 SMS Yeniden Gönder'}
+              {resending ? t('loading') : '📱 SMS Yeniden Gönder'}
             </button>
           )}
 
-          {/* SMS Logları */}
+          {/* SMS Logs */}
           <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14, padding: '14px 16px' }}>
             <div style={{ color: '#6b7280', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 12 }}>SMS Logları</div>
             {order.smsLogs.length === 0 ? (
@@ -286,26 +287,46 @@ export default function OrdersPage() {
   const router = useRouter();
   const { showToast } = useToast();
   const isMobile = useIsMobile();
+  const { t } = useTranslation();
+
+  const FILTERS_CONFIG = [
+    { key: 'all', label: t('orders_all'), status: null },
+    { key: 'pending', label: t('orders_pending'), status: 'PENDING' },
+    { key: 'confirmed', label: t('orders_confirmed'), status: 'CONFIRMED' },
+    { key: 'cancelled', label: t('orders_cancelled'), status: 'CANCELLED' },
+  ];
+
   const [orders, setOrders] = useState<Order[]>([]);
   const [total, setTotal] = useState(0);
-  const [filter, setFilter] = useState('Tümü');
+  const [filterKey, setFilterKey] = useState('all');
   const [loading, setLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState<OrderDetail | null>(null);
   const [loadingDetail, setLoadingDetail] = useState<number | null>(null);
   const [search, setSearch] = useState('');
 
+  const STATUS_LABELS: Record<string, string> = {
+    PENDING: t('orders_status_pending'),
+    CONFIRMED: t('orders_status_confirmed'),
+    PREPARING: 'Hazırlanıyor',
+    SHIPPED: 'Kargoda',
+    DELIVERED: 'Teslim',
+    CANCELLED: t('orders_status_cancelled'),
+  };
+
   const fetchOrders = useCallback(() => {
     const token = getToken();
     if (!token) { router.push('/login'); return; }
     setLoading(true);
-    const status = FILTER_MAP[filter];
+    const activeFilter = FILTERS_CONFIG.find(f => f.key === filterKey);
+    const status = activeFilter?.status ?? null;
     const url = `${API}/orders${status ? `?status=${status}` : ''}`;
     fetch(url, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.json())
       .then(data => { setOrders(data.orders || []); setTotal(data.total || 0); })
       .catch(() => router.push('/login'))
       .finally(() => setLoading(false));
-  }, [filter, router]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filterKey, router]);
 
   useEffect(() => { fetchOrders(); }, [fetchOrders]);
 
@@ -314,10 +335,10 @@ export default function OrdersPage() {
     try {
       const res = await fetch(`${API}/orders/${orderId}`, { headers: authHeaders() });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Detay yüklenemedi');
+      if (!res.ok) throw new Error(data.error || t('error_occurred'));
       setSelectedOrder(data.order);
     } catch (err) {
-      showToast(err instanceof Error ? err.message : 'Hata oluştu', 'error');
+      showToast(err instanceof Error ? err.message : t('error_occurred'), 'error');
     } finally {
       setLoadingDetail(null);
     }
@@ -341,8 +362,8 @@ export default function OrdersPage() {
       <Navbar />
       <main style={{ maxWidth: 1100, margin: '0 auto', padding: pad }}>
         <div style={{ marginBottom: isMobile ? 16 : 28 }}>
-          <h1 style={{ fontSize: isMobile ? 22 : 26, fontWeight: 700, color: '#fff', margin: '0 0 4px', fontFamily: "'Syne', sans-serif" }}>Siparişler</h1>
-          <p style={{ color: '#6b7280', fontSize: 14, margin: 0 }}>Toplam {total} sipariş</p>
+          <h1 style={{ fontSize: isMobile ? 22 : 26, fontWeight: 700, color: '#fff', margin: '0 0 4px', fontFamily: "'Syne', sans-serif" }}>{t('orders_title')}</h1>
+          <p style={{ color: '#6b7280', fontSize: 14, margin: 0 }}>{t('orders_subtitle')} — {total}</p>
         </div>
 
         {/* Search */}
@@ -351,7 +372,7 @@ export default function OrdersPage() {
             type="text"
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="Müşteri adı veya telefon ara..."
+            placeholder={t('orders_search')}
             style={{
               flex: 1, padding: '10px 14px', borderRadius: 8, fontSize: 14,
               background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
@@ -370,16 +391,16 @@ export default function OrdersPage() {
           )}
         </div>
 
-        {/* Filter tabs — horizontally scrollable on mobile */}
+        {/* Filter tabs */}
         <div style={{ display: 'flex', gap: 6, marginBottom: 20, overflowX: 'auto', paddingBottom: 4 }}>
-          {FILTERS.map(f => (
-            <button key={f} onClick={() => setFilter(f)} style={{
+          {FILTERS_CONFIG.map(f => (
+            <button key={f.key} onClick={() => setFilterKey(f.key)} style={{
               padding: '8px 14px', borderRadius: 8, fontSize: 13, fontWeight: 500, cursor: 'pointer',
               minHeight: 44, whiteSpace: 'nowrap', flexShrink: 0,
-              border: filter === f ? '1px solid rgba(139,92,246,0.4)' : '1px solid rgba(255,255,255,0.07)',
-              background: filter === f ? 'rgba(139,92,246,0.15)' : 'rgba(255,255,255,0.03)',
-              color: filter === f ? '#c4b5fd' : '#6b7280',
-            }}>{f}</button>
+              border: filterKey === f.key ? '1px solid rgba(139,92,246,0.4)' : '1px solid rgba(255,255,255,0.07)',
+              background: filterKey === f.key ? 'rgba(139,92,246,0.15)' : 'rgba(255,255,255,0.03)',
+              color: filterKey === f.key ? '#c4b5fd' : '#6b7280',
+            }}>{f.label}</button>
           ))}
         </div>
 
@@ -389,7 +410,7 @@ export default function OrdersPage() {
         ) : filtered.length === 0 ? (
           <div style={{ padding: 48, textAlign: 'center', color: '#4b5563', fontSize: 14,
             background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 16 }}>
-            Sipariş bulunamadı
+            {t('orders_empty')}
           </div>
         ) : isMobile ? (
           /* Mobile card view */
@@ -434,14 +455,14 @@ export default function OrdersPage() {
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-                  {['Sipariş', 'Müşteri', 'Telefon', 'Tutar', 'Durum', 'Tarih', ''].map((h, i) => (
+                  {[t('orders_col_id'), t('orders_col_customer'), t('orders_col_phone'), t('orders_col_total'), t('orders_col_status'), t('orders_col_date'), ''].map((h, i) => (
                     <th key={i} style={{ padding: '14px 20px', textAlign: 'left', color: '#4b5563', fontSize: 11, fontWeight: 600, letterSpacing: '0.8px', textTransform: 'uppercase' }}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {filtered.length === 0 ? (
-                  <tr><td colSpan={7} style={{ padding: '40px 20px', textAlign: 'center', color: '#4b5563', fontSize: 13 }}>Sonuç bulunamadı</td></tr>
+                  <tr><td colSpan={7} style={{ padding: '40px 20px', textAlign: 'center', color: '#4b5563', fontSize: 13 }}>{t('orders_empty')}</td></tr>
                 ) : filtered.map((order, i) => {
                   const sc = STATUS_COLORS[order.status] || { bg: 'rgba(255,255,255,0.05)', color: '#9ca3af' };
                   const isLoadingThis = loadingDetail === order.id;
@@ -470,7 +491,7 @@ export default function OrdersPage() {
                             cursor: isLoadingThis ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap',
                           }}
                         >
-                          {isLoadingThis ? '...' : 'Detay'}
+                          {isLoadingThis ? '...' : t('edit')}
                         </button>
                       </td>
                     </tr>

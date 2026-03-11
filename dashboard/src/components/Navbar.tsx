@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import Logo from '@/components/Logo';
 import { useIsMobile } from '@/hooks/useIsMobile';
+import { useTranslation } from '@/lib/i18n';
+import LanguageSwitcher from './LanguageSwitcher';
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://127.0.0.1:3001';
 
@@ -17,6 +19,7 @@ export default function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
   const isMobile = useIsMobile();
+  const { t } = useTranslation();
   const [userName, setUserName] = useState<string | null>(null);
   const [smsCredits, setSmsCredits] = useState<number | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -45,11 +48,11 @@ export default function Navbar() {
   }
 
   const navLinks = [
-    { href: '/dashboard', label: 'Dashboard', icon: '◈' },
-    { href: '/orders', label: 'Siparişler', icon: '📦' },
-    { href: '/shops', label: 'Mağazalar', icon: '🏪' },
-    { href: '/credits', label: 'Krediler', icon: '💳' },
-    { href: '/profile', label: 'Profil', icon: '👤' },
+    { href: '/dashboard', label: t('nav_dashboard'), icon: '◈' },
+    { href: '/orders', label: t('nav_orders'), icon: '📦' },
+    { href: '/shops', label: t('nav_shops'), icon: '🏪' },
+    { href: '/credits', label: t('nav_credits'), icon: '💳' },
+    { href: '/profile', label: t('nav_profile'), icon: '👤' },
   ];
 
   const initials = userName?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || null;
@@ -193,6 +196,11 @@ export default function Navbar() {
             })}
           </div>
 
+          {/* Language switcher in mobile menu */}
+          <div style={{ padding: '12px 14px' }}>
+            <LanguageSwitcher />
+          </div>
+
           {/* Logout */}
           <button
             onClick={handleLogout}
@@ -206,7 +214,7 @@ export default function Navbar() {
               minHeight: 44,
             }}
           >
-            <span>🚪</span> Çıkış Yap
+            <span>🚪</span> {t('nav_logout')}
           </button>
         </div>
       </>
@@ -267,8 +275,10 @@ export default function Navbar() {
             <span style={{ color: '#a78bfa', fontSize: 12, fontWeight: 700 }}>
               {smsCredits.toLocaleString('tr-TR')}
             </span>
+            <span style={{ color: '#6b7280', fontSize: 11 }}>{t('nav_credits_short')}</span>
           </Link>
         )}
+        <LanguageSwitcher />
         {userName && (
           <Link href="/profile" style={{
             display: 'flex', alignItems: 'center', gap: 8,
@@ -307,7 +317,7 @@ export default function Navbar() {
           onMouseEnter={e => { (e.target as HTMLButtonElement).style.color = '#fff'; (e.target as HTMLButtonElement).style.borderColor = 'rgba(255,255,255,0.15)'; }}
           onMouseLeave={e => { (e.target as HTMLButtonElement).style.color = '#9ca3af'; (e.target as HTMLButtonElement).style.borderColor = 'rgba(255,255,255,0.08)'; }}
         >
-          Çıkış
+          {t('nav_logout')}
         </button>
       </div>
     </nav>
