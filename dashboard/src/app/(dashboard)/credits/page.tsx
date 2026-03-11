@@ -34,18 +34,22 @@ export default function CreditsPage() {
   const [whatsappCredits, setWhatsappCredits] = useState(0);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
+  const [userPlan, setUserPlan] = useState<string>('FREE');
   const [showTooltip, setShowTooltip] = useState(false);
   const [activeTab, setActiveTab] = useState<'sms' | 'whatsapp'>('sms');
 
   useEffect(() => {
     const token = getToken();
     if (!token) { router.push('/login'); return; }
-    fetch(`${API}/credits`, { headers: authHeaders() })
-      .then(r => r.json())
-      .then(data => {
+    Promise.all([
+      fetch(`${API}/credits`, { headers: authHeaders() }).then(r => r.json()),
+      fetch(`${API}/plans/current`, { headers: authHeaders() }).then(r => r.json()),
+    ])
+      .then(([data, planData]) => {
         setCredits(data.smsCredits ?? 0);
         setWhatsappCredits(data.whatsappCredits ?? 0);
         setTransactions(data.transactions || []);
+        setUserPlan(planData.plan ?? 'FREE');
       })
       .catch(() => router.push('/login'))
       .finally(() => setLoading(false));
@@ -358,18 +362,34 @@ export default function CreditsPage() {
                       {tx.type === 'PURCHASE' ? '+' : ''}{tx.amount}
                     </div>
                     {tx.type === 'PURCHASE' && (
-                      <button
-                        onClick={() => downloadInvoice(tx.id)}
-                        style={{
-                          background: 'rgba(139,92,246,0.1)',
-                          border: '1px solid rgba(139,92,246,0.25)',
-                          borderRadius: 6, padding: '4px 10px',
-                          color: '#a78bfa', fontSize: 11, fontWeight: 600,
-                          cursor: 'pointer', marginLeft: 10, whiteSpace: 'nowrap',
-                        }}
-                      >
-                        PDF İndir
-                      </button>
+                      ['STARTER', 'PRO', 'BUSINESS'].includes(userPlan) ? (
+                        <button
+                          onClick={() => downloadInvoice(tx.id)}
+                          style={{
+                            background: 'rgba(139,92,246,0.1)',
+                            border: '1px solid rgba(139,92,246,0.25)',
+                            borderRadius: 6, padding: '4px 10px',
+                            color: '#a78bfa', fontSize: 11, fontWeight: 600,
+                            cursor: 'pointer', marginLeft: 10, whiteSpace: 'nowrap',
+                          }}
+                        >
+                          PDF İndir
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => router.push('/pricing')}
+                          style={{
+                            background: 'rgba(107,114,128,0.1)',
+                            border: '1px solid rgba(107,114,128,0.25)',
+                            borderRadius: 6, padding: '4px 10px',
+                            color: '#6b7280', fontSize: 11, fontWeight: 600,
+                            cursor: 'pointer', marginLeft: 10, whiteSpace: 'nowrap',
+                          }}
+                          title="Starter plan gerekli"
+                        >
+                          🔒 PDF
+                        </button>
+                      )
                     )}
                   </div>
                 </div>

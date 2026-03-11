@@ -12,6 +12,7 @@ import smsTemplatesRouter from './routes/smsTemplates';
 import creditsRouter from './routes/credits';
 import adminRouter from './routes/admin';
 import statusRouter from './routes/status';
+import plansRouter from './routes/plans';
 import { loginRateLimiter, webhookRateLimiter, generalRateLimiter, otpRateLimiter } from './middleware/rateLimiter';
 import { realIp } from './middleware/cloudflare';
 import './workers/smsWorker';
@@ -53,6 +54,7 @@ app.use('/shops', shopsRouter);
 app.use('/shops/:id/template', smsTemplatesRouter);
 app.use('/credits', creditsRouter);
 app.use('/admin', adminRouter);
+app.use('/plans', plansRouter);
 
 app.use('/status', statusRouter);
 

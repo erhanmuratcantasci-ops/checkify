@@ -265,6 +265,7 @@ export default function ShopsPage() {
   const { t } = useTranslation();
   const [shops, setShops] = useState<Shop[]>([]);
   const [loading, setLoading] = useState(true);
+  const [userPlan, setUserPlan] = useState<string>('FREE');
 
   // Create modal
   const [showModal, setShowModal] = useState(false);
@@ -306,6 +307,7 @@ export default function ShopsPage() {
     const token = getToken();
     if (!token) { router.push('/login'); return; }
     fetchShops();
+    fetch(`${API}/plans/current`, { headers: authHeaders() }).then(r => r.json()).then(d => setUserPlan(d.plan ?? 'FREE')).catch(() => {});
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -690,23 +692,27 @@ export default function ShopsPage() {
                   </div>
                   <div style={{ display: 'flex', gap: 8 }}>
                     {[
-                      { value: 'sms', label: '📱 SMS', color: '#a855f7' },
-                      { value: 'whatsapp', label: '💬 WhatsApp', color: '#4ade80' },
-                      { value: 'both', label: '🔀 Her İkisi', color: '#60a5fa' },
-                    ].map(opt => (
-                      <button
-                        key={opt.value}
-                        onClick={() => updateNotificationChannel(shop.id, opt.value)}
-                        style={{
-                          padding: '6px 14px', borderRadius: 20, border: 'none', cursor: 'pointer', fontSize: 13,
-                          background: shop.notificationChannel === opt.value ? `${opt.color}20` : 'rgba(255,255,255,0.05)',
-                          color: shop.notificationChannel === opt.value ? opt.color : '#6b7280',
-                          outline: shop.notificationChannel === opt.value ? `1px solid ${opt.color}40` : 'none',
-                        }}
-                      >
-                        {opt.label}
-                      </button>
-                    ))}
+                      { value: 'sms', label: '📱 SMS', color: '#a855f7', requiresPro: false },
+                      { value: 'whatsapp', label: '💬 WhatsApp', color: '#4ade80', requiresPro: true },
+                      { value: 'both', label: '🔀 Her İkisi', color: '#60a5fa', requiresPro: true },
+                    ].map(opt => {
+                      const locked = opt.requiresPro && !['PRO', 'BUSINESS'].includes(userPlan);
+                      return (
+                        <button
+                          key={opt.value}
+                          onClick={() => locked ? router.push('/pricing') : updateNotificationChannel(shop.id, opt.value)}
+                          style={{
+                            padding: '6px 14px', borderRadius: 20, border: 'none', cursor: 'pointer', fontSize: 13,
+                            background: shop.notificationChannel === opt.value ? `${opt.color}20` : 'rgba(255,255,255,0.05)',
+                            color: locked ? '#374151' : shop.notificationChannel === opt.value ? opt.color : '#6b7280',
+                            outline: shop.notificationChannel === opt.value ? `1px solid ${opt.color}40` : 'none',
+                          }}
+                          title={locked ? 'Pro plan gerekli' : undefined}
+                        >
+                          {locked ? '🔒 ' : ''}{opt.label}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
 

@@ -10,6 +10,13 @@ import LanguageSwitcher from './LanguageSwitcher';
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://127.0.0.1:3001';
 
+const PLAN_BADGE: Record<string, { label: string; color: string; bg: string }> = {
+  FREE:     { label: 'Ücretsiz', color: '#6b7280', bg: 'rgba(107,114,128,0.15)' },
+  STARTER:  { label: 'Starter',  color: '#3b82f6', bg: 'rgba(59,130,246,0.15)' },
+  PRO:      { label: 'Pro',      color: '#a855f7', bg: 'rgba(168,85,247,0.2)' },
+  BUSINESS: { label: 'Business', color: '#f59e0b', bg: 'rgba(245,158,11,0.15)' },
+};
+
 function getToken() {
   if (typeof window === 'undefined') return null;
   return document.cookie.split('; ').find(r => r.startsWith('token='))?.split('=')[1] ?? null;
@@ -38,6 +45,7 @@ export default function Navbar() {
   const [smsCredits, setSmsCredits] = useState<number | null>(null);
   const [whatsappCredits, setWhatsappCredits] = useState<number | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [userPlan, setUserPlan] = useState<string | null>(null);
 
   useEffect(() => {
     const token = getToken();
@@ -50,6 +58,7 @@ export default function Navbar() {
           setUserName(u.name ?? null);
           setSmsCredits(u.smsCredits ?? null);
           setWhatsappCredits(u.whatsappCredits ?? null);
+          setUserPlan(u.plan ?? null);
         }
       })
       .catch(() => null);
@@ -102,6 +111,7 @@ export default function Navbar() {
     { href: '/rto', label: 'RTO', icon: '📉' },
     { href: '/shops', label: t('nav_shops'), icon: '🏪' },
     { href: '/credits', label: t('nav_credits'), icon: '💳' },
+    { href: '/pricing', label: 'Fiyatlandırma', icon: '⭐' },
     { href: '/profile', label: t('nav_profile'), icon: '👤' },
   ];
 
@@ -239,6 +249,23 @@ export default function Navbar() {
             </div>
           )}
 
+          {/* Plan badge */}
+          {userPlan && PLAN_BADGE[userPlan] && (
+            <div style={{ padding: '8px 12px 12px' }}>
+              <Link href="/pricing" style={{
+                textDecoration: 'none',
+                display: 'inline-block',
+                padding: '4px 12px', borderRadius: 20,
+                background: PLAN_BADGE[userPlan].bg,
+                border: `1px solid ${PLAN_BADGE[userPlan].color}40`,
+                color: PLAN_BADGE[userPlan].color,
+                fontSize: 12, fontWeight: 700,
+              }}>
+                {PLAN_BADGE[userPlan].label}
+              </Link>
+            </div>
+          )}
+
           {/* Nav links */}
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
             {navLinks.map(link => {
@@ -358,6 +385,18 @@ export default function Navbar() {
               {whatsappCredits.toLocaleString('tr-TR')}
             </span>
             <span style={{ color: '#6b7280', fontSize: 11 }}>WP</span>
+          </Link>
+        )}
+        {userPlan && PLAN_BADGE[userPlan] && (
+          <Link href="/pricing" style={{
+            textDecoration: 'none',
+            padding: '4px 12px', borderRadius: 20,
+            background: PLAN_BADGE[userPlan].bg,
+            border: `1px solid ${PLAN_BADGE[userPlan].color}40`,
+            color: PLAN_BADGE[userPlan].color,
+            fontSize: 12, fontWeight: 700,
+          }}>
+            {PLAN_BADGE[userPlan].label}
           </Link>
         )}
         <LanguageSwitcher />

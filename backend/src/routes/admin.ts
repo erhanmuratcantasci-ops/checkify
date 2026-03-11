@@ -18,6 +18,7 @@ router.get('/users', adminOnly, async (_req: AuthRequest, res: Response): Promis
       isAdmin: true,
       createdAt: true,
       lastLoginAt: true,
+      plan: true,
       _count: { select: { shops: true } },
     },
   });
@@ -96,7 +97,7 @@ router.get('/users/:id', adminOnly, async (req: AuthRequest, res: Response): Pro
     where: { id },
     select: {
       id: true, email: true, name: true, smsCredits: true, whatsappCredits: true,
-      isAdmin: true, createdAt: true, lastLoginAt: true,
+      isAdmin: true, createdAt: true, lastLoginAt: true, plan: true, planExpiresAt: true, billingCycle: true,
       _count: { select: { shops: true } },
       shops: { select: { _count: { select: { orders: true } } } },
     },

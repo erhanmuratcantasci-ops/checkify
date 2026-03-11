@@ -2,13 +2,14 @@ import { Router, Response } from 'express';
 import crypto from 'crypto';
 import prisma from '../lib/prisma';
 import { authenticate, AuthRequest } from '../middleware/auth';
+import { requireFeature, requireShopSlot } from '../middleware/planCheck';
 
 const router = Router();
 
 router.use(authenticate);
 
 // POST /shops
-router.post('/', async (req: AuthRequest, res: Response): Promise<void> => {
+router.post('/', requireShopSlot, async (req: AuthRequest, res: Response): Promise<void> => {
   const { name, shopDomain } = req.body as { name?: string; shopDomain?: string };
 
   if (!name) {
@@ -116,7 +117,7 @@ router.get('/:id/blocked-phones', async (req: AuthRequest, res: Response): Promi
 });
 
 // POST /shops/:id/blocked-phones
-router.post('/:id/blocked-phones', async (req: AuthRequest, res: Response): Promise<void> => {
+router.post('/:id/blocked-phones', requireFeature('blocklist'), async (req: AuthRequest, res: Response): Promise<void> => {
   const id = parseInt(req.params['id'] as string);
   const { phone } = req.body as { phone?: string };
 
@@ -165,7 +166,7 @@ router.get('/:id/blocked-postal-codes', async (req: AuthRequest, res: Response):
 });
 
 // POST /shops/:id/blocked-postal-codes
-router.post('/:id/blocked-postal-codes', async (req: AuthRequest, res: Response): Promise<void> => {
+router.post('/:id/blocked-postal-codes', requireFeature('postal_code'), async (req: AuthRequest, res: Response): Promise<void> => {
   const id = parseInt(req.params['id'] as string);
   const { postalCode } = req.body as { postalCode?: string };
 
@@ -225,6 +226,19 @@ router.patch('/:id/notification-channel', async (req: AuthRequest, res: Response
   if (!notificationChannel || !['sms', 'whatsapp', 'both'].includes(notificationChannel)) {
     res.status(400).json({ error: 'Geçerli kanal: sms, whatsapp, both' });
     return;
+  }
+
+  // WhatsApp/both kanalı PRO+ gerektirir
+  if ((notificationChannel === 'whatsapp' || notificationChannel === 'both')) {
+    const user = await prisma.user.findUnique({
+      where: { id: req.userId! },
+      select: { plan: true },
+    });
+    const { hasFeature } = await import('../lib/plans');
+    if (!user || !hasFeature(user.plan as 'FREE' | 'STARTER' | 'PRO' | 'BUSINESS', 'whatsapp')) {
+      res.status(403).json({ error: 'WhatsApp bildirimleri Pro planı gerektirir', upgrade: true });
+      return;
+    }
   }
 
   const shop = await prisma.shop.findFirst({ where: { id, userId: req.userId! } });

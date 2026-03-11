@@ -10,6 +10,7 @@ import LanguageSwitcher from '@/components/LanguageSwitcher';
 
 export default function LandingPage() {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
+  const [pricingCycle, setPricingCycle] = useState<'monthly' | 'yearly'>('monthly');
   const isMobile = useIsMobile();
   const { t } = useTranslation();
 
@@ -26,10 +27,32 @@ export default function LandingPage() {
     { num: '03', title: t('landing_step3_title'), desc: t('landing_step3_desc') },
   ];
 
-  const plans = [
-    { name: 'Başlangıç', credits: '100 SMS', price: '49', desc: 'Küçük mağazalar için ideal', features: ['100 doğrulama SMS\'i', 'Shopify entegrasyonu', 'Temel dashboard', 'E-posta destek'] },
-    { name: 'Büyüme', credits: '500 SMS', price: '199', desc: 'Büyüyen işletmeler için', features: ['500 doğrulama SMS\'i', 'Shopify entegrasyonu', 'Gelişmiş dashboard', 'Öncelikli destek', 'İptal analitikleri'], popular: true },
-    { name: t('landing_pkg_pro'), credits: '2000 SMS', price: '599', desc: 'Yüksek hacimli satıcılar için', features: ['2000 doğrulama SMS\'i', 'Shopify entegrasyonu', 'Tam dashboard', '7/24 destek', 'İptal analitikleri', 'API erişimi'] },
+  const landingPlans = [
+    {
+      name: 'Ücretsiz', key: 'FREE', accent: '#6b7280',
+      monthly: 0, yearly: 0,
+      shops: 1, sms: 50,
+      features: ['SMS Doğrulama', 'OTP Kodu Doğrulama'],
+    },
+    {
+      name: 'Starter', key: 'STARTER', accent: '#3b82f6',
+      monthly: 99, yearly: 79,
+      shops: 3, sms: 200,
+      features: ['SMS Doğrulama', 'OTP Kodu Doğrulama', 'PDF Fatura', 'Telefon Kara Listesi'],
+    },
+    {
+      name: 'Pro', key: 'PRO', accent: '#a855f7',
+      monthly: 249, yearly: 199,
+      shops: 10, sms: 1000,
+      popular: true,
+      features: ['SMS Doğrulama', 'OTP Kodu Doğrulama', 'PDF Fatura', 'WhatsApp Bildirimi', 'RTO Analizi', 'Telefon Kara Listesi', 'Posta Kodu Engeli'],
+    },
+    {
+      name: 'Business', key: 'BUSINESS', accent: '#f59e0b',
+      monthly: 499, yearly: 399,
+      shops: -1, sms: 5000,
+      features: ['SMS Doğrulama', 'OTP Kodu Doğrulama', 'PDF Fatura', 'WhatsApp Bildirimi', 'RTO Analizi', 'Telefon Kara Listesi', 'Posta Kodu Engeli', 'Öncelikli Destek'],
+    },
   ];
 
   const stats = [
@@ -167,53 +190,93 @@ export default function LandingPage() {
       </section>
 
       {/* PRICING */}
-      <section id="pricing" style={{ maxWidth: 1000, margin: '0 auto', padding: isMobile ? '56px 16px' : '80px 24px', position: 'relative', zIndex: 1 }}>
-        <div style={{ textAlign: 'center', marginBottom: isMobile ? 32 : 56 }}>
+      <section id="pricing" style={{ maxWidth: 1100, margin: '0 auto', padding: isMobile ? '56px 16px' : '80px 24px', position: 'relative', zIndex: 1 }}>
+        <div style={{ textAlign: 'center', marginBottom: isMobile ? 32 : 48 }}>
           <h2 style={{ fontSize: isMobile ? 32 : 60, fontWeight: 800, margin: '0 0 10px', letterSpacing: '-0.5px' }}>{t('landing_pricing_title')}</h2>
-          <p style={{ color: '#6b7280', fontSize: isMobile ? 15 : 36 }}>{t('landing_pricing_subtitle')}</p>
+          <p style={{ color: '#6b7280', fontSize: isMobile ? 15 : 20, marginBottom: 24 }}>{t('landing_pricing_subtitle')}</p>
+          {/* Toggle */}
+          <div style={{
+            display: 'inline-flex', alignItems: 'center', gap: 4,
+            background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)',
+            borderRadius: 30, padding: '4px',
+          }}>
+            {(['monthly', 'yearly'] as const).map(cycle => (
+              <button
+                key={cycle}
+                onClick={() => setPricingCycle(cycle)}
+                style={{
+                  padding: '8px 20px', borderRadius: 26, border: 'none', cursor: 'pointer',
+                  fontSize: 14, fontWeight: 500, transition: 'all 0.2s',
+                  background: pricingCycle === cycle ? 'rgba(139,92,246,0.3)' : 'transparent',
+                  color: pricingCycle === cycle ? '#c4b5fd' : '#6b7280',
+                }}
+              >
+                {cycle === 'monthly' ? 'Aylık' : 'Yıllık'}
+                {cycle === 'yearly' && (
+                  <span style={{ marginLeft: 6, fontSize: 11, background: '#059669', color: '#fff', padding: '1px 7px', borderRadius: 10 }}>
+                    %20 indirim
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
         </div>
         <div style={{
           display: 'grid',
-          gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)',
-          gap: isMobile ? 12 : 24,
+          gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)',
+          gap: isMobile ? 12 : 16,
         }}>
-          {plans.map((plan, i) => (
-            <div key={i} style={{
-              background: plan.popular ? 'rgba(139,92,246,0.08)' : '#0f0f18',
-              border: `1px solid ${plan.popular ? 'rgba(139,92,246,0.4)' : '#1a1a2e'}`,
-              borderRadius: 20, padding: isMobile ? '24px 20px' : '32px 28px',
-              position: 'relative',
-            }}>
-              {plan.popular && (
-                <div style={{
-                  position: 'absolute', top: -12, left: '50%', transform: 'translateX(-50%)',
-                  background: 'linear-gradient(135deg, #7c3aed, #a855f7)', color: '#fff',
-                  fontSize: 11, fontWeight: 700, padding: '4px 14px', borderRadius: 100,
-                  letterSpacing: '0.5px', whiteSpace: 'nowrap',
-                }}>{t('landing_pkg_popular').toUpperCase()}</div>
-              )}
-              <div style={{ fontSize: 13, color: '#9ca3af', marginBottom: 8 }}>{plan.name}</div>
-              <div style={{ fontSize: isMobile ? 36 : 42, fontWeight: 900, margin: '0 0 4px' }}>₺{plan.price}</div>
-              <div style={{ fontSize: 13, color: '#6b7280', marginBottom: 24 }}>{plan.credits}</div>
-              <Link href="/register" style={{
-                display: 'block', textAlign: 'center', textDecoration: 'none',
-                background: plan.popular ? 'linear-gradient(135deg, #7c3aed, #a855f7)' : 'rgba(255,255,255,0.06)',
-                border: plan.popular ? 'none' : '1px solid rgba(255,255,255,0.1)',
-                color: '#fff', fontSize: 14, fontWeight: 600, padding: '12px', borderRadius: 10,
-                marginBottom: 24, boxShadow: plan.popular ? '0 4px 20px rgba(139,92,246,0.3)' : 'none',
-                minHeight: 44, boxSizing: 'border-box' as const, lineHeight: '20px',
+          {landingPlans.map((plan) => {
+            const price = pricingCycle === 'yearly' ? plan.yearly : plan.monthly;
+            return (
+              <div key={plan.key} style={{
+                background: plan.popular ? 'rgba(139,92,246,0.08)' : '#0f0f18',
+                border: `1px solid ${plan.popular ? 'rgba(139,92,246,0.4)' : '#1a1a2e'}`,
+                borderRadius: 20, padding: isMobile ? '24px 20px' : '28px 20px',
+                position: 'relative', display: 'flex', flexDirection: 'column',
               }}>
-                {t('landing_buy')}
-              </Link>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {plan.features.map(f => (
-                  <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: '#9ca3af' }}>
-                    <span style={{ color: '#7c3aed', fontSize: 16 }}>✓</span> {f}
-                  </div>
-                ))}
+                {plan.popular && (
+                  <div style={{
+                    position: 'absolute', top: -12, left: '50%', transform: 'translateX(-50%)',
+                    background: 'linear-gradient(135deg, #7c3aed, #a855f7)', color: '#fff',
+                    fontSize: 11, fontWeight: 700, padding: '4px 14px', borderRadius: 100,
+                    letterSpacing: '0.5px', whiteSpace: 'nowrap',
+                  }}>EN POPÜLER</div>
+                )}
+                <div style={{ fontSize: 13, fontWeight: 600, color: plan.accent, marginBottom: 6 }}>{plan.name}</div>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, marginBottom: 4 }}>
+                  <span style={{ fontSize: isMobile ? 28 : 34, fontWeight: 900 }}>
+                    {price === 0 ? 'Ücretsiz' : `${price}₺`}
+                  </span>
+                  {price > 0 && <span style={{ color: '#6b7280', fontSize: 13 }}>/ay</span>}
+                </div>
+                {pricingCycle === 'yearly' && price > 0 && (
+                  <div style={{ color: '#6b7280', fontSize: 12, marginBottom: 8 }}>Normalde {plan.monthly}₺/ay</div>
+                )}
+                <div style={{ color: '#9ca3af', fontSize: 12, marginBottom: 16, paddingBottom: 16, borderBottom: '1px solid #1a1a2e' }}>
+                  <div>🏪 {plan.shops === -1 ? 'Sınırsız' : plan.shops} mağaza</div>
+                  <div style={{ marginTop: 4 }}>📱 {plan.sms} SMS/ay</div>
+                </div>
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20 }}>
+                  {plan.features.map(f => (
+                    <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: '#9ca3af' }}>
+                      <span style={{ color: plan.accent, fontSize: 14 }}>✓</span> {f}
+                    </div>
+                  ))}
+                </div>
+                <Link href="/register" style={{
+                  display: 'block', textAlign: 'center', textDecoration: 'none',
+                  background: plan.popular ? 'linear-gradient(135deg, #7c3aed, #a855f7)' : 'rgba(255,255,255,0.06)',
+                  border: plan.popular ? 'none' : '1px solid rgba(255,255,255,0.1)',
+                  color: '#fff', fontSize: 14, fontWeight: 600, padding: '12px', borderRadius: 10,
+                  boxShadow: plan.popular ? '0 4px 20px rgba(139,92,246,0.3)' : 'none',
+                  minHeight: 44, boxSizing: 'border-box' as const, lineHeight: '20px',
+                }}>
+                  {price === 0 ? 'Ücretsiz Başla' : t('landing_buy')}
+                </Link>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </section>
 

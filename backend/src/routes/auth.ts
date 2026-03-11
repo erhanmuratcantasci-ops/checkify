@@ -161,7 +161,7 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
 router.get('/me', authenticate, async (req: AuthRequest, res: Response): Promise<void> => {
   const user = await prisma.user.findUnique({
     where: { id: req.userId },
-    select: { id: true, email: true, name: true, smsCredits: true, whatsappCredits: true, createdAt: true, lastLoginAt: true, referralCode: true, twoFactorEnabled: true, _count: { select: { referredUsers: true } } },
+    select: { id: true, email: true, name: true, smsCredits: true, whatsappCredits: true, createdAt: true, lastLoginAt: true, referralCode: true, twoFactorEnabled: true, plan: true, planExpiresAt: true, billingCycle: true, _count: { select: { referredUsers: true } } },
   });
 
   if (!user) {

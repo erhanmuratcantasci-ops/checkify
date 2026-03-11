@@ -2,11 +2,12 @@ import { Router, Response } from 'express';
 import prisma from '../lib/prisma';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { OrderStatus } from '../../generated/prisma';
+import { requireFeature } from '../middleware/planCheck';
 
 const router = Router();
 
 // GET /orders/stats/rto — RTO (Return to Origin) analizi
-router.get('/stats/rto', authenticate, async (req: AuthRequest, res: Response): Promise<void> => {
+router.get('/stats/rto', authenticate, requireFeature('rto'), async (req: AuthRequest, res: Response): Promise<void> => {
   const shops = await prisma.shop.findMany({
     where: { userId: req.userId },
     select: { id: true },

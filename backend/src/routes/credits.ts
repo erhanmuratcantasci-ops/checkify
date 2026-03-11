@@ -2,6 +2,7 @@ import { Router, Response } from 'express';
 import prisma from '../lib/prisma';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import PDFDocument from 'pdfkit';
+import { requireFeature } from '../middleware/planCheck';
 
 const router = Router();
 
@@ -54,7 +55,7 @@ router.post('/add', authenticate, async (req: AuthRequest, res: Response): Promi
 });
 
 // GET /credits/invoice/:transactionId — PDF fatura indir
-router.get('/invoice/:transactionId', authenticate, async (req: AuthRequest, res: Response): Promise<void> => {
+router.get('/invoice/:transactionId', authenticate, requireFeature('pdf_invoice'), async (req: AuthRequest, res: Response): Promise<void> => {
   const transactionId = parseInt(req.params['transactionId'] as string);
   if (isNaN(transactionId)) { res.status(400).json({ error: 'Geçersiz işlem ID' }); return; }
 

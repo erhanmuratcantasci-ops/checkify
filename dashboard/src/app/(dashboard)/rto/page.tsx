@@ -34,16 +34,22 @@ export default function RTOPage() {
   const isMobile = useIsMobile();
   const [data, setData] = useState<RTOData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [planAllowed, setPlanAllowed] = useState<boolean | null>(null);
 
   useEffect(() => {
     const token = document.cookie.split('; ').find(r => r.startsWith('token='))?.split('=')[1];
     if (!token) { router.push('/login'); return; }
 
-    fetch(`${API}/orders/stats/rto`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then(r => r.json())
-      .then(d => setData(d))
+    const headers = { Authorization: `Bearer ${token}` };
+    Promise.all([
+      fetch(`${API}/orders/stats/rto`, { headers }).then(r => r.json()),
+      fetch(`${API}/plans/current`, { headers }).then(r => r.json()),
+    ])
+      .then(([rtoData, planData]) => {
+        setData(rtoData);
+        const allowed = ['PRO', 'BUSINESS'].includes(planData.plan ?? '');
+        setPlanAllowed(allowed);
+      })
       .catch(() => router.push('/login'))
       .finally(() => setLoading(false));
   }, [router]);
@@ -75,6 +81,33 @@ export default function RTOPage() {
           </p>
         </div>
 
+        {planAllowed === false && (
+          <div style={{
+            background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)',
+            borderRadius: 20, padding: '60px 40px', textAlign: 'center', marginTop: 20,
+          }}>
+            <div style={{ fontSize: 56, marginBottom: 16 }}>🔒</div>
+            <h2 style={{ color: '#fff', fontSize: 22, fontWeight: 700, margin: '0 0 8px', fontFamily: "'Syne', sans-serif" }}>
+              Pro Plan Gerekli
+            </h2>
+            <p style={{ color: '#6b7280', fontSize: 14, margin: '0 0 20px' }}>
+              RTO Analizi Pro ve Business planlarında kullanılabilir.
+            </p>
+            <button
+              onClick={() => router.push('/pricing')}
+              style={{
+                padding: '12px 28px', borderRadius: 10, border: 'none', cursor: 'pointer',
+                background: 'linear-gradient(135deg, #7c3aed, #a855f7)', color: '#fff',
+                fontSize: 14, fontWeight: 600,
+              }}
+            >
+              Planları Görüntüle →
+            </button>
+          </div>
+        )}
+
+        {planAllowed === true && (
+        <>
         {/* Summary Cards */}
         <div style={{
           display: 'grid',
@@ -156,6 +189,8 @@ export default function RTOPage() {
             </div>
           )}
         </div>
+        </>
+        )}
       </main>
     </div>
   );
