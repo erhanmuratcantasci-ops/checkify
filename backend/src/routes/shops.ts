@@ -199,4 +199,22 @@ router.delete('/:id/blocked-postal-codes/:postalCode', async (req: AuthRequest, 
   res.json({ success: true });
 });
 
+// PATCH /shops/:id/prepaid — ön ödeme ayarlarını güncelle
+router.patch('/:id/prepaid', async (req: AuthRequest, res: Response): Promise<void> => {
+  const id = parseInt(req.params['id'] as string);
+  const { prepaidEnabled, prepaidDiscount } = req.body as { prepaidEnabled?: boolean; prepaidDiscount?: number };
+
+  const shop = await prisma.shop.findFirst({ where: { id, userId: req.userId! } });
+  if (!shop) { res.status(404).json({ error: 'Shop bulunamadı' }); return; }
+
+  const data: { prepaidEnabled?: boolean; prepaidDiscount?: number } = {};
+  if (typeof prepaidEnabled === 'boolean') data.prepaidEnabled = prepaidEnabled;
+  if (typeof prepaidDiscount === 'number' && [5, 10, 15].includes(prepaidDiscount)) {
+    data.prepaidDiscount = prepaidDiscount;
+  }
+
+  const updated = await prisma.shop.update({ where: { id }, data });
+  res.json({ shop: updated });
+});
+
 export default router;

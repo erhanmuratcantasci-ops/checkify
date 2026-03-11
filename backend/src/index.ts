@@ -13,13 +13,15 @@ import creditsRouter from './routes/credits';
 import adminRouter from './routes/admin';
 import statusRouter from './routes/status';
 import { loginRateLimiter, webhookRateLimiter, generalRateLimiter, otpRateLimiter } from './middleware/rateLimiter';
+import { realIp } from './middleware/cloudflare';
 import './workers/smsWorker';
 
 const app = express();
 const PORT = process.env['PORT'] || 3001;
 
 app.use(helmet());
-app.set('trust proxy', 1); // proxy arkasında IP doğru alınsın
+app.set('trust proxy', true); // proxy arkasında IP doğru alınsın
+app.use(realIp);
 app.use(generalRateLimiter);
 
 app.use(cors({

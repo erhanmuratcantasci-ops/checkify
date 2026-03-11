@@ -27,8 +27,10 @@ export const generalRateLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Çok fazla istek. Lütfen bekleyin.' },
+  keyGenerator: (req: Request) => (req.headers['cf-connecting-ip'] as string) || req.ip || 'unknown',
   handler: (req: Request, res: Response) => {
-    logSecurityEvent(req.ip ?? 'unknown', req.path, 'Genel rate limit aşıldı').catch(() => {});
+    const ip = (req.headers['cf-connecting-ip'] as string) || req.ip || 'unknown';
+    logSecurityEvent(ip, req.path, 'Genel rate limit aşıldı').catch(() => {});
     res.status(429).json({ error: 'Çok fazla istek. Lütfen bekleyin.' });
   },
 });
@@ -40,8 +42,10 @@ export const loginRateLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Çok fazla deneme. 15 dakika sonra tekrar deneyin.' },
+  keyGenerator: (req: Request) => (req.headers['cf-connecting-ip'] as string) || req.ip || 'unknown',
   handler: (req: Request, res: Response) => {
-    logSecurityEvent(req.ip ?? 'unknown', req.path, 'Auth rate limit aşıldı').catch(() => {});
+    const ip = (req.headers['cf-connecting-ip'] as string) || req.ip || 'unknown';
+    logSecurityEvent(ip, req.path, 'Auth rate limit aşıldı').catch(() => {});
     res.status(429).json({ error: 'Çok fazla deneme. 15 dakika sonra tekrar deneyin.' });
   },
 });
@@ -53,8 +57,10 @@ export const otpRateLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Çok fazla OTP denemesi. 15 dakika sonra tekrar deneyin.' },
+  keyGenerator: (req: Request) => (req.headers['cf-connecting-ip'] as string) || req.ip || 'unknown',
   handler: (req: Request, res: Response) => {
-    logSecurityEvent(req.ip ?? 'unknown', req.path, 'OTP rate limit aşıldı — olası brute force').catch(() => {});
+    const ip = (req.headers['cf-connecting-ip'] as string) || req.ip || 'unknown';
+    logSecurityEvent(ip, req.path, 'OTP rate limit aşıldı — olası brute force').catch(() => {});
     res.status(429).json({ error: 'Çok fazla OTP denemesi. 15 dakika sonra tekrar deneyin.' });
   },
 });
@@ -66,8 +72,10 @@ export const webhookRateLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Çok fazla webhook isteği.' },
+  keyGenerator: (req: Request) => (req.headers['cf-connecting-ip'] as string) || req.ip || 'unknown',
   handler: (req: Request, res: Response) => {
-    logSecurityEvent(req.ip ?? 'unknown', req.path, 'Webhook rate limit aşıldı').catch(() => {});
+    const ip = (req.headers['cf-connecting-ip'] as string) || req.ip || 'unknown';
+    logSecurityEvent(ip, req.path, 'Webhook rate limit aşıldı').catch(() => {});
     res.status(429).json({ error: 'Çok fazla webhook isteği.' });
   },
 });

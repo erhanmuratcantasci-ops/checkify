@@ -18,6 +18,7 @@ interface User {
   lastLoginAt: string | null;
   referralCode?: string | null;
   referredCount?: number;
+  twoFactorEnabled?: boolean;
 }
 
 function getToken() {
@@ -51,6 +52,13 @@ export default function ProfilePage() {
   const [deletePassword, setDeletePassword] = useState('');
   const [deleting, setDeleting] = useState(false);
 
+  const [twoFAEnabled, setTwoFAEnabled] = useState(false);
+  const [qrCode, setQrCode] = useState<string | null>(null);
+  const [twoFAStep, setTwoFAStep] = useState<'idle' | 'setup' | 'disable'>('idle');
+  const [twoFAToken, setTwoFAToken] = useState('');
+  const [twoFALoading, setTwoFALoading] = useState(false);
+  const [twoFAMsg, setTwoFAMsg] = useState<string | null>(null);
+
   useEffect(() => {
     const token = getToken();
     if (!token) { router.push('/login'); return; }
@@ -61,10 +69,49 @@ export default function ProfilePage() {
         setUser(u);
         setName(u.name ?? '');
         setEmail(u.email ?? '');
+        setTwoFAEnabled(u.twoFactorEnabled ?? false);
         setLoading(false);
       })
       .catch(() => router.push('/login'));
   }, [router]);
+
+  async function setup2FA() {
+    setTwoFALoading(true); setTwoFAMsg(null);
+    const token = document.cookie.split('; ').find(r => r.startsWith('token='))?.split('=')[1];
+    const res = await fetch(`${API}/auth/2fa/setup`, { headers: { Authorization: `Bearer ${token}` } });
+    const data = await res.json();
+    if (data.qrCode) { setQrCode(data.qrCode); setTwoFAStep('setup'); }
+    else setTwoFAMsg(data.error ?? 'Hata');
+    setTwoFALoading(false);
+  }
+
+  async function enable2FA() {
+    setTwoFALoading(true); setTwoFAMsg(null);
+    const token = document.cookie.split('; ').find(r => r.startsWith('token='))?.split('=')[1];
+    const res = await fetch(`${API}/auth/2fa/enable`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: twoFAToken }),
+    });
+    const data = await res.json();
+    if (data.success) { setTwoFAEnabled(true); setTwoFAStep('idle'); setQrCode(null); setTwoFAToken(''); setTwoFAMsg('2FA aktif edildi'); }
+    else setTwoFAMsg(data.error ?? 'Hata');
+    setTwoFALoading(false);
+  }
+
+  async function disable2FA() {
+    setTwoFALoading(true); setTwoFAMsg(null);
+    const token = document.cookie.split('; ').find(r => r.startsWith('token='))?.split('=')[1];
+    const res = await fetch(`${API}/auth/2fa/disable`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: twoFAToken }),
+    });
+    const data = await res.json();
+    if (data.success) { setTwoFAEnabled(false); setTwoFAStep('idle'); setTwoFAToken(''); setTwoFAMsg('2FA devre dışı bırakıldı'); }
+    else setTwoFAMsg(data.error ?? 'Hata');
+    setTwoFALoading(false);
+  }
 
   async function handleSaveInfo(e: React.FormEvent) {
     e.preventDefault();
@@ -282,6 +329,116 @@ export default function ProfilePage() {
                 {user?.referredCount ?? 0}
               </div>
             </div>
+          </div>
+
+          {/* 2FA Card */}
+          <div style={{
+            background: 'rgba(255,255,255,0.03)',
+            border: '1px solid rgba(255,255,255,0.07)',
+            borderRadius: 16, padding: isMobile ? '16px' : '24px 28px',
+            marginTop: 16,
+          }}>
+            <h2 style={{ color: '#9ca3af', fontSize: 11, fontWeight: 600, letterSpacing: '1px', textTransform: 'uppercase', margin: '0 0 16px' }}>
+              İki Faktörlü Doğrulama (2FA)
+            </h2>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <div>
+                <div style={{ color: '#d1d5db', fontSize: 14, fontWeight: 500 }}>
+                  {twoFAEnabled ? '🔒 2FA Aktif' : '🔓 2FA Devre Dışı'}
+                </div>
+                <div style={{ color: '#6b7280', fontSize: 12, marginTop: 2 }}>
+                  {twoFAEnabled ? 'Hesabınız iki faktörlü doğrulama ile korunuyor' : 'Google Authenticator ile hesabınızı güvende tutun'}
+                </div>
+              </div>
+              {twoFAStep === 'idle' && (
+                <button
+                  onClick={twoFAEnabled ? () => setTwoFAStep('disable') : setup2FA}
+                  disabled={twoFALoading}
+                  style={{
+                    padding: '8px 16px', borderRadius: 8, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 500,
+                    background: twoFAEnabled ? 'rgba(220,38,38,0.15)' : 'linear-gradient(135deg, #7c3aed, #a855f7)',
+                    color: twoFAEnabled ? '#f87171' : '#fff',
+                  }}
+                >
+                  {twoFALoading ? '...' : twoFAEnabled ? 'Devre Dışı Bırak' : '2FA Kur'}
+                </button>
+              )}
+            </div>
+
+            {twoFAMsg && (
+              <div style={{
+                padding: '8px 12px', borderRadius: 8, marginBottom: 12,
+                background: twoFAMsg.includes('aktif') || twoFAMsg.includes('bırakıldı') ? 'rgba(5,150,105,0.1)' : 'rgba(239,68,68,0.1)',
+                border: `1px solid ${twoFAMsg.includes('aktif') || twoFAMsg.includes('bırakıldı') ? 'rgba(5,150,105,0.2)' : 'rgba(239,68,68,0.2)'}`,
+                color: twoFAMsg.includes('aktif') || twoFAMsg.includes('bırakıldı') ? '#6ee7b7' : '#f87171',
+                fontSize: 13,
+              }}>
+                {twoFAMsg}
+              </div>
+            )}
+
+            {twoFAStep === 'setup' && qrCode && (
+              <div>
+                <p style={{ color: '#9ca3af', fontSize: 13, margin: '0 0 12px' }}>
+                  Google Authenticator uygulamasıyla QR kodu okutun, ardından üretilen 6 haneli kodu girin:
+                </p>
+                <img src={qrCode} alt="2FA QR Kod" style={{ width: 160, height: 160, borderRadius: 8, display: 'block', marginBottom: 12 }} />
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <input
+                    type="text" maxLength={6} value={twoFAToken}
+                    onChange={e => setTwoFAToken(e.target.value.replace(/\D/g, ''))}
+                    placeholder="6 haneli kod"
+                    style={{
+                      flex: 1, padding: '10px 14px', borderRadius: 8, border: '1px solid rgba(139,92,246,0.3)',
+                      background: 'rgba(255,255,255,0.05)', color: '#fff', fontSize: 18, fontWeight: 700,
+                      letterSpacing: '4px', outline: 'none',
+                    }}
+                  />
+                  <button
+                    onClick={enable2FA} disabled={twoFAToken.length !== 6 || twoFALoading}
+                    style={{
+                      padding: '10px 20px', borderRadius: 8, border: 'none', cursor: 'pointer',
+                      background: 'linear-gradient(135deg, #7c3aed, #a855f7)', color: '#fff', fontSize: 14, fontWeight: 600,
+                    }}
+                  >
+                    {twoFALoading ? '...' : 'Doğrula'}
+                  </button>
+                  <button onClick={() => { setTwoFAStep('idle'); setQrCode(null); setTwoFAToken(''); }} style={{ padding: '10px 14px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.1)', background: 'transparent', color: '#9ca3af', cursor: 'pointer', fontSize: 14 }}>
+                    İptal
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {twoFAStep === 'disable' && (
+              <div>
+                <p style={{ color: '#9ca3af', fontSize: 13, margin: '0 0 12px' }}>
+                  2FA&apos;yı devre dışı bırakmak için authenticator uygulamasındaki kodu girin:
+                </p>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <input
+                    type="text" maxLength={6} value={twoFAToken}
+                    onChange={e => setTwoFAToken(e.target.value.replace(/\D/g, ''))}
+                    placeholder="6 haneli kod"
+                    style={{
+                      flex: 1, padding: '10px 14px', borderRadius: 8, border: '1px solid rgba(239,68,68,0.3)',
+                      background: 'rgba(255,255,255,0.05)', color: '#fff', fontSize: 18, fontWeight: 700,
+                      letterSpacing: '4px', outline: 'none',
+                    }}
+                  />
+                  <button
+                    onClick={disable2FA} disabled={twoFAToken.length !== 6 || twoFALoading}
+                    style={{ padding: '10px 20px', borderRadius: 8, border: 'none', cursor: 'pointer', background: 'rgba(220,38,38,0.8)', color: '#fff', fontSize: 14, fontWeight: 600 }}
+                  >
+                    {twoFALoading ? '...' : 'Kapat'}
+                  </button>
+                  <button onClick={() => { setTwoFAStep('idle'); setTwoFAToken(''); }} style={{ padding: '10px 14px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.1)', background: 'transparent', color: '#9ca3af', cursor: 'pointer', fontSize: 14 }}>
+                    İptal
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Danger zone */}

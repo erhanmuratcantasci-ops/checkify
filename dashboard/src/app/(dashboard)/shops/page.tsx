@@ -10,7 +10,7 @@ import { useTranslation } from '@/lib/i18n';
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://127.0.0.1:3001';
 
-const ALLOWED_VARS = ['{isim}', '{siparis_no}', '{link}', '{tutar}', '{status_link}'];
+const ALLOWED_VARS = ['{isim}', '{siparis_no}', '{link}', '{tutar}', '{status_link}', '{prepaid_link}'];
 const DEFAULT_TEMPLATE = 'Merhaba {isim}, {siparis_no} numaralı siparişinizi onaylamak için: {link}';
 
 interface Shop {
@@ -22,6 +22,8 @@ interface Shop {
   smsStartHour: number;
   smsEndHour: number;
   createdAt: string;
+  prepaidEnabled: boolean;
+  prepaidDiscount: number;
 }
 
 interface BlockedPhone {
@@ -296,6 +298,9 @@ export default function ShopsPage() {
   const [newPostalCode, setNewPostalCode] = useState<Record<number, string>>({});
   const [postalLoading, setPostalLoading] = useState<Record<number, boolean>>({});
 
+  // Prepaid state
+  const [prepaidSaving, setPrepaidSaving] = useState<Record<number, boolean>>({});
+
   useEffect(() => {
     const token = getToken();
     if (!token) { router.push('/login'); return; }
@@ -322,6 +327,19 @@ export default function ShopsPage() {
     } finally {
       setLoading(false);
     }
+  }
+
+  function loadShops() { fetchShops(); }
+
+  async function updatePrepaid(shopId: number, enabled: boolean, discount: number) {
+    setPrepaidSaving(prev => ({ ...prev, [shopId]: true }));
+    await fetch(`${API}/shops/${shopId}/prepaid`, {
+      method: 'PATCH',
+      headers: authHeaders(),
+      body: JSON.stringify({ prepaidEnabled: enabled, prepaidDiscount: discount }),
+    });
+    setPrepaidSaving(prev => ({ ...prev, [shopId]: false }));
+    loadShops();
   }
 
   async function fetchBlocked(shopId: number) {

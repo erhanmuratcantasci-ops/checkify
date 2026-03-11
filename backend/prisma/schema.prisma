@@ -20,6 +20,8 @@ model User {
   passwordResetExpiry DateTime?
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
+  twoFactorSecret  String?
+  twoFactorEnabled Boolean  @default(false)
   referralCode     String?   @unique
   referredByUserId Int?
   referredBy       User?     @relation("referrals", fields: [referredByUserId], references: [id])
@@ -60,6 +62,8 @@ model Shop {
   userId      Int
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  prepaidEnabled   Boolean  @default(false)
+  prepaidDiscount  Int      @default(5)
 
   user          User           @relation(fields: [userId], references: [id])
   orders        Order[]

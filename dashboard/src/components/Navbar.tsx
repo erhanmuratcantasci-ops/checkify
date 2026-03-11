@@ -97,6 +97,7 @@ export default function Navbar() {
   const navLinks = [
     { href: '/dashboard', label: t('nav_dashboard'), icon: '◈' },
     { href: '/orders', label: t('nav_orders'), icon: '📦' },
+    { href: '/rto', label: 'RTO', icon: '📉' },
     { href: '/shops', label: t('nav_shops'), icon: '🏪' },
     { href: '/credits', label: t('nav_credits'), icon: '💳' },
     { href: '/profile', label: t('nav_profile'), icon: '👤' },

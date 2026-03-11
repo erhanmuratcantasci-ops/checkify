@@ -7,6 +7,9 @@ import { sendWelcomeEmail, sendPasswordResetEmail } from '../lib/mailer';
 import crypto from 'crypto';
 import { z } from 'zod';
 import { logSecurityEvent } from '../lib/securityLog';
+// @ts-ignore
+import * as speakeasy from 'speakeasy';
+import * as qrcode from 'qrcode';
 
 const router = Router();
 
@@ -124,6 +127,19 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
     return;
   }
 
+  await prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
+
+  // 2FA kontrolü (admin için)
+  if (user.twoFactorEnabled && user.twoFactorSecret) {
+    const preAuthToken = jwt.sign(
+      { userId: user.id, scope: '2fa' },
+      process.env['JWT_SECRET']!,
+      { expiresIn: '5m' }
+    );
+    res.json({ require2FA: true, preAuthToken });
+    return;
+  }
+
   const token = jwt.sign({ userId: user.id }, process.env['JWT_SECRET']!, { expiresIn: '24h' });
   const refreshTokenValue = crypto.randomBytes(40).toString('hex');
   await prisma.refreshToken.create({
@@ -133,8 +149,6 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
       expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
     },
   });
-
-  await prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
 
   res.json({
     user: { id: user.id, email: user.email, name: user.name, createdAt: user.createdAt },
@@ -147,7 +161,7 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
 router.get('/me', authenticate, async (req: AuthRequest, res: Response): Promise<void> => {
   const user = await prisma.user.findUnique({
     where: { id: req.userId },
-    select: { id: true, email: true, name: true, smsCredits: true, createdAt: true, lastLoginAt: true, referralCode: true, _count: { select: { referredUsers: true } } },
+    select: { id: true, email: true, name: true, smsCredits: true, createdAt: true, lastLoginAt: true, referralCode: true, twoFactorEnabled: true, _count: { select: { referredUsers: true } } },
   });
 
   if (!user) {
@@ -325,6 +339,141 @@ router.post('/refresh', async (req: Request, res: Response): Promise<void> => {
   });
 
   res.json({ token: newToken, refreshToken: newRefreshToken });
+});
+
+// GET /auth/2fa/setup — QR kod üret
+router.get('/2fa/setup', authenticate, async (req: AuthRequest, res: Response): Promise<void> => {
+  const user = await prisma.user.findUnique({
+    where: { id: req.userId },
+    select: { email: true, twoFactorEnabled: true },
+  });
+  if (!user) { res.status(404).json({ error: 'Kullanıcı bulunamadı' }); return; }
+  if (user.twoFactorEnabled) { res.status(400).json({ error: '2FA zaten aktif' }); return; }
+
+  const secret = speakeasy.generateSecret({
+    name: `Chekkify (${user.email})`,
+    length: 20,
+  });
+
+  await prisma.user.update({
+    where: { id: req.userId },
+    data: { twoFactorSecret: secret.base32 },
+  });
+
+  const qrDataUrl = await qrcode.toDataURL(secret.otpauth_url!);
+  res.json({ qrCode: qrDataUrl, secret: secret.base32 });
+});
+
+// POST /auth/2fa/enable { token } — doğrula ve aktif et
+router.post('/2fa/enable', authenticate, async (req: AuthRequest, res: Response): Promise<void> => {
+  const { token } = req.body as { token?: string };
+  if (!token) { res.status(400).json({ error: 'Token gerekli' }); return; }
+
+  const user = await prisma.user.findUnique({
+    where: { id: req.userId },
+    select: { twoFactorSecret: true, twoFactorEnabled: true },
+  });
+  if (!user?.twoFactorSecret) { res.status(400).json({ error: 'Önce 2FA kurulumu yapın' }); return; }
+  if (user.twoFactorEnabled) { res.status(400).json({ error: '2FA zaten aktif' }); return; }
+
+  const valid = speakeasy.totp.verify({
+    secret: user.twoFactorSecret,
+    encoding: 'base32',
+    token,
+    window: 1,
+  });
+
+  if (!valid) { res.status(400).json({ error: 'Geçersiz kod' }); return; }
+
+  await prisma.user.update({
+    where: { id: req.userId },
+    data: { twoFactorEnabled: true },
+  });
+
+  res.json({ success: true, message: '2FA aktif edildi' });
+});
+
+// POST /auth/2fa/disable — 2FA kapat
+router.post('/2fa/disable', authenticate, async (req: AuthRequest, res: Response): Promise<void> => {
+  const { token } = req.body as { token?: string };
+  if (!token) { res.status(400).json({ error: 'Mevcut 2FA kodu gerekli' }); return; }
+
+  const user = await prisma.user.findUnique({
+    where: { id: req.userId },
+    select: { twoFactorSecret: true, twoFactorEnabled: true },
+  });
+  if (!user?.twoFactorEnabled || !user.twoFactorSecret) {
+    res.status(400).json({ error: '2FA zaten devre dışı' }); return;
+  }
+
+  const valid = speakeasy.totp.verify({
+    secret: user.twoFactorSecret,
+    encoding: 'base32',
+    token,
+    window: 1,
+  });
+  if (!valid) { res.status(400).json({ error: 'Geçersiz kod' }); return; }
+
+  await prisma.user.update({
+    where: { id: req.userId },
+    data: { twoFactorEnabled: false, twoFactorSecret: null },
+  });
+
+  res.json({ success: true, message: '2FA devre dışı bırakıldı' });
+});
+
+// POST /auth/2fa/verify { preAuthToken, token } — giriş sırasında 2FA doğrula
+router.post('/2fa/verify', async (req: Request, res: Response): Promise<void> => {
+  const { preAuthToken, token } = req.body as { preAuthToken?: string; token?: string };
+  if (!preAuthToken || !token) {
+    res.status(400).json({ error: 'preAuthToken ve token gerekli' }); return;
+  }
+
+  let payload: { userId: number; scope: string };
+  try {
+    payload = jwt.verify(preAuthToken, process.env['JWT_SECRET']!) as { userId: number; scope: string };
+  } catch {
+    res.status(401).json({ error: 'Geçersiz veya süresi dolmuş ön-doğrulama tokeni' }); return;
+  }
+
+  if (payload.scope !== '2fa') {
+    res.status(401).json({ error: 'Geçersiz token kapsamı' }); return;
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { id: payload.userId },
+    select: { id: true, email: true, name: true, createdAt: true, twoFactorSecret: true },
+  });
+  if (!user?.twoFactorSecret) { res.status(401).json({ error: 'Kullanıcı bulunamadı' }); return; }
+
+  const valid = speakeasy.totp.verify({
+    secret: user.twoFactorSecret,
+    encoding: 'base32',
+    token,
+    window: 1,
+  });
+  if (!valid) {
+    await logSecurityEvent(req.ip ?? 'unknown', '/auth/2fa/verify', `Başarısız 2FA: user #${user.id}`);
+    res.status(401).json({ error: 'Geçersiz 2FA kodu' }); return;
+  }
+
+  await prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
+
+  const authToken = jwt.sign({ userId: user.id }, process.env['JWT_SECRET']!, { expiresIn: '24h' });
+  const refreshTokenValue = crypto.randomBytes(40).toString('hex');
+  await prisma.refreshToken.create({
+    data: {
+      userId: user.id,
+      token: refreshTokenValue,
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+    },
+  });
+
+  res.json({
+    token: authToken,
+    refreshToken: refreshTokenValue,
+    user: { id: user.id, email: user.email, name: user.name, createdAt: user.createdAt },
+  });
 });
 
 export default router;

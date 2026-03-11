@@ -6,7 +6,7 @@ const router = Router({ mergeParams: true });
 
 router.use(authenticate);
 
-const ALLOWED_VARS = ['{isim}', '{siparis_no}', '{link}', '{tutar}'];
+const ALLOWED_VARS = ['{isim}', '{siparis_no}', '{link}', '{tutar}', '{prepaid_link}'];
 const DEFAULT_TEMPLATE = 'Merhaba {isim}, {siparis_no} numaralı siparişinizi onaylamak için: {link}';
 
 function validateTemplate(template: string): string | null {

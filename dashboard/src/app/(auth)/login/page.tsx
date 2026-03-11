@@ -26,6 +26,11 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  const [require2FA, setRequire2FA] = useState(false);
+  const [preAuthToken, setPreAuthToken] = useState('');
+  const [twoFACode, setTwoFACode] = useState('');
+  const [twoFALoading, setTwoFALoading] = useState(false);
+
   // Forgot password modal
   const [forgotOpen, setForgotOpen] = useState(false);
   const [forgotEmail, setForgotEmail] = useState('');
@@ -45,6 +50,12 @@ export default function LoginPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || t('login_error_default'));
+      if (data.require2FA) {
+        setPreAuthToken(data.preAuthToken);
+        setRequire2FA(true);
+        setLoading(false);
+        return;
+      }
       document.cookie = `token=${data.token}; path=/; max-age=${7 * 24 * 60 * 60}`;
       if (data.refreshToken) {
         document.cookie = `refreshToken=${data.refreshToken}; path=/; max-age=${7 * 24 * 3600}; SameSite=Lax`;
@@ -55,6 +66,26 @@ export default function LoginPage() {
     } finally {
       setLoading(false);
     }
+  }
+
+  async function handle2FA() {
+    setTwoFALoading(true);
+    const res = await fetch(`${API}/auth/2fa/verify`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ preAuthToken, token: twoFACode }),
+    });
+    const data = await res.json();
+    if (data.token) {
+      document.cookie = `token=${data.token}; path=/; max-age=${24 * 3600}; SameSite=Lax`;
+      if (data.refreshToken) {
+        document.cookie = `refreshToken=${data.refreshToken}; path=/; max-age=${7 * 24 * 3600}; SameSite=Lax`;
+      }
+      router.push('/dashboard');
+    } else {
+      setError(data.error ?? 'Geçersiz kod');
+    }
+    setTwoFALoading(false);
   }
 
   async function handleForgotSubmit(e: React.FormEvent) {
@@ -155,6 +186,62 @@ export default function LoginPage() {
           </p>
         </div>
       </div>
+
+      {require2FA && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 100, padding: 20,
+        }}>
+          <div style={{
+            background: 'rgba(13,13,22,0.98)',
+            border: '1px solid rgba(139,92,246,0.3)',
+            borderRadius: 20, padding: '36px 28px',
+            width: '100%', maxWidth: 380,
+          }}>
+            <div style={{ textAlign: 'center', marginBottom: 24 }}>
+              <div style={{ fontSize: 40, marginBottom: 12 }}>🔐</div>
+              <h2 style={{ color: '#fff', fontSize: 20, fontWeight: 700, margin: '0 0 8px', fontFamily: "'Syne', sans-serif" }}>
+                İki Faktörlü Doğrulama
+              </h2>
+              <p style={{ color: '#6b7280', fontSize: 14, margin: 0 }}>
+                Authenticator uygulamasındaki 6 haneli kodu girin
+              </p>
+            </div>
+            <input
+              type="text" maxLength={6} value={twoFACode}
+              onChange={e => setTwoFACode(e.target.value.replace(/\D/g, ''))}
+              placeholder="000000"
+              autoFocus
+              style={{
+                width: '100%', padding: '14px', borderRadius: 10,
+                border: '1px solid rgba(139,92,246,0.3)',
+                background: 'rgba(255,255,255,0.05)', color: '#fff',
+                fontSize: 28, fontWeight: 700, textAlign: 'center',
+                letterSpacing: '8px', outline: 'none', boxSizing: 'border-box',
+                marginBottom: 12,
+              }}
+              onKeyDown={e => { if (e.key === 'Enter' && twoFACode.length === 6) handle2FA(); }}
+            />
+            {error && (
+              <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 8, padding: '8px 12px', color: '#f87171', fontSize: 13, textAlign: 'center', marginBottom: 12 }}>
+                {error}
+              </div>
+            )}
+            <button
+              onClick={handle2FA}
+              disabled={twoFACode.length !== 6 || twoFALoading}
+              style={{
+                width: '100%', padding: '14px', borderRadius: 10, border: 'none', cursor: 'pointer',
+                background: twoFACode.length === 6 ? 'linear-gradient(135deg, #7c3aed, #a855f7)' : 'rgba(255,255,255,0.05)',
+                color: twoFACode.length === 6 ? '#fff' : '#4b5563', fontSize: 15, fontWeight: 600,
+              }}
+            >
+              {twoFALoading ? 'Doğrulanıyor...' : 'Doğrula'}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Forgot Password Modal */}
       {forgotOpen && (

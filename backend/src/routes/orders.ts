@@ -5,6 +5,75 @@ import { OrderStatus } from '../../generated/prisma';
 
 const router = Router();
 
+// GET /orders/stats/rto — RTO (Return to Origin) analizi
+router.get('/stats/rto', authenticate, async (req: AuthRequest, res: Response): Promise<void> => {
+  const shops = await prisma.shop.findMany({
+    where: { userId: req.userId },
+    select: { id: true },
+  });
+
+  if (shops.length === 0) {
+    res.json({ rtoRate: 0, cancelled: 0, total: 0, trend: [], topPhones: [] });
+    return;
+  }
+
+  const shopIds = shops.map((s) => s.id);
+
+  const since30 = new Date();
+  since30.setDate(since30.getDate() - 29);
+  since30.setHours(0, 0, 0, 0);
+
+  const [grouped, trendRows, topPhones] = await Promise.all([
+    prisma.order.groupBy({
+      by: ['status'],
+      where: { shopId: { in: shopIds } },
+      _count: { _all: true },
+    }),
+    prisma.$queryRaw<{ date: Date; count: bigint }[]>`
+      SELECT DATE("createdAt") AS date, COUNT(*)::int AS count
+      FROM "Order"
+      WHERE "shopId" = ANY(${shopIds})
+        AND "status" = 'CANCELLED'
+        AND "createdAt" >= ${since30}
+      GROUP BY DATE("createdAt")
+      ORDER BY date ASC
+    `,
+    prisma.order.groupBy({
+      by: ['customerPhone'],
+      where: { shopId: { in: shopIds }, status: 'CANCELLED' },
+      _count: { _all: true },
+      orderBy: { _count: { customerPhone: 'desc' } },
+      take: 10,
+    }),
+  ]);
+
+  const byStatus = Object.fromEntries(grouped.map(g => [g.status, g._count._all]));
+  const total = grouped.reduce((sum, g) => sum + g._count._all, 0);
+  const cancelled = byStatus['CANCELLED'] ?? 0;
+  const rtoRate = total > 0 ? Math.round((cancelled / total) * 100 * 10) / 10 : 0;
+
+  // 30 günlük trend (eksik günleri 0 ile doldur)
+  const trendMap = new Map<string, number>();
+  for (const row of trendRows) {
+    trendMap.set(new Date(row.date).toISOString().slice(0, 10), Number(row.count));
+  }
+  const trend: { date: string; count: number }[] = [];
+  for (let i = 29; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const key = d.toISOString().slice(0, 10);
+    trend.push({ date: key, count: trendMap.get(key) ?? 0 });
+  }
+
+  // En çok iptal yapan numaralar (masked)
+  const maskedPhones = topPhones.map(p => ({
+    phone: p.customerPhone.slice(0, -2).replace(/\d/g, '*') + p.customerPhone.slice(-2),
+    count: p._count._all,
+  }));
+
+  res.json({ rtoRate, cancelled, total, trend, topPhones: maskedPhones });
+});
+
 // GET /orders/stats/daily — son 7 günlük sipariş sayısı
 router.get('/stats/daily', authenticate, async (req: AuthRequest, res: Response): Promise<void> => {
   const shops = await prisma.shop.findMany({
@@ -289,6 +358,33 @@ router.post('/:id/resend-sms', authenticate, async (req: AuthRequest, res: Respo
   });
 
   res.json({ success: true, message: 'SMS kuyruğa eklendi' });
+});
+
+// POST /orders/:id/prepaid-link — ön ödeme linki üret
+router.post('/:id/prepaid-link', authenticate, async (req: AuthRequest, res: Response): Promise<void> => {
+  const id = parseInt(req.params['id'] as string);
+  if (isNaN(id)) { res.status(400).json({ error: 'Geçersiz id' }); return; }
+
+  const order = await prisma.order.findFirst({
+    where: { id, shop: { userId: req.userId } },
+    include: { shop: { select: { prepaidEnabled: true, prepaidDiscount: true, name: true } } },
+  });
+
+  if (!order) { res.status(404).json({ error: 'Sipariş bulunamadı' }); return; }
+  if (order.status !== 'PENDING') {
+    res.status(400).json({ error: 'Sadece bekleyen siparişler için ön ödeme linki üretilebilir' }); return;
+  }
+
+  const discount = order.shop.prepaidDiscount ?? 5;
+  const discountedTotal = order.total * (1 - discount / 100);
+  const prepaidUrl = `https://pay.chekkify.com/prepaid/${order.id}?discount=${discount}&amount=${discountedTotal.toFixed(2)}`;
+
+  res.json({
+    prepaidUrl,
+    originalTotal: order.total,
+    discountedTotal: Math.round(discountedTotal * 100) / 100,
+    discountPercent: discount,
+  });
 });
 
 export default router;
