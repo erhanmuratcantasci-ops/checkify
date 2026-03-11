@@ -11,11 +11,13 @@ import shopsRouter from './routes/shops';
 import smsTemplatesRouter from './routes/smsTemplates';
 import creditsRouter from './routes/credits';
 import adminRouter from './routes/admin';
+import adminAuthRouter from './routes/adminAuth';
 import statusRouter from './routes/status';
 import plansRouter from './routes/plans';
 import { loginRateLimiter, webhookRateLimiter, generalRateLimiter, otpRateLimiter } from './middleware/rateLimiter';
 import { realIp } from './middleware/cloudflare';
 import './workers/smsWorker';
+import { startAdminPasswordRotation } from './jobs/adminPasswordRotation';
 
 const app = express();
 const PORT = process.env['PORT'] || 3001;
@@ -54,6 +56,7 @@ app.use('/shops', shopsRouter);
 app.use('/shops/:id/template', smsTemplatesRouter);
 app.use('/credits', creditsRouter);
 app.use('/admin', adminRouter);
+app.use('/admin-auth', adminAuthRouter);
 app.use('/plans', plansRouter);
 
 app.use('/status', statusRouter);
@@ -64,4 +67,5 @@ app.get('/health', (_req, res) => {
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
+  startAdminPasswordRotation();
 });

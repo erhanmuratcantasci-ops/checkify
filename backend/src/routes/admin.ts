@@ -1,12 +1,11 @@
 import { Router, Response } from 'express';
 import prisma from '../lib/prisma';
-import { adminOnly } from '../middleware/admin';
-import { AuthRequest } from '../middleware/auth';
+import { adminJwt, AdminRequest } from '../middleware/adminAuth';
 
 const router = Router();
 
 // GET /admin/users — tüm kullanıcılar + shop sayısı
-router.get('/users', adminOnly, async (_req: AuthRequest, res: Response): Promise<void> => {
+router.get('/users', adminJwt, async (_req: AdminRequest, res: Response): Promise<void> => {
   const users = await prisma.user.findMany({
     orderBy: { createdAt: 'desc' },
     select: {
@@ -33,7 +32,7 @@ router.get('/users', adminOnly, async (_req: AuthRequest, res: Response): Promis
 });
 
 // PATCH /admin/users/:id — isAdmin toggle veya güncelleme
-router.patch('/users/:id', adminOnly, async (req: AuthRequest, res: Response): Promise<void> => {
+router.patch('/users/:id', adminJwt, async (req: AdminRequest, res: Response): Promise<void> => {
   const id = parseInt(req.params['id'] as string);
   if (isNaN(id)) { res.status(400).json({ error: 'Geçersiz id' }); return; }
 
@@ -54,7 +53,7 @@ router.patch('/users/:id', adminOnly, async (req: AuthRequest, res: Response): P
 });
 
 // POST /admin/users/:id/credits — kullanıcıya manuel kredi yükle
-router.post('/users/:id/credits', adminOnly, async (req: AuthRequest, res: Response): Promise<void> => {
+router.post('/users/:id/credits', adminJwt, async (req: AdminRequest, res: Response): Promise<void> => {
   const id = parseInt(req.params['id'] as string);
   if (isNaN(id)) { res.status(400).json({ error: 'Geçersiz id' }); return; }
 
@@ -89,7 +88,7 @@ router.post('/users/:id/credits', adminOnly, async (req: AuthRequest, res: Respo
 });
 
 // GET /admin/users/:id — kullanıcı detayı
-router.get('/users/:id', adminOnly, async (req: AuthRequest, res: Response): Promise<void> => {
+router.get('/users/:id', adminJwt, async (req: AdminRequest, res: Response): Promise<void> => {
   const id = parseInt(req.params['id'] as string);
   if (isNaN(id)) { res.status(400).json({ error: 'Geçersiz id' }); return; }
 
@@ -116,18 +115,19 @@ router.get('/users/:id', adminOnly, async (req: AuthRequest, res: Response): Pro
 });
 
 // DELETE /admin/users/:id — kullanıcı sil
-router.delete('/users/:id', adminOnly, async (req: AuthRequest, res: Response): Promise<void> => {
+router.delete('/users/:id', adminJwt, async (req: AdminRequest, res: Response): Promise<void> => {
   const id = parseInt(req.params['id'] as string);
   if (isNaN(id)) { res.status(400).json({ error: 'Geçersiz id' }); return; }
 
-  if (req.userId === id) { res.status(400).json({ error: 'Kendinizi silemezsiniz' }); return; }
+  // AdminRequest does not have userId; admin cannot delete itself via this route
+  if (!id) { res.status(400).json({ error: 'Geçersiz id' }); return; }
 
   await prisma.user.delete({ where: { id } });
   res.json({ message: 'Kullanıcı silindi' });
 });
 
 // GET /admin/shops — tüm mağazalar
-router.get('/shops', adminOnly, async (_req: AuthRequest, res: Response): Promise<void> => {
+router.get('/shops', adminJwt, async (_req: AdminRequest, res: Response): Promise<void> => {
   const shops = await prisma.shop.findMany({
     orderBy: { createdAt: 'desc' },
     select: {
@@ -143,7 +143,7 @@ router.get('/shops', adminOnly, async (_req: AuthRequest, res: Response): Promis
 });
 
 // GET /admin/shops/:id — mağaza detayı + son 5 sipariş
-router.get('/shops/:id', adminOnly, async (req: AuthRequest, res: Response): Promise<void> => {
+router.get('/shops/:id', adminJwt, async (req: AdminRequest, res: Response): Promise<void> => {
   const id = parseInt(req.params['id'] as string);
   if (isNaN(id)) { res.status(400).json({ error: 'Geçersiz id' }); return; }
 
@@ -165,7 +165,7 @@ router.get('/shops/:id', adminOnly, async (req: AuthRequest, res: Response): Pro
 });
 
 // GET /admin/orders/:id — sipariş detayı + SMS logları
-router.get('/orders/:id', adminOnly, async (req: AuthRequest, res: Response): Promise<void> => {
+router.get('/orders/:id', adminJwt, async (req: AdminRequest, res: Response): Promise<void> => {
   const id = parseInt(req.params['id'] as string);
   if (isNaN(id)) { res.status(400).json({ error: 'Geçersiz id' }); return; }
 
@@ -182,7 +182,7 @@ router.get('/orders/:id', adminOnly, async (req: AuthRequest, res: Response): Pr
 });
 
 // GET /admin/orders — tüm siparişler + kullanıcı + mağaza
-router.get('/orders', adminOnly, async (_req: AuthRequest, res: Response): Promise<void> => {
+router.get('/orders', adminJwt, async (_req: AdminRequest, res: Response): Promise<void> => {
   const orders = await prisma.order.findMany({
     orderBy: { createdAt: 'desc' },
     take: 200,
@@ -201,7 +201,7 @@ router.get('/orders', adminOnly, async (_req: AuthRequest, res: Response): Promi
 });
 
 // GET /admin/stats — platform geneli istatistikler
-router.get('/stats', adminOnly, async (_req: AuthRequest, res: Response): Promise<void> => {
+router.get('/stats', adminJwt, async (_req: AdminRequest, res: Response): Promise<void> => {
   const [totalUsers, totalOrders, totalSMS, totalCredits] = await Promise.all([
     prisma.user.count(),
     prisma.order.count(),
@@ -224,7 +224,7 @@ router.get('/stats', adminOnly, async (_req: AuthRequest, res: Response): Promis
 });
 
 // GET /admin/security-logs — son güvenlik logları
-router.get('/security-logs', adminOnly, async (_req: AuthRequest, res: Response): Promise<void> => {
+router.get('/security-logs', adminJwt, async (_req: AdminRequest, res: Response): Promise<void> => {
   const logs = await prisma.securityLog.findMany({
     orderBy: { createdAt: 'desc' },
     take: 100,

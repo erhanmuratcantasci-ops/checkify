@@ -184,3 +184,11 @@ model Subscription {
 
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
+
+model AdminCredential {
+  id           Int      @id @default(autoincrement())
+  email        String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}

@@ -5,13 +5,13 @@ import { useRouter } from 'next/navigation';
 import { useToast } from '@/components/Toast';
 import { useIsMobile } from '@/hooks/useIsMobile';
 
-const API = "https://checkify-production.up.railway.app";
+const API = process.env.NEXT_PUBLIC_API_URL ?? 'https://checkify-production.up.railway.app';
 
-function getToken() {
-  return document.cookie.split('; ').find(r => r.startsWith('token='))?.split('=')[1] ?? null;
+function getAdminToken() {
+  return document.cookie.split('; ').find(r => r.startsWith('adminToken='))?.split('=')[1] ?? null;
 }
 function authHeaders() {
-  return { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` };
+  return { 'Content-Type': 'application/json', Authorization: `Bearer ${getAdminToken()}` };
 }
 
 type Section = 'dashboard' | 'users' | 'shops' | 'orders' | 'security';
@@ -171,15 +171,14 @@ export default function AdminPage() {
   const [togglingAdmin, setTogglingAdmin] = useState<number | null>(null);
 
   useEffect(() => { void (async () => {
-    const token = getToken();
-    if (!token) { router.push('/login'); return; }
+    const token = getAdminToken();
+    if (!token) { router.push('/admin/login'); return; }
 
-    let meData: { user?: { isAdmin?: boolean } } = {};
+    // Verify admin token
     try {
-      const meRes = await fetch(`${API}/auth/me`, { headers: authHeaders() });
-      meData = await meRes.json();
-    } catch { return; }
-    if (meData.user && meData.user.isAdmin === false) { router.push('/dashboard'); return; }
+      const meRes = await fetch(`${API}/admin-auth/me`, { headers: authHeaders() });
+      if (!meRes.ok) { router.push('/admin/login'); return; }
+    } catch { router.push('/admin/login'); return; }
 
     Promise.all([
       fetch(`${API}/admin/users`, { headers: authHeaders() }),
@@ -322,7 +321,7 @@ export default function AdminPage() {
               <div style={{ width: 28, height: 28, borderRadius: 6, background: `linear-gradient(135deg, ${accent}, #b91c1c)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 900, color: '#fff' }}>C</div>
               <div style={{ display: 'inline-block', background: accentLight, border: `1px solid ${accentBorder}`, borderRadius: 4, padding: '1px 6px', fontSize: 9, fontWeight: 700, color: '#fca5a5', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Admin</div>
             </div>
-            <button onClick={() => { document.cookie = 'token=; path=/; max-age=0'; router.push('/login'); }} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 7, padding: '6px 12px', color: '#6b7280', fontSize: 12, cursor: 'pointer' }}>
+            <button onClick={() => { document.cookie = 'adminToken=; path=/; max-age=0'; router.push('/admin/login'); }} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 7, padding: '6px 12px', color: '#6b7280', fontSize: 12, cursor: 'pointer' }}>
               Çıkış
             </button>
           </div>
@@ -377,7 +376,7 @@ export default function AdminPage() {
               })}
             </nav>
             <div style={{ padding: '12px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-              <button onClick={() => { document.cookie = 'token=; path=/; max-age=0'; router.push('/login'); }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 8, background: 'transparent', border: '1px solid transparent', color: '#4b5563', fontSize: 13, cursor: 'pointer', textAlign: 'left' }}>
+              <button onClick={() => { document.cookie = 'adminToken=; path=/; max-age=0'; router.push('/admin/login'); }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 8, background: 'transparent', border: '1px solid transparent', color: '#4b5563', fontSize: 13, cursor: 'pointer', textAlign: 'left' }}>
                 <span>🚪</span> Çıkış
               </button>
             </div>
