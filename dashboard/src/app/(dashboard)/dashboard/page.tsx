@@ -6,10 +6,10 @@ import dynamic from 'next/dynamic';
 import Navbar from '@/components/Navbar';
 import GeometricBackground from '@/components/GeometricBackground';
 import { SkeletonCard } from '@/components/Skeleton';
+import { useIsMobile } from '@/hooks/useIsMobile';
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://127.0.0.1:3001';
 
-// SSR-safe recharts imports
 const ResponsiveContainer = dynamic(() => import('recharts').then(m => m.ResponsiveContainer), { ssr: false });
 const LineChart = dynamic(() => import('recharts').then(m => m.LineChart), { ssr: false });
 const Line = dynamic(() => import('recharts').then(m => m.Line), { ssr: false });
@@ -44,6 +44,7 @@ function formatDay(iso: string) {
 
 export default function DashboardPage() {
   const router = useRouter();
+  const isMobile = useIsMobile();
   const [user, setUser] = useState<User | null>(null);
   const [stats, setStats] = useState<Stats>({ total: 0, revenue: 0, pending: 0, confirmed: 0, cancelled: 0, todayOrders: 0 });
   const [daily, setDaily] = useState<DailyPoint[]>([]);
@@ -81,16 +82,17 @@ export default function DashboardPage() {
   ];
 
   const hasChartData = daily.some(d => d.count > 0);
+  const pad = isMobile ? '20px 16px' : '40px 24px';
 
   return (
     <div style={{ minHeight: '100vh', background: '#0a0a0f', fontFamily: "'DM Sans', sans-serif", position: 'relative' }}>
       <GeometricBackground />
       <Navbar />
-      <main style={{ maxWidth: 1100, margin: '0 auto', padding: '40px 24px' }}>
+      <main style={{ maxWidth: 1100, margin: '0 auto', padding: pad }}>
         {/* Header */}
-        <div style={{ marginBottom: 36 }}>
+        <div style={{ marginBottom: isMobile ? 20 : 36 }}>
           <h1 style={{
-            fontSize: 28, fontWeight: 700, color: '#fff', margin: '0 0 6px',
+            fontSize: isMobile ? 22 : 28, fontWeight: 700, color: '#fff', margin: '0 0 6px',
             fontFamily: "'Syne', sans-serif", letterSpacing: '-0.5px',
           }}>
             {loading ? 'Yükleniyor...' : `Hoş geldin, ${user?.name?.split(' ')[0]} 👋`}
@@ -100,13 +102,18 @@ export default function DashboardPage() {
           </p>
         </div>
 
-        {/* Stats Grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 28 }}>
+        {/* Stats Grid — 4 col desktop, 2x2 mobile */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)',
+          gap: isMobile ? 10 : 16,
+          marginBottom: isMobile ? 16 : 28,
+        }}>
           {loading ? Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />) : statCards.map((card, i) => (
             <div key={i} style={{
               background: 'rgba(255,255,255,0.03)',
               border: '1px solid rgba(255,255,255,0.07)',
-              borderRadius: 16, padding: '20px 22px',
+              borderRadius: 16, padding: isMobile ? '14px 16px' : '20px 22px',
               position: 'relative', overflow: 'hidden',
             }}>
               <div style={{
@@ -114,8 +121,8 @@ export default function DashboardPage() {
                 width: 80, height: 80, borderRadius: '50%',
                 background: `radial-gradient(circle, ${card.color}22 0%, transparent 70%)`,
               }} />
-              <div style={{ fontSize: 22, marginBottom: 10 }}>{card.icon}</div>
-              <div style={{ fontSize: 26, fontWeight: 700, color: '#fff', fontFamily: "'Syne', sans-serif", marginBottom: 4 }}>
+              <div style={{ fontSize: isMobile ? 18 : 22, marginBottom: isMobile ? 6 : 10 }}>{card.icon}</div>
+              <div style={{ fontSize: isMobile ? 20 : 26, fontWeight: 700, color: '#fff', fontFamily: "'Syne', sans-serif", marginBottom: 4 }}>
                 {card.value}
               </div>
               <div style={{ fontSize: 13, color: '#9ca3af', fontWeight: 500 }}>{card.label}</div>
@@ -124,34 +131,36 @@ export default function DashboardPage() {
           ))}
         </div>
 
-        {/* Chart */}
+        {/* Chart — full width */}
         <div style={{
           background: 'rgba(255,255,255,0.03)',
           border: '1px solid rgba(255,255,255,0.07)',
-          borderRadius: 16, padding: '24px 28px', marginBottom: 24,
+          borderRadius: 16,
+          padding: isMobile ? '16px' : '24px 28px',
+          marginBottom: isMobile ? 16 : 24,
         }}>
-          <h2 style={{ color: '#9ca3af', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.8px', margin: '0 0 20px' }}>
+          <h2 style={{ color: '#9ca3af', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.8px', margin: '0 0 16px' }}>
             Son 7 Gün — Sipariş Trendi
           </h2>
           {loading || daily.length === 0 ? (
-            <div style={{ height: 160, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ height: 140, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <div style={{ color: '#374151', fontSize: 13 }}>
                 {loading ? 'Yükleniyor...' : 'Henüz veri yok'}
               </div>
             </div>
           ) : (
-            <div style={{ height: 180 }}>
+            <div style={{ height: isMobile ? 150 : 180 }}>
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={daily} margin={{ top: 4, right: 4, bottom: 0, left: -24 }}>
+                <LineChart data={daily} margin={{ top: 4, right: 4, bottom: 0, left: isMobile ? -28 : -24 }}>
                   <XAxis
                     dataKey="date"
-                    tick={{ fill: '#4b5563', fontSize: 11 }}
+                    tick={{ fill: '#4b5563', fontSize: isMobile ? 10 : 11 }}
                     axisLine={false}
                     tickLine={false}
                   />
                   <YAxis
                     allowDecimals={false}
-                    tick={{ fill: '#4b5563', fontSize: 11 }}
+                    tick={{ fill: '#4b5563', fontSize: isMobile ? 10 : 11 }}
                     axisLine={false}
                     tickLine={false}
                   />
@@ -182,9 +191,9 @@ export default function DashboardPage() {
         <div style={{
           background: 'rgba(255,255,255,0.03)',
           border: '1px solid rgba(255,255,255,0.07)',
-          borderRadius: 16, padding: '24px 28px',
+          borderRadius: 16, padding: isMobile ? '16px' : '24px 28px',
         }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
             <h2 style={{ color: '#9ca3af', fontSize: 11, fontWeight: 600, letterSpacing: '1px', textTransform: 'uppercase', margin: 0 }}>
               Profil Bilgileri
             </h2>
@@ -193,18 +202,17 @@ export default function DashboardPage() {
               color: '#a855f7', fontSize: 13, fontWeight: 500, cursor: 'pointer',
             }}>Düzenle →</button>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 24 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 20 }}>
             <div style={{
-              width: 48, height: 48, borderRadius: 12,
+              width: 44, height: 44, borderRadius: 10, flexShrink: 0,
               background: 'linear-gradient(135deg, #7c3aed, #a855f7)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 18, fontWeight: 700, color: '#fff',
-              boxShadow: '0 0 16px rgba(139,92,246,0.3)',
+              fontSize: 16, fontWeight: 700, color: '#fff',
             }}>
               {user?.name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || '?'}
             </div>
             <div>
-              <div style={{ color: '#fff', fontWeight: 600, fontSize: 16 }}>{user?.name || '—'}</div>
+              <div style={{ color: '#fff', fontWeight: 600, fontSize: 15 }}>{user?.name || '—'}</div>
               <div style={{ color: '#6b7280', fontSize: 13 }}>{user?.email || '—'}</div>
             </div>
           </div>
@@ -214,7 +222,7 @@ export default function DashboardPage() {
               ['Kayıt tarihi', user?.createdAt ? new Date(user.createdAt).toLocaleDateString('tr-TR') : '—'],
             ].map(([label, value]) => (
               <div key={label} style={{
-                padding: '14px 0',
+                padding: '12px 0',
                 borderTop: '1px solid rgba(255,255,255,0.05)',
                 display: 'flex', justifyContent: 'space-between', alignItems: 'center',
               }}>

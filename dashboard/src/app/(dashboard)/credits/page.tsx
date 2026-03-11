@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import GeometricBackground from '@/components/GeometricBackground';
+import { useIsMobile } from '@/hooks/useIsMobile';
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://127.0.0.1:3001';
 
@@ -24,6 +25,7 @@ interface Transaction {
 
 export default function CreditsPage() {
   const router = useRouter();
+  const isMobile = useIsMobile();
   const [credits, setCredits] = useState<number | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
@@ -42,20 +44,22 @@ export default function CreditsPage() {
       .finally(() => setLoading(false));
   }, [router]);
 
+  const pad = isMobile ? '16px' : '40px 24px';
+
   return (
     <div style={{ minHeight: '100vh', background: '#0a0a0f', fontFamily: "'Outfit', sans-serif", position: 'relative' }}>
       <GeometricBackground />
       <Navbar />
 
-      <main style={{ maxWidth: 760, margin: '0 auto', padding: '40px 24px' }}>
-        <div style={{ marginBottom: 32 }}>
+      <main style={{ maxWidth: 760, margin: '0 auto', padding: pad }}>
+        <div style={{ marginBottom: isMobile ? 20 : 32 }}>
           <button
             onClick={() => router.push('/dashboard')}
             style={{ background: 'none', border: 'none', color: '#6b7280', fontSize: 13, cursor: 'pointer', padding: 0, marginBottom: 10 }}
           >
             ← Dashboard
           </button>
-          <h1 style={{ fontSize: 26, fontWeight: 700, color: '#fff', margin: 0, letterSpacing: '-0.5px' }}>SMS Kredileri</h1>
+          <h1 style={{ fontSize: isMobile ? 22 : 26, fontWeight: 700, color: '#fff', margin: 0, letterSpacing: '-0.5px' }}>SMS Kredileri</h1>
           <p style={{ color: '#6b7280', fontSize: 14, margin: '4px 0 0' }}>Kredi bakiyenizi ve işlem geçmişinizi görüntüleyin</p>
         </div>
 
@@ -63,11 +67,13 @@ export default function CreditsPage() {
         <div style={{
           background: 'rgba(139,92,246,0.06)',
           border: '1px solid rgba(139,92,246,0.25)',
-          borderRadius: 20, padding: '36px 32px',
-          marginBottom: 24, position: 'relative', overflow: 'hidden',
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 24,
+          borderRadius: 20, padding: isMobile ? '24px 20px' : '36px 32px',
+          marginBottom: 20, position: 'relative', overflow: 'hidden',
+          display: 'flex',
+          flexDirection: isMobile ? 'column' : 'row',
+          alignItems: isMobile ? 'flex-start' : 'center',
+          justifyContent: 'space-between', gap: isMobile ? 20 : 24,
         }}>
-          {/* Glow */}
           <div style={{
             position: 'absolute', top: -60, right: -60,
             width: 200, height: 200, borderRadius: '50%',
@@ -80,10 +86,10 @@ export default function CreditsPage() {
               Mevcut Kredi
             </div>
             {loading ? (
-              <div style={{ width: 80, height: 52, background: 'rgba(255,255,255,0.06)', borderRadius: 8 }} />
+              <div style={{ width: 80, height: 48, background: 'rgba(255,255,255,0.06)', borderRadius: 8 }} />
             ) : (
               <div style={{
-                fontSize: 56, fontWeight: 900, lineHeight: 1,
+                fontSize: isMobile ? 42 : 56, fontWeight: 900, lineHeight: 1,
                 background: 'linear-gradient(135deg, #7c3aed, #a855f7, #c084fc)',
                 WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
                 letterSpacing: '-2px',
@@ -94,17 +100,18 @@ export default function CreditsPage() {
             <div style={{ color: '#6b7280', fontSize: 13, marginTop: 6 }}>SMS hakkı kaldı</div>
           </div>
 
-          {/* Buy button */}
-          <div style={{ position: 'relative', flexShrink: 0 }}>
+          <div style={{ position: 'relative', flexShrink: 0, width: isMobile ? '100%' : 'auto' }}>
             <button
-              onMouseEnter={() => setShowTooltip(true)}
+              onMouseEnter={() => !isMobile && setShowTooltip(true)}
               onMouseLeave={() => setShowTooltip(false)}
+              onClick={() => isMobile && setShowTooltip(v => !v)}
               style={{
                 padding: '13px 28px',
                 background: 'rgba(139,92,246,0.15)',
                 border: '1px solid rgba(139,92,246,0.35)',
                 borderRadius: 12, color: '#a78bfa',
                 fontSize: 14, fontWeight: 600, cursor: 'not-allowed',
+                width: isMobile ? '100%' : 'auto', minHeight: 44,
               }}
             >
               Kredi Satın Al
@@ -115,7 +122,7 @@ export default function CreditsPage() {
                 background: 'rgba(15,15,28,0.98)', border: '1px solid rgba(139,92,246,0.3)',
                 borderRadius: 8, padding: '8px 14px',
                 color: '#c4b5fd', fontSize: 12, fontWeight: 500, whiteSpace: 'nowrap',
-                boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
+                boxShadow: '0 8px 24px rgba(0,0,0,0.4)', zIndex: 10,
               }}>
                 🚀 Yakında kullanıma açılacak
                 <div style={{
@@ -129,9 +136,11 @@ export default function CreditsPage() {
           </div>
         </div>
 
-        {/* Packages teaser */}
+        {/* Packages — 3 col desktop, 1 col mobile */}
         <div style={{
-          display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 28,
+          display: 'grid',
+          gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)',
+          gap: 12, marginBottom: 24,
         }}>
           {[
             { label: '100 SMS', price: '₺49', badge: null },
@@ -140,10 +149,13 @@ export default function CreditsPage() {
           ].map(pkg => (
             <div key={pkg.label} style={{
               background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)',
-              borderRadius: 14, padding: '20px 18px', textAlign: 'center', position: 'relative',
-              opacity: 0.6,
+              borderRadius: 14, padding: isMobile ? '16px 20px' : '20px 18px',
+              textAlign: isMobile ? 'left' : 'center',
+              position: 'relative', opacity: 0.6,
+              display: isMobile ? 'flex' : 'block',
+              alignItems: 'center', justifyContent: 'space-between',
             }}>
-              {pkg.badge && (
+              {pkg.badge && !isMobile && (
                 <div style={{
                   position: 'absolute', top: -10, left: '50%', transform: 'translateX(-50%)',
                   background: 'linear-gradient(135deg, #7c3aed, #a855f7)',
@@ -153,46 +165,49 @@ export default function CreditsPage() {
                   {pkg.badge}
                 </div>
               )}
-              <div style={{ color: '#e5e7eb', fontSize: 16, fontWeight: 700, marginBottom: 4 }}>{pkg.label}</div>
-              <div style={{ color: '#a78bfa', fontSize: 20, fontWeight: 800 }}>{pkg.price}</div>
-              <div style={{ color: '#4b5563', fontSize: 11, marginTop: 6 }}>Yakında</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 12 : 0, flexDirection: isMobile ? 'row' : 'column' }}>
+                {pkg.badge && isMobile && (
+                  <span style={{
+                    background: 'linear-gradient(135deg, #7c3aed, #a855f7)',
+                    borderRadius: 6, padding: '2px 8px', fontSize: 10, fontWeight: 700, color: '#fff',
+                  }}>{pkg.badge}</span>
+                )}
+                <div style={{ color: '#e5e7eb', fontSize: 16, fontWeight: 700, marginBottom: isMobile ? 0 : 4 }}>{pkg.label}</div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ color: '#a78bfa', fontSize: 20, fontWeight: 800 }}>{pkg.price}</div>
+                {isMobile && <div style={{ color: '#4b5563', fontSize: 11 }}>Yakında</div>}
+              </div>
+              {!isMobile && <div style={{ color: '#4b5563', fontSize: 11, marginTop: 6 }}>Yakında</div>}
             </div>
           ))}
         </div>
 
         {/* Transaction history */}
-        <div style={{
-          background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)',
-          borderRadius: 16, overflow: 'hidden',
-        }}>
-          <div style={{ padding: '18px 24px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+        <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 16, overflow: 'hidden' }}>
+          <div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
             <h2 style={{ color: '#9ca3af', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.8px', margin: 0 }}>
               Son İşlemler
             </h2>
           </div>
 
           {loading ? (
-            <div style={{ padding: 40, textAlign: 'center' }}>
+            <div style={{ padding: 32, textAlign: 'center' }}>
               {[1, 2, 3].map(i => (
-                <div key={i} style={{
-                  height: 20, background: 'rgba(255,255,255,0.05)', borderRadius: 6,
-                  marginBottom: 14, width: `${70 + i * 8}%`,
-                }} />
+                <div key={i} style={{ height: 20, background: 'rgba(255,255,255,0.05)', borderRadius: 6, marginBottom: 14, width: `${70 + i * 8}%` }} />
               ))}
             </div>
           ) : transactions.length === 0 ? (
-            <div style={{ padding: 48, textAlign: 'center', color: '#4b5563', fontSize: 14 }}>
-              Henüz işlem yok
-            </div>
+            <div style={{ padding: 40, textAlign: 'center', color: '#4b5563', fontSize: 14 }}>Henüz işlem yok</div>
           ) : (
             <div>
               {transactions.map((tx, i) => (
                 <div key={tx.id} style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                  padding: '14px 24px',
+                  padding: isMobile ? '12px 16px' : '14px 24px',
                   borderBottom: i < transactions.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none',
                 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1, minWidth: 0 }}>
                     <div style={{
                       width: 34, height: 34, borderRadius: 10, flexShrink: 0,
                       display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16,
@@ -200,15 +215,15 @@ export default function CreditsPage() {
                     }}>
                       {tx.type === 'PURCHASE' ? '💳' : '📱'}
                     </div>
-                    <div>
-                      <div style={{ color: '#e5e7eb', fontSize: 13, fontWeight: 500 }}>{tx.description}</div>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ color: '#e5e7eb', fontSize: 13, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{tx.description}</div>
                       <div style={{ color: '#4b5563', fontSize: 11, marginTop: 2 }}>
                         {new Date(tx.createdAt).toLocaleString('tr-TR', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                       </div>
                     </div>
                   </div>
                   <div style={{
-                    fontSize: 15, fontWeight: 700,
+                    fontSize: 15, fontWeight: 700, flexShrink: 0, marginLeft: 12,
                     color: tx.type === 'PURCHASE' ? '#34d399' : '#a78bfa',
                   }}>
                     {tx.type === 'PURCHASE' ? '+' : ''}{tx.amount}

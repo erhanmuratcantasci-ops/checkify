@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/components/Toast';
+import { useIsMobile } from '@/hooks/useIsMobile';
 
 const API = "https://checkify-production.up.railway.app";
 
@@ -58,7 +59,7 @@ const SMS_STATUS_COLORS: Record<string, string> = {
 };
 
 const SECTION_LABELS: Record<Section, string> = {
-  dashboard: 'Dashboard', users: 'Kullanıcılar', shops: 'Mağazalar', orders: 'Tüm Siparişler',
+  dashboard: 'Dashboard', users: 'Kullanıcılar', shops: 'Mağazalar', orders: 'Siparişler',
 };
 const NAV_ITEMS: { key: Section; icon: string }[] = [
   { key: 'dashboard', icon: '◈' }, { key: 'users', icon: '👤' },
@@ -68,7 +69,7 @@ const NAV_ITEMS: { key: Section; icon: string }[] = [
 const modalOverlay: React.CSSProperties = {
   position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.78)',
   backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center',
-  justifyContent: 'center', zIndex: 100, padding: 24,
+  justifyContent: 'center', zIndex: 100, padding: 16,
 };
 const modalBox = (border = 'rgba(255,255,255,0.1)'): React.CSSProperties => ({
   background: 'rgba(13,13,22,0.99)', border: `1px solid ${border}`,
@@ -79,20 +80,20 @@ const modalBox = (border = 'rgba(255,255,255,0.1)'): React.CSSProperties => ({
 
 function ModalHeader({ title, onClose }: { title: string; onClose: () => void }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '24px 28px 0' }}>
-      <h2 style={{ color: '#fff', fontSize: 17, fontWeight: 700, margin: 0 }}>{title}</h2>
-      <button onClick={onClose} style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 6, color: '#9ca3af', fontSize: 16, width: 30, height: 30, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}>×</button>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 20px 0' }}>
+      <h2 style={{ color: '#fff', fontSize: 16, fontWeight: 700, margin: 0 }}>{title}</h2>
+      <button onClick={onClose} style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 6, color: '#9ca3af', fontSize: 16, width: 32, height: 32, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
     </div>
   );
 }
 
 function InfoGrid({ items }: { items: { label: string; value: React.ReactNode; color?: string }[] }) {
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
       {items.map(({ label, value, color }) => (
-        <div key={label} style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 10, padding: '12px 14px' }}>
-          <div style={{ color: '#4b5563', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 5 }}>{label}</div>
-          <div style={{ color: color || '#e5e7eb', fontSize: 15, fontWeight: 700 }}>{value}</div>
+        <div key={label} style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 10, padding: '10px 12px' }}>
+          <div style={{ color: '#4b5563', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>{label}</div>
+          <div style={{ color: color || '#e5e7eb', fontSize: 14, fontWeight: 700 }}>{value}</div>
         </div>
       ))}
     </div>
@@ -110,10 +111,10 @@ function StatusBadge({ status }: { status: string }) {
 
 function StatCard({ label, value, icon, color }: { label: string; value: string | number; icon: string; color: string }) {
   return (
-    <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14, padding: '20px 22px', position: 'relative', overflow: 'hidden' }}>
+    <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14, padding: '16px 18px', position: 'relative', overflow: 'hidden' }}>
       <div style={{ position: 'absolute', top: -16, right: -16, width: 70, height: 70, borderRadius: '50%', background: `radial-gradient(circle, ${color}30 0%, transparent 70%)` }} />
-      <div style={{ fontSize: 20, marginBottom: 8 }}>{icon}</div>
-      <div style={{ fontSize: 28, fontWeight: 800, color: '#fff', marginBottom: 2 }}>{value}</div>
+      <div style={{ fontSize: 18, marginBottom: 6 }}>{icon}</div>
+      <div style={{ fontSize: 24, fontWeight: 800, color: '#fff', marginBottom: 2 }}>{value}</div>
       <div style={{ color: '#6b7280', fontSize: 12, fontWeight: 500 }}>{label}</div>
     </div>
   );
@@ -122,6 +123,7 @@ function StatCard({ label, value, icon, color }: { label: string; value: string 
 export default function AdminPage() {
   const router = useRouter();
   const { showToast } = useToast();
+  const isMobile = useIsMobile();
   const [section, setSection] = useState<Section>('dashboard');
 
   const [users, setUsers] = useState<AdminUser[]>([]);
@@ -271,10 +273,16 @@ export default function AdminPage() {
     o.shop.name.toLowerCase().includes(orderSearch.toLowerCase())
   );
 
-  const sidebarW = 240;
   const accent = '#991b1b';
   const accentLight = 'rgba(153,27,27,0.18)';
   const accentBorder = 'rgba(153,27,27,0.4)';
+  const sidebarW = 240;
+
+  const inputStyle: React.CSSProperties = {
+    width: '100%', padding: '10px 14px', borderRadius: 8, fontSize: 13,
+    background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
+    color: '#e5e7eb', outline: 'none', boxSizing: 'border-box', minHeight: 44,
+  };
 
   if (loading) return (
     <div style={{ minHeight: '100vh', background: '#0a0a0f', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -284,74 +292,342 @@ export default function AdminPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: '#0a0a0f', fontFamily: "'Outfit', sans-serif" }}>
-      <style>{`nav, header > nav { display: none !important; } ::-webkit-scrollbar{width:4px} ::-webkit-scrollbar-track{background:transparent} ::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.1);border-radius:4px}`}</style>
+      <style>{`::-webkit-scrollbar{width:4px} ::-webkit-scrollbar-track{background:transparent} ::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.1);border-radius:4px}`}</style>
 
-      {/* ── Sidebar ── */}
-      <div style={{ position: 'fixed', top: 0, left: 0, width: sidebarW, height: '100vh', background: '#0d0d14', borderRight: '1px solid rgba(255,255,255,0.06)', display: 'flex', flexDirection: 'column', zIndex: 50 }}>
-        <div style={{ padding: '24px 20px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ width: 34, height: 34, borderRadius: 8, background: `linear-gradient(135deg, ${accent}, #b91c1c)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 900, color: '#fff' }}>C</div>
-            <div>
-              <div style={{ color: '#fff', fontWeight: 800, fontSize: 15, letterSpacing: '-0.3px' }}>Chekkify</div>
+      {isMobile ? (
+        /* ── Mobile layout ── */
+        <div>
+          {/* Top bar */}
+          <div style={{ position: 'sticky', top: 0, zIndex: 50, background: 'rgba(13,13,20,0.95)', backdropFilter: 'blur(10px)', borderBottom: '1px solid rgba(255,255,255,0.06)', padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{ width: 28, height: 28, borderRadius: 6, background: `linear-gradient(135deg, ${accent}, #b91c1c)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 900, color: '#fff' }}>C</div>
               <div style={{ display: 'inline-block', background: accentLight, border: `1px solid ${accentBorder}`, borderRadius: 4, padding: '1px 6px', fontSize: 9, fontWeight: 700, color: '#fca5a5', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Admin</div>
+            </div>
+            <button onClick={() => { document.cookie = 'token=; path=/; max-age=0'; router.push('/login'); }} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 7, padding: '6px 12px', color: '#6b7280', fontSize: 12, cursor: 'pointer' }}>
+              Çıkış
+            </button>
+          </div>
+
+          {/* Tab menu */}
+          <div style={{ display: 'flex', borderBottom: '1px solid rgba(255,255,255,0.06)', overflowX: 'auto', background: '#0d0d14' }}>
+            {NAV_ITEMS.map(({ key, icon }) => {
+              const active = section === key;
+              return (
+                <button key={key} onClick={() => setSection(key)} style={{
+                  flex: '1 0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
+                  padding: '10px 8px', fontSize: 10, fontWeight: active ? 700 : 400,
+                  color: active ? '#fca5a5' : '#6b7280',
+                  background: 'transparent', border: 'none',
+                  borderBottom: active ? `2px solid ${accent}` : '2px solid transparent',
+                  cursor: 'pointer', whiteSpace: 'nowrap', minWidth: 64, minHeight: 56,
+                }}>
+                  <span style={{ fontSize: 18 }}>{icon}</span>
+                  <span>{SECTION_LABELS[key]}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Content */}
+          <div style={{ padding: '16px' }}>
+            {renderContent()}
+          </div>
+        </div>
+      ) : (
+        /* ── Desktop layout ── */
+        <div>
+          {/* Sidebar */}
+          <div style={{ position: 'fixed', top: 0, left: 0, width: sidebarW, height: '100vh', background: '#0d0d14', borderRight: '1px solid rgba(255,255,255,0.06)', display: 'flex', flexDirection: 'column', zIndex: 50 }}>
+            <div style={{ padding: '24px 20px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ width: 34, height: 34, borderRadius: 8, background: `linear-gradient(135deg, ${accent}, #b91c1c)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 900, color: '#fff' }}>C</div>
+                <div>
+                  <div style={{ color: '#fff', fontWeight: 800, fontSize: 15, letterSpacing: '-0.3px' }}>Chekkify</div>
+                  <div style={{ display: 'inline-block', background: accentLight, border: `1px solid ${accentBorder}`, borderRadius: 4, padding: '1px 6px', fontSize: 9, fontWeight: 700, color: '#fca5a5', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Admin</div>
+                </div>
+              </div>
+            </div>
+            <nav style={{ flex: 1, padding: '12px' }}>
+              {NAV_ITEMS.map(({ key, icon }) => {
+                const active = section === key;
+                return (
+                  <button key={key} onClick={() => setSection(key)} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 8, marginBottom: 2, background: active ? accentLight : 'transparent', border: active ? `1px solid ${accentBorder}` : '1px solid transparent', color: active ? '#fca5a5' : '#6b7280', fontSize: 13, fontWeight: active ? 600 : 400, cursor: 'pointer', textAlign: 'left' }}>
+                    <span style={{ fontSize: 15 }}>{icon}</span>{SECTION_LABELS[key]}
+                  </button>
+                );
+              })}
+            </nav>
+            <div style={{ padding: '12px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+              <button onClick={() => { document.cookie = 'token=; path=/; max-age=0'; router.push('/login'); }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 8, background: 'transparent', border: '1px solid transparent', color: '#4b5563', fontSize: 13, cursor: 'pointer', textAlign: 'left' }}>
+                <span>🚪</span> Çıkış
+              </button>
+            </div>
+          </div>
+
+          {/* Main */}
+          <div style={{ marginLeft: sidebarW, minHeight: '100vh' }}>
+            <div style={{ padding: '20px 32px', borderBottom: '1px solid rgba(255,255,255,0.05)', background: 'rgba(13,13,20,0.8)', backdropFilter: 'blur(10px)', position: 'sticky', top: 0, zIndex: 40, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <h1 style={{ color: '#fff', fontSize: 18, fontWeight: 700, margin: 0, letterSpacing: '-0.3px' }}>{SECTION_LABELS[section]}</h1>
+              <div style={{ color: '#4b5563', fontSize: 12 }}>{users.length} kullanıcı · {orders.length} sipariş</div>
+            </div>
+            <div style={{ padding: '32px' }}>
+              {renderContent()}
             </div>
           </div>
         </div>
-        <nav style={{ flex: 1, padding: '12px' }}>
-          {NAV_ITEMS.map(({ key, icon }) => {
-            const active = section === key;
-            return (
-              <button key={key} onClick={() => setSection(key)} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 8, marginBottom: 2, background: active ? accentLight : 'transparent', border: active ? `1px solid ${accentBorder}` : '1px solid transparent', color: active ? '#fca5a5' : '#6b7280', fontSize: 13, fontWeight: active ? 600 : 400, cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s' }}>
-                <span style={{ fontSize: 15 }}>{icon}</span>{SECTION_LABELS[key]}
-              </button>
-            );
-          })}
-        </nav>
-        <div style={{ padding: '12px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-          <button onClick={() => { document.cookie = 'token=; path=/; max-age=0'; router.push('/login'); }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 8, background: 'transparent', border: '1px solid transparent', color: '#4b5563', fontSize: 13, cursor: 'pointer', textAlign: 'left' }}>
-            <span>🚪</span> Çıkış
-          </button>
-        </div>
-      </div>
+      )}
 
-      {/* ── Main ── */}
-      <div style={{ marginLeft: sidebarW, minHeight: '100vh' }}>
-        <div style={{ padding: '20px 32px', borderBottom: '1px solid rgba(255,255,255,0.05)', background: 'rgba(13,13,20,0.8)', backdropFilter: 'blur(10px)', position: 'sticky', top: 0, zIndex: 40, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <h1 style={{ color: '#fff', fontSize: 18, fontWeight: 700, margin: 0, letterSpacing: '-0.3px' }}>{SECTION_LABELS[section]}</h1>
-          <div style={{ color: '#4b5563', fontSize: 12 }}>{users.length} kullanıcı · {orders.length} sipariş</div>
-        </div>
+      {/* ── Modals ── */}
 
-        <div style={{ padding: '32px' }}>
-
-          {/* ── DASHBOARD ── */}
-          {section === 'dashboard' && stats && (
-            <div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 28 }}>
-                <StatCard label="Toplam Kullanıcı" value={stats.totalUsers} icon="👤" color="#7c3aed" />
-                <StatCard label="Toplam Sipariş" value={stats.totalOrders} icon="📦" color="#0891b2" />
-                <StatCard label="SMS Gönderildi" value={stats.totalSMSSent} icon="📱" color="#059669" />
-                <StatCard label="Sistemdeki Kredi" value={stats.totalCreditsInSystem} icon="💳" color="#d97706" />
-              </div>
-              {Object.keys(stats.ordersByStatus).length > 0 && (
-                <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14, padding: '20px 24px', display: 'flex', gap: 32, flexWrap: 'wrap' }}>
-                  {Object.entries(stats.ordersByStatus).map(([status, count]) => (
-                    <div key={status} style={{ textAlign: 'center' }}>
-                      <div style={{ color: STATUS_COLORS[status] || '#e5e7eb', fontSize: 22, fontWeight: 800 }}>{count}</div>
-                      <div style={{ color: '#4b5563', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.5px', marginTop: 2 }}>{STATUS_LABELS[status] || status}</div>
-                    </div>
-                  ))}
+      {creditTarget && (
+        <div onClick={() => setCreditTarget(null)} style={modalOverlay}>
+          <div onClick={e => e.stopPropagation()} style={modalBox('rgba(5,150,105,0.25)')}>
+            <ModalHeader title="Kredi Yükle" onClose={() => setCreditTarget(null)} />
+            <div style={{ padding: '14px 20px 20px' }}>
+              <p style={{ color: '#6b7280', fontSize: 13, margin: '0 0 16px' }}>
+                {creditTarget.name || creditTarget.email} — mevcut: <strong style={{ color: '#e5e7eb' }}>{creditTarget.smsCredits}</strong>
+              </p>
+              <form onSubmit={handleAddCredits} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <div>
+                  <label style={{ display: 'block', color: '#9ca3af', fontSize: 13, marginBottom: 6 }}>Miktar <span style={{ color: '#4b5563' }}>(negatif = düş)</span></label>
+                  <input type="number" required value={creditAmount} onChange={e => setCreditAmount(e.target.value)} placeholder="100" style={inputStyle} />
                 </div>
+                <div>
+                  <label style={{ display: 'block', color: '#9ca3af', fontSize: 13, marginBottom: 6 }}>Açıklama (opsiyonel)</label>
+                  <input type="text" value={creditDesc} onChange={e => setCreditDesc(e.target.value)} placeholder="Kampanya kredisi" style={inputStyle} />
+                </div>
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <button type="submit" disabled={creditSaving} style={{ flex: 1, padding: '12px', background: creditSaving ? 'rgba(5,150,105,0.3)' : 'linear-gradient(135deg, #059669, #10b981)', border: 'none', borderRadius: 10, color: '#fff', fontSize: 14, fontWeight: 600, cursor: creditSaving ? 'not-allowed' : 'pointer', minHeight: 44 }}>{creditSaving ? 'Yükleniyor...' : 'Yükle'}</button>
+                  <button type="button" onClick={() => setCreditTarget(null)} style={{ flex: 1, padding: '12px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, color: '#9ca3af', fontSize: 14, cursor: 'pointer', minHeight: 44 }}>İptal</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {deleteTarget && (
+        <div onClick={() => !deleting && setDeleteTarget(null)} style={modalOverlay}>
+          <div onClick={e => e.stopPropagation()} style={modalBox('rgba(239,68,68,0.25)')}>
+            <ModalHeader title="Kullanıcıyı Sil" onClose={() => !deleting && setDeleteTarget(null)} />
+            <div style={{ padding: '14px 20px 20px', textAlign: 'center' }}>
+              <div style={{ fontSize: 36, marginBottom: 10 }}>🗑️</div>
+              <p style={{ color: '#6b7280', fontSize: 13, margin: '0 0 20px', lineHeight: 1.6 }}>
+                <strong style={{ color: '#e5e7eb' }}>{deleteTarget.name || deleteTarget.email}</strong> hesabını silmek istediğinden emin misin?
+              </p>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button onClick={handleDeleteUser} disabled={deleting} style={{ flex: 1, padding: '12px', background: deleting ? 'rgba(239,68,68,0.3)' : 'linear-gradient(135deg, #dc2626, #ef4444)', border: 'none', borderRadius: 10, color: '#fff', fontSize: 14, fontWeight: 600, cursor: deleting ? 'not-allowed' : 'pointer', minHeight: 44 }}>{deleting ? 'Siliniyor...' : 'Sil'}</button>
+                <button type="button" onClick={() => setDeleteTarget(null)} disabled={deleting} style={{ flex: 1, padding: '12px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, color: '#9ca3af', fontSize: 14, cursor: 'pointer', minHeight: 44 }}>İptal</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {(detailUserLoading || detailUser) && (
+        <div onClick={() => { setDetailUser(null); setDetailUserLoading(false); }} style={modalOverlay}>
+          <div onClick={e => e.stopPropagation()} style={modalBox('rgba(139,92,246,0.25)')}>
+            <ModalHeader title="Kullanıcı Detayı" onClose={() => { setDetailUser(null); setDetailUserLoading(false); }} />
+            <div style={{ padding: '16px 20px 20px' }}>
+              {detailUserLoading ? (
+                <div style={{ textAlign: 'center', color: '#6b7280', padding: '32px 0' }}>Yükleniyor...</div>
+              ) : detailUser && (
+                <>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+                    <div style={{ width: 40, height: 40, borderRadius: 10, background: 'linear-gradient(135deg, #7c3aed, #a855f7)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, color: '#fff', flexShrink: 0 }}>
+                      {(detailUser.name || detailUser.email).slice(0, 2).toUpperCase()}
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ color: '#fff', fontSize: 15, fontWeight: 700 }}>{detailUser.name || '—'}</div>
+                      <div style={{ color: '#6b7280', fontSize: 12 }}>{detailUser.email}</div>
+                    </div>
+                    {detailUser.isAdmin && <span style={{ padding: '3px 10px', borderRadius: 6, fontSize: 11, fontWeight: 700, background: accentLight, border: `1px solid ${accentBorder}`, color: '#fca5a5' }}>🛡️ Admin</span>}
+                  </div>
+                  <InfoGrid items={[
+                    { label: 'SMS Kredisi', value: detailUser.smsCredits, color: detailUser.smsCredits === 0 ? '#f87171' : detailUser.smsCredits < 10 ? '#fbbf24' : '#34d399' },
+                    { label: 'Mağaza', value: detailUser.shopCount },
+                    { label: 'Sipariş', value: detailUser.orderCount },
+                    { label: 'Kayıt', value: new Date(detailUser.createdAt).toLocaleDateString('tr-TR'), color: '#9ca3af' },
+                  ]} />
+                  <div style={{ marginTop: 10, padding: '10px 12px', background: 'rgba(255,255,255,0.02)', borderRadius: 10, border: '1px solid rgba(255,255,255,0.06)' }}>
+                    <div style={{ color: '#4b5563', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>Son Giriş</div>
+                    <div style={{ color: '#9ca3af', fontSize: 13 }}>{detailUser.lastLoginAt ? new Date(detailUser.lastLoginAt).toLocaleString('tr-TR') : 'Henüz giriş yapılmadı'}</div>
+                  </div>
+                </>
               )}
             </div>
-          )}
+          </div>
+        </div>
+      )}
 
-          {/* ── USERS ── */}
-          {section === 'users' && (
-            <div>
-              <div style={{ marginBottom: 16 }}>
-                <input type="text" placeholder="Email veya isme göre ara..." value={userSearch} onChange={e => setUserSearch(e.target.value)}
-                  style={{ padding: '10px 14px', borderRadius: 8, fontSize: 13, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: '#e5e7eb', outline: 'none', width: 300 }} />
+      {(detailOrderLoading || detailOrder) && (
+        <div onClick={() => { setDetailOrder(null); setDetailOrderLoading(false); }} style={modalOverlay}>
+          <div onClick={e => e.stopPropagation()} style={{ ...modalBox('rgba(96,165,250,0.25)'), maxWidth: 540 }}>
+            <ModalHeader title={`Sipariş #${detailOrder?.id || ''}`} onClose={() => { setDetailOrder(null); setDetailOrderLoading(false); }} />
+            <div style={{ padding: '16px 20px 20px' }}>
+              {detailOrderLoading ? (
+                <div style={{ textAlign: 'center', color: '#6b7280', padding: '32px 0' }}>Yükleniyor...</div>
+              ) : detailOrder && (
+                <>
+                  <InfoGrid items={[
+                    { label: 'Müşteri', value: detailOrder.customerName },
+                    { label: 'Telefon', value: detailOrder.customerPhone, color: '#9ca3af' },
+                    { label: 'Tutar', value: `${detailOrder.total.toFixed(2)} ₺`, color: '#34d399' },
+                    { label: 'Durum', value: <StatusBadge status={detailOrder.status} /> },
+                    { label: 'Mağaza', value: detailOrder.shop.name },
+                    { label: 'Sahip', value: detailOrder.shop.user.email, color: '#6b7280' },
+                    { label: 'Tarih', value: new Date(detailOrder.createdAt).toLocaleString('tr-TR'), color: '#9ca3af' },
+                    { label: 'Shopify ID', value: detailOrder.shopifyOrderId ? `#${detailOrder.shopifyOrderId}` : '—', color: '#6b7280' },
+                  ]} />
+                  {detailOrder.smsLogs.length > 0 && (
+                    <div style={{ marginTop: 14 }}>
+                      <div style={{ color: '#4b5563', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 8 }}>SMS Logları ({detailOrder.smsLogs.length})</div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        {detailOrder.smsLogs.map(log => (
+                          <div key={log.id} style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 8, padding: '10px 12px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                              <span style={{ color: SMS_STATUS_COLORS[log.status] || '#9ca3af', fontSize: 11, fontWeight: 700 }}>{log.status}</span>
+                              <span style={{ color: '#4b5563', fontSize: 10 }}>{new Date(log.createdAt).toLocaleString('tr-TR')}</span>
+                            </div>
+                            <div style={{ color: '#6b7280', fontSize: 11, lineHeight: 1.5 }}>{log.message}</div>
+                            {log.errorMessage && <div style={{ color: '#f87171', fontSize: 11, marginTop: 4 }}>Hata: {log.errorMessage}</div>}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {detailOrder.smsLogs.length === 0 && (
+                    <div style={{ marginTop: 14, padding: '10px 12px', background: 'rgba(255,255,255,0.02)', borderRadius: 10, border: '1px solid rgba(255,255,255,0.06)', color: '#4b5563', fontSize: 13, textAlign: 'center' }}>
+                      SMS logu yok
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {(detailShopLoading || detailShop) && (
+        <div onClick={() => { setDetailShop(null); setDetailShopLoading(false); }} style={modalOverlay}>
+          <div onClick={e => e.stopPropagation()} style={{ ...modalBox('rgba(6,182,212,0.25)'), maxWidth: 520 }}>
+            <ModalHeader title="Mağaza Detayı" onClose={() => { setDetailShop(null); setDetailShopLoading(false); }} />
+            <div style={{ padding: '16px 20px 20px' }}>
+              {detailShopLoading ? (
+                <div style={{ textAlign: 'center', color: '#6b7280', padding: '32px 0' }}>Yükleniyor...</div>
+              ) : detailShop && (
+                <>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+                    <div style={{ width: 40, height: 40, borderRadius: 10, background: 'linear-gradient(135deg, #0891b2, #06b6d4)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, color: '#fff', flexShrink: 0 }}>
+                      {detailShop.name.slice(0, 2).toUpperCase()}
+                    </div>
+                    <div>
+                      <div style={{ color: '#fff', fontSize: 15, fontWeight: 700 }}>{detailShop.name}</div>
+                      <div style={{ color: '#6b7280', fontSize: 12 }}>{detailShop.shopDomain || 'Domain yok'}</div>
+                    </div>
+                  </div>
+                  <InfoGrid items={[
+                    { label: 'Toplam Sipariş', value: detailShop.orderCount, color: '#60a5fa' },
+                    { label: 'Sahip', value: detailShop.user.email, color: '#9ca3af' },
+                    { label: 'Kayıt Tarihi', value: new Date(detailShop.createdAt).toLocaleDateString('tr-TR'), color: '#9ca3af' },
+                    { label: 'Sahip Adı', value: detailShop.user.name || '—', color: '#e5e7eb' },
+                  ]} />
+                  <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {[['Webhook Secret', detailShop.webhookSecret || '—'], ['SMS Şablonu', detailShop.smsTemplate || 'Varsayılan']].map(([lbl, val]) => (
+                      <div key={lbl} style={{ padding: '10px 12px', background: 'rgba(255,255,255,0.02)', borderRadius: 10, border: '1px solid rgba(255,255,255,0.06)' }}>
+                        <div style={{ color: '#4b5563', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>{lbl}</div>
+                        <div style={{ color: '#9ca3af', fontSize: 12, fontFamily: lbl === 'Webhook Secret' ? 'monospace' : 'inherit', wordBreak: 'break-all', lineHeight: 1.5 }}>{val}</div>
+                      </div>
+                    ))}
+                  </div>
+                  {detailShop.orders.length > 0 && (
+                    <div style={{ marginTop: 14 }}>
+                      <div style={{ color: '#4b5563', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 8 }}>Son Siparişler</div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        {detailShop.orders.map(o => (
+                          <div key={o.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 10px', background: 'rgba(255,255,255,0.02)', borderRadius: 8, border: '1px solid rgba(255,255,255,0.05)' }}>
+                            <div>
+                              <span style={{ color: '#4b5563', fontSize: 11 }}>#{o.id}</span>
+                              <span style={{ color: '#e5e7eb', fontSize: 12, marginLeft: 8 }}>{o.customerName}</span>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                              <span style={{ color: '#34d399', fontSize: 12, fontWeight: 600 }}>{o.total.toFixed(2)} ₺</span>
+                              <StatusBadge status={o.status} />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
+  function renderContent() {
+    return (
+      <>
+        {/* ── DASHBOARD ── */}
+        {section === 'dashboard' && stats && (
+          <div>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 12, marginBottom: 20 }}>
+              <StatCard label="Toplam Kullanıcı" value={stats.totalUsers} icon="👤" color="#7c3aed" />
+              <StatCard label="Toplam Sipariş" value={stats.totalOrders} icon="📦" color="#0891b2" />
+              <StatCard label="SMS Gönderildi" value={stats.totalSMSSent} icon="📱" color="#059669" />
+              <StatCard label="Sistemdeki Kredi" value={stats.totalCreditsInSystem} icon="💳" color="#d97706" />
+            </div>
+            {Object.keys(stats.ordersByStatus).length > 0 && (
+              <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14, padding: '16px 20px', display: 'flex', gap: isMobile ? 16 : 32, flexWrap: 'wrap' }}>
+                {Object.entries(stats.ordersByStatus).map(([status, count]) => (
+                  <div key={status} style={{ textAlign: 'center' }}>
+                    <div style={{ color: STATUS_COLORS[status] || '#e5e7eb', fontSize: 20, fontWeight: 800 }}>{count}</div>
+                    <div style={{ color: '#4b5563', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.5px', marginTop: 2 }}>{STATUS_LABELS[status] || status}</div>
+                  </div>
+                ))}
               </div>
+            )}
+          </div>
+        )}
+
+        {/* ── USERS ── */}
+        {section === 'users' && (
+          <div>
+            <div style={{ marginBottom: 14 }}>
+              <input type="text" placeholder="Email veya isme göre ara..." value={userSearch} onChange={e => setUserSearch(e.target.value)}
+                style={{ ...inputStyle, width: isMobile ? '100%' : 300 }} />
+            </div>
+
+            {isMobile ? (
+              /* Mobile user cards */
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {filteredUsers.map(user => (
+                  <div key={user.id} style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 12, padding: '14px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                      <div style={{ width: 34, height: 34, borderRadius: 8, flexShrink: 0, background: 'linear-gradient(135deg, #7c3aed, #a855f7)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#fff' }}>
+                        {(user.name || user.email).slice(0, 2).toUpperCase()}
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ color: '#e5e7eb', fontSize: 14, fontWeight: 600, cursor: 'pointer', textDecoration: 'underline dotted' }} onClick={() => openUserDetail(user)}>{user.name || '—'}</div>
+                        <div style={{ color: '#6b7280', fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.email}</div>
+                      </div>
+                      <span style={{ color: user.smsCredits === 0 ? '#f87171' : user.smsCredits < 10 ? '#fbbf24' : '#34d399', fontSize: 14, fontWeight: 700, flexShrink: 0 }}>{user.smsCredits}</span>
+                    </div>
+                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                      <button onClick={() => handleToggleAdmin(user)} disabled={togglingAdmin === user.id} style={{ padding: '6px 10px', borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: togglingAdmin === user.id ? 'not-allowed' : 'pointer', background: user.isAdmin ? accentLight : 'rgba(255,255,255,0.04)', border: `1px solid ${user.isAdmin ? accentBorder : 'rgba(255,255,255,0.08)'}`, color: user.isAdmin ? '#fca5a5' : '#4b5563', minHeight: 32 }}>
+                        {togglingAdmin === user.id ? '...' : user.isAdmin ? '🛡️ Admin' : 'Kullanıcı'}
+                      </button>
+                      <button onClick={() => { setCreditTarget(user); setCreditAmount(''); setCreditDesc(''); }} style={{ padding: '6px 10px', borderRadius: 6, fontSize: 11, fontWeight: 600, background: 'rgba(5,150,105,0.1)', border: '1px solid rgba(5,150,105,0.25)', color: '#34d399', cursor: 'pointer', minHeight: 32 }}>Kredi</button>
+                      <button onClick={() => setDeleteTarget(user)} style={{ padding: '6px 10px', borderRadius: 6, fontSize: 11, fontWeight: 700, background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.35)', color: '#f87171', cursor: 'pointer', minHeight: 32 }}>Sil</button>
+                    </div>
+                  </div>
+                ))}
+                {filteredUsers.length === 0 && <div style={{ padding: 32, textAlign: 'center', color: '#4b5563', fontSize: 13 }}>Sonuç bulunamadı</div>}
+              </div>
+            ) : (
               <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14, overflow: 'hidden' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                   <thead>
@@ -393,11 +669,30 @@ export default function AdminPage() {
                   </tbody>
                 </table>
               </div>
-            </div>
-          )}
+            )}
+          </div>
+        )}
 
-          {/* ── SHOPS ── */}
-          {section === 'shops' && (
+        {/* ── SHOPS ── */}
+        {section === 'shops' && (
+          isMobile ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {shops.map(shop => (
+                <div key={shop.id} onClick={() => openShopDetail(shop)} style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 12, padding: '14px', cursor: 'pointer' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                    <div style={{ width: 34, height: 34, borderRadius: 8, background: 'linear-gradient(135deg, #0891b2, #06b6d4)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#fff', flexShrink: 0 }}>{shop.name.slice(0, 2).toUpperCase()}</div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ color: '#e5e7eb', fontSize: 14, fontWeight: 600 }}>{shop.name}</div>
+                      <div style={{ color: '#6b7280', fontSize: 12 }}>{shop.shopDomain || '—'}</div>
+                    </div>
+                    <div style={{ color: '#e5e7eb', fontSize: 14, fontWeight: 700, flexShrink: 0 }}>{shop.orderCount} <span style={{ color: '#4b5563', fontSize: 11 }}>sipariş</span></div>
+                  </div>
+                  <div style={{ color: '#6b7280', fontSize: 12 }}>{shop.user.name || shop.user.email}</div>
+                </div>
+              ))}
+              {shops.length === 0 && <div style={{ padding: 32, textAlign: 'center', color: '#4b5563', fontSize: 13 }}>Henüz mağaza yok</div>}
+            </div>
+          ) : (
             <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14, overflow: 'hidden' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
@@ -432,15 +727,38 @@ export default function AdminPage() {
                 </tbody>
               </table>
             </div>
-          )}
+          )
+        )}
 
-          {/* ── ORDERS ── */}
-          {section === 'orders' && (
-            <div>
-              <div style={{ marginBottom: 16 }}>
-                <input type="text" placeholder="Müşteri adı, telefon veya mağaza..." value={orderSearch} onChange={e => setOrderSearch(e.target.value)}
-                  style={{ padding: '10px 14px', borderRadius: 8, fontSize: 13, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: '#e5e7eb', outline: 'none', width: 320 }} />
+        {/* ── ORDERS ── */}
+        {section === 'orders' && (
+          <div>
+            <div style={{ marginBottom: 14 }}>
+              <input type="text" placeholder="Müşteri adı, telefon veya mağaza..." value={orderSearch} onChange={e => setOrderSearch(e.target.value)}
+                style={{ ...inputStyle, width: isMobile ? '100%' : 320 }} />
+            </div>
+
+            {isMobile ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {filteredOrders.map(order => (
+                  <div key={order.id} onClick={() => openOrderDetail(order)} style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 12, padding: '14px', cursor: 'pointer' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
+                      <div>
+                        <div style={{ color: '#e5e7eb', fontSize: 14, fontWeight: 600 }}>{order.customerName}</div>
+                        <div style={{ color: '#6b7280', fontSize: 12 }}>#{order.id} · {order.customerPhone}</div>
+                      </div>
+                      <StatusBadge status={order.status} />
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ color: '#9ca3af', fontSize: 12 }}>{order.shop.name}</span>
+                      <span style={{ color: '#34d399', fontSize: 14, fontWeight: 700 }}>{order.total.toFixed(2)} ₺</span>
+                    </div>
+                    <div style={{ color: '#4b5563', fontSize: 11, marginTop: 4 }}>{new Date(order.createdAt).toLocaleDateString('tr-TR')}</div>
+                  </div>
+                ))}
+                {filteredOrders.length === 0 && <div style={{ padding: 32, textAlign: 'center', color: '#4b5563', fontSize: 13 }}>Sonuç bulunamadı</div>}
               </div>
+            ) : (
               <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14, overflow: 'hidden' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                   <thead>
@@ -472,205 +790,11 @@ export default function AdminPage() {
                   </tbody>
                 </table>
               </div>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* ── Credit Modal ── */}
-      {creditTarget && (
-        <div onClick={() => setCreditTarget(null)} style={modalOverlay}>
-          <div onClick={e => e.stopPropagation()} style={modalBox('rgba(5,150,105,0.25)')}>
-            <ModalHeader title="Kredi Yükle" onClose={() => setCreditTarget(null)} />
-            <div style={{ padding: '16px 28px 28px' }}>
-              <p style={{ color: '#6b7280', fontSize: 13, margin: '0 0 20px' }}>
-                {creditTarget.name || creditTarget.email} — mevcut: <strong style={{ color: '#e5e7eb' }}>{creditTarget.smsCredits}</strong>
-              </p>
-              <form onSubmit={handleAddCredits} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                <div>
-                  <label style={{ display: 'block', color: '#9ca3af', fontSize: 13, marginBottom: 6 }}>Miktar <span style={{ color: '#4b5563' }}>(negatif değer düşer)</span></label>
-                  <input type="number" required value={creditAmount} onChange={e => setCreditAmount(e.target.value)} placeholder="100" style={{ width: '100%', padding: '11px 14px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, color: '#fff', fontSize: 14, outline: 'none', boxSizing: 'border-box' }} />
-                </div>
-                <div>
-                  <label style={{ display: 'block', color: '#9ca3af', fontSize: 13, marginBottom: 6 }}>Açıklama (opsiyonel)</label>
-                  <input type="text" value={creditDesc} onChange={e => setCreditDesc(e.target.value)} placeholder="Kampanya kredisi" style={{ width: '100%', padding: '11px 14px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, color: '#fff', fontSize: 14, outline: 'none', boxSizing: 'border-box' }} />
-                </div>
-                <div style={{ display: 'flex', gap: 10 }}>
-                  <button type="submit" disabled={creditSaving} style={{ flex: 1, padding: '12px', background: creditSaving ? 'rgba(5,150,105,0.3)' : 'linear-gradient(135deg, #059669, #10b981)', border: 'none', borderRadius: 10, color: '#fff', fontSize: 14, fontWeight: 600, cursor: creditSaving ? 'not-allowed' : 'pointer' }}>{creditSaving ? 'Yükleniyor...' : 'Yükle'}</button>
-                  <button type="button" onClick={() => setCreditTarget(null)} style={{ flex: 1, padding: '12px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, color: '#9ca3af', fontSize: 14, cursor: 'pointer' }}>İptal</button>
-                </div>
-              </form>
-            </div>
+            )}
           </div>
-        </div>
-      )}
-
-      {/* ── Delete Modal ── */}
-      {deleteTarget && (
-        <div onClick={() => !deleting && setDeleteTarget(null)} style={modalOverlay}>
-          <div onClick={e => e.stopPropagation()} style={modalBox('rgba(239,68,68,0.25)')}>
-            <ModalHeader title="Kullanıcıyı Sil" onClose={() => !deleting && setDeleteTarget(null)} />
-            <div style={{ padding: '16px 28px 28px', textAlign: 'center' }}>
-              <div style={{ fontSize: 36, marginBottom: 12 }}>🗑️</div>
-              <p style={{ color: '#6b7280', fontSize: 13, margin: '0 0 24px', lineHeight: 1.6 }}>
-                <strong style={{ color: '#e5e7eb' }}>{deleteTarget.name || deleteTarget.email}</strong> hesabını silmek istediğinden emin misin? Bu işlem geri alınamaz.
-              </p>
-              <div style={{ display: 'flex', gap: 10 }}>
-                <button onClick={handleDeleteUser} disabled={deleting} style={{ flex: 1, padding: '12px', background: deleting ? 'rgba(239,68,68,0.3)' : 'linear-gradient(135deg, #dc2626, #ef4444)', border: 'none', borderRadius: 10, color: '#fff', fontSize: 14, fontWeight: 600, cursor: deleting ? 'not-allowed' : 'pointer' }}>{deleting ? 'Siliniyor...' : 'Sil'}</button>
-                <button type="button" onClick={() => setDeleteTarget(null)} disabled={deleting} style={{ flex: 1, padding: '12px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, color: '#9ca3af', fontSize: 14, cursor: 'pointer' }}>İptal</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── User Detail Modal ── */}
-      {(detailUserLoading || detailUser) && (
-        <div onClick={() => { setDetailUser(null); setDetailUserLoading(false); }} style={modalOverlay}>
-          <div onClick={e => e.stopPropagation()} style={modalBox('rgba(139,92,246,0.25)')}>
-            <ModalHeader title="Kullanıcı Detayı" onClose={() => { setDetailUser(null); setDetailUserLoading(false); }} />
-            <div style={{ padding: '20px 28px 28px' }}>
-              {detailUserLoading ? (
-                <div style={{ textAlign: 'center', color: '#6b7280', padding: '32px 0' }}>Yükleniyor...</div>
-              ) : detailUser && (
-                <>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 20 }}>
-                    <div style={{ width: 44, height: 44, borderRadius: 10, background: 'linear-gradient(135deg, #7c3aed, #a855f7)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 700, color: '#fff', flexShrink: 0 }}>
-                      {(detailUser.name || detailUser.email).slice(0, 2).toUpperCase()}
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ color: '#fff', fontSize: 16, fontWeight: 700 }}>{detailUser.name || '—'}</div>
-                      <div style={{ color: '#6b7280', fontSize: 12 }}>{detailUser.email}</div>
-                    </div>
-                    {detailUser.isAdmin && <span style={{ padding: '3px 10px', borderRadius: 6, fontSize: 11, fontWeight: 700, background: accentLight, border: `1px solid ${accentBorder}`, color: '#fca5a5' }}>🛡️ Admin</span>}
-                  </div>
-                  <InfoGrid items={[
-                    { label: 'SMS Kredisi', value: detailUser.smsCredits, color: detailUser.smsCredits === 0 ? '#f87171' : detailUser.smsCredits < 10 ? '#fbbf24' : '#34d399' },
-                    { label: 'Mağaza Sayısı', value: detailUser.shopCount },
-                    { label: 'Sipariş Sayısı', value: detailUser.orderCount },
-                    { label: 'Kayıt Tarihi', value: new Date(detailUser.createdAt).toLocaleDateString('tr-TR'), color: '#9ca3af' },
-                  ]} />
-                  <div style={{ marginTop: 12, padding: '12px 14px', background: 'rgba(255,255,255,0.02)', borderRadius: 10, border: '1px solid rgba(255,255,255,0.06)' }}>
-                    <div style={{ color: '#4b5563', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>Son Giriş</div>
-                    <div style={{ color: '#9ca3af', fontSize: 13 }}>{detailUser.lastLoginAt ? new Date(detailUser.lastLoginAt).toLocaleString('tr-TR') : 'Henüz giriş yapılmadı'}</div>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── Order Detail Modal ── */}
-      {(detailOrderLoading || detailOrder) && (
-        <div onClick={() => { setDetailOrder(null); setDetailOrderLoading(false); }} style={modalOverlay}>
-          <div onClick={e => e.stopPropagation()} style={{ ...modalBox('rgba(96,165,250,0.25)'), maxWidth: 560 }}>
-            <ModalHeader title={`Sipariş #${detailOrder?.id || ''}`} onClose={() => { setDetailOrder(null); setDetailOrderLoading(false); }} />
-            <div style={{ padding: '20px 28px 28px' }}>
-              {detailOrderLoading ? (
-                <div style={{ textAlign: 'center', color: '#6b7280', padding: '32px 0' }}>Yükleniyor...</div>
-              ) : detailOrder && (
-                <>
-                  <InfoGrid items={[
-                    { label: 'Müşteri', value: detailOrder.customerName },
-                    { label: 'Telefon', value: detailOrder.customerPhone, color: '#9ca3af' },
-                    { label: 'Tutar', value: `${detailOrder.total.toFixed(2)} ₺`, color: '#34d399' },
-                    { label: 'Durum', value: <StatusBadge status={detailOrder.status} /> },
-                    { label: 'Mağaza', value: detailOrder.shop.name },
-                    { label: 'Sahip', value: detailOrder.shop.user.email, color: '#6b7280' },
-                    { label: 'Tarih', value: new Date(detailOrder.createdAt).toLocaleString('tr-TR'), color: '#9ca3af' },
-                    { label: 'Shopify ID', value: detailOrder.shopifyOrderId ? `#${detailOrder.shopifyOrderId}` : '—', color: '#6b7280' },
-                  ]} />
-                  {detailOrder.smsLogs.length > 0 && (
-                    <div style={{ marginTop: 16 }}>
-                      <div style={{ color: '#4b5563', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 10 }}>SMS Logları ({detailOrder.smsLogs.length})</div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                        {detailOrder.smsLogs.map(log => (
-                          <div key={log.id} style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 8, padding: '10px 12px' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                              <span style={{ color: SMS_STATUS_COLORS[log.status] || '#9ca3af', fontSize: 11, fontWeight: 700 }}>{log.status}</span>
-                              <span style={{ color: '#4b5563', fontSize: 10 }}>{new Date(log.createdAt).toLocaleString('tr-TR')}</span>
-                            </div>
-                            <div style={{ color: '#6b7280', fontSize: 11, lineHeight: 1.5 }}>{log.message}</div>
-                            {log.errorMessage && <div style={{ color: '#f87171', fontSize: 11, marginTop: 4 }}>Hata: {log.errorMessage}</div>}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  {detailOrder.smsLogs.length === 0 && (
-                    <div style={{ marginTop: 16, padding: '12px 14px', background: 'rgba(255,255,255,0.02)', borderRadius: 10, border: '1px solid rgba(255,255,255,0.06)', color: '#4b5563', fontSize: 13, textAlign: 'center' }}>
-                      SMS logu yok
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── Shop Detail Modal ── */}
-      {(detailShopLoading || detailShop) && (
-        <div onClick={() => { setDetailShop(null); setDetailShopLoading(false); }} style={modalOverlay}>
-          <div onClick={e => e.stopPropagation()} style={{ ...modalBox('rgba(6,182,212,0.25)'), maxWidth: 540 }}>
-            <ModalHeader title="Mağaza Detayı" onClose={() => { setDetailShop(null); setDetailShopLoading(false); }} />
-            <div style={{ padding: '20px 28px 28px' }}>
-              {detailShopLoading ? (
-                <div style={{ textAlign: 'center', color: '#6b7280', padding: '32px 0' }}>Yükleniyor...</div>
-              ) : detailShop && (
-                <>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
-                    <div style={{ width: 44, height: 44, borderRadius: 10, background: 'linear-gradient(135deg, #0891b2, #06b6d4)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 700, color: '#fff', flexShrink: 0 }}>
-                      {detailShop.name.slice(0, 2).toUpperCase()}
-                    </div>
-                    <div>
-                      <div style={{ color: '#fff', fontSize: 16, fontWeight: 700 }}>{detailShop.name}</div>
-                      <div style={{ color: '#6b7280', fontSize: 12 }}>{detailShop.shopDomain || 'Domain yok'}</div>
-                    </div>
-                  </div>
-                  <InfoGrid items={[
-                    { label: 'Toplam Sipariş', value: detailShop.orderCount, color: '#60a5fa' },
-                    { label: 'Sahip', value: detailShop.user.email, color: '#9ca3af' },
-                    { label: 'Kayıt Tarihi', value: new Date(detailShop.createdAt).toLocaleDateString('tr-TR'), color: '#9ca3af' },
-                    { label: 'Sahip Adı', value: detailShop.user.name || '—', color: '#e5e7eb' },
-                  ]} />
-                  <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    <div style={{ padding: '10px 14px', background: 'rgba(255,255,255,0.02)', borderRadius: 10, border: '1px solid rgba(255,255,255,0.06)' }}>
-                      <div style={{ color: '#4b5563', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>Webhook Secret</div>
-                      <div style={{ color: '#9ca3af', fontSize: 12, fontFamily: 'monospace', wordBreak: 'break-all' }}>{detailShop.webhookSecret || '—'}</div>
-                    </div>
-                    <div style={{ padding: '10px 14px', background: 'rgba(255,255,255,0.02)', borderRadius: 10, border: '1px solid rgba(255,255,255,0.06)' }}>
-                      <div style={{ color: '#4b5563', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>SMS Şablonu</div>
-                      <div style={{ color: '#9ca3af', fontSize: 12, lineHeight: 1.5 }}>{detailShop.smsTemplate || 'Varsayılan şablon'}</div>
-                    </div>
-                  </div>
-                  {detailShop.orders.length > 0 && (
-                    <div style={{ marginTop: 16 }}>
-                      <div style={{ color: '#4b5563', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 10 }}>Son Siparişler</div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                        {detailShop.orders.map(o => (
-                          <div key={o.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', background: 'rgba(255,255,255,0.02)', borderRadius: 8, border: '1px solid rgba(255,255,255,0.05)' }}>
-                            <div>
-                              <span style={{ color: '#4b5563', fontSize: 11 }}>#{o.id}</span>
-                              <span style={{ color: '#e5e7eb', fontSize: 12, marginLeft: 8 }}>{o.customerName}</span>
-                            </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                              <span style={{ color: '#34d399', fontSize: 12, fontWeight: 600 }}>{o.total.toFixed(2)} ₺</span>
-                              <StatusBadge status={o.status} />
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
+        )}
+      </>
+    );
+  }
 }
 // 11 Mar 2026 Çar +03 02:48:57
