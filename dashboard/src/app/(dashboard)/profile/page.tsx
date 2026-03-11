@@ -16,6 +16,8 @@ interface User {
   email: string;
   createdAt: string;
   lastLoginAt: string | null;
+  referralCode?: string | null;
+  referredCount?: number;
 }
 
 function getToken() {
@@ -236,6 +238,50 @@ export default function ProfilePage() {
                 {savingPassword ? t('profile_changing_pw') : t('profile_change_pw')}
               </button>
             </form>
+          </div>
+
+          {/* Referral */}
+          <div style={cardStyle}>
+            <h2 style={{ color: '#9ca3af', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.8px', margin: '0 0 16px' }}>
+              Referral Programı
+            </h2>
+            <p style={{ color: '#6b7280', fontSize: 13, margin: '0 0 14px', lineHeight: 1.6 }}>
+              Davet kodunu paylaş — her yeni üye için sen ve arkadaşın <strong style={{ color: '#a78bfa' }}>50&apos;şer SMS kredisi</strong> kazanırsın.
+            </p>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 14 }}>
+              <div style={{
+                flex: 1, padding: '12px 14px',
+                background: 'rgba(139,92,246,0.08)', border: '1px solid rgba(139,92,246,0.25)',
+                borderRadius: 10, fontFamily: 'monospace', fontSize: 16, fontWeight: 700,
+                color: '#c4b5fd', letterSpacing: '3px', textAlign: 'center',
+              }}>
+                {user?.referralCode || '—'}
+              </div>
+              <button
+                onClick={() => {
+                  if (user?.referralCode) {
+                    navigator.clipboard.writeText(user.referralCode!);
+                    showToast('Referral kodu kopyalandı', 'success');
+                  }
+                }}
+                style={{
+                  padding: '12px 18px', background: 'rgba(139,92,246,0.15)',
+                  border: '1px solid rgba(139,92,246,0.3)', borderRadius: 10,
+                  color: '#a78bfa', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                  minHeight: 44, whiteSpace: 'nowrap',
+                }}
+              >
+                Kopyala
+              </button>
+            </div>
+            <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 10, padding: '12px 14px' }}>
+              <div style={{ color: '#4b5563', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: 4 }}>
+                Davet Ettiğin Kişi Sayısı
+              </div>
+              <div style={{ color: '#fff', fontSize: 22, fontWeight: 700 }}>
+                {user?.referredCount ?? 0}
+              </div>
+            </div>
           </div>
 
           {/* Danger zone */}

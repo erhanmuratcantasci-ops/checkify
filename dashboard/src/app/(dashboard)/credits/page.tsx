@@ -6,6 +6,7 @@ import Navbar from '@/components/Navbar';
 import GeometricBackground from '@/components/GeometricBackground';
 import { useIsMobile } from '@/hooks/useIsMobile';
 import { useTranslation } from '@/lib/i18n';
+import { useToast } from '@/components/Toast';
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://127.0.0.1:3001';
 
@@ -28,6 +29,7 @@ export default function CreditsPage() {
   const router = useRouter();
   const isMobile = useIsMobile();
   const { t } = useTranslation();
+  const { showToast } = useToast();
   const [credits, setCredits] = useState<number | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
@@ -45,6 +47,24 @@ export default function CreditsPage() {
       .catch(() => router.push('/login'))
       .finally(() => setLoading(false));
   }, [router]);
+
+  async function downloadInvoice(transactionId: number) {
+    try {
+      const res = await fetch(`${API}/credits/invoice/${transactionId}`, {
+        headers: authHeaders(),
+      });
+      if (!res.ok) { showToast('PDF indirilemedi', 'error'); return; }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `chekkify-fatura-${transactionId}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      showToast('PDF indirilemedi', 'error');
+    }
+  }
 
   const pad = isMobile ? '16px' : '40px 24px';
 
@@ -224,11 +244,27 @@ export default function CreditsPage() {
                       </div>
                     </div>
                   </div>
-                  <div style={{
-                    fontSize: 15, fontWeight: 700, flexShrink: 0, marginLeft: 12,
-                    color: tx.type === 'PURCHASE' ? '#34d399' : '#a78bfa',
-                  }}>
-                    {tx.type === 'PURCHASE' ? '+' : ''}{tx.amount}
+                  <div style={{ display: 'flex', alignItems: 'center', flexShrink: 0, marginLeft: 12 }}>
+                    <div style={{
+                      fontSize: 15, fontWeight: 700,
+                      color: tx.type === 'PURCHASE' ? '#34d399' : '#a78bfa',
+                    }}>
+                      {tx.type === 'PURCHASE' ? '+' : ''}{tx.amount}
+                    </div>
+                    {tx.type === 'PURCHASE' && (
+                      <button
+                        onClick={() => downloadInvoice(tx.id)}
+                        style={{
+                          background: 'rgba(139,92,246,0.1)',
+                          border: '1px solid rgba(139,92,246,0.25)',
+                          borderRadius: 6, padding: '4px 10px',
+                          color: '#a78bfa', fontSize: 11, fontWeight: 600,
+                          cursor: 'pointer', marginLeft: 10, whiteSpace: 'nowrap',
+                        }}
+                      >
+                        PDF İndir
+                      </button>
+                    )}
                   </div>
                 </div>
               ))}

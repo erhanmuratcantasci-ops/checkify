@@ -20,6 +20,10 @@ model User {
   passwordResetExpiry DateTime?
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
+  referralCode     String?   @unique
+  referredByUserId Int?
+  referredBy       User?     @relation("referrals", fields: [referredByUserId], references: [id])
+  referredUsers    User[]    @relation("referrals")
 
   shops              Shop[]
   creditTransactions CreditTransaction[]
@@ -31,6 +35,7 @@ model CreditTransaction {
   amount      Int
   type        CreditType
   description String
+  price       Float    @default(0)
   createdAt   DateTime @default(now())
 
   user        User     @relation(fields: [userId], references: [id])

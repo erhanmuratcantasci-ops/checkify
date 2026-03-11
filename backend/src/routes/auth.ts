@@ -10,10 +10,11 @@ const router = Router();
 
 // POST /auth/register
 router.post('/register', async (req: Request, res: Response): Promise<void> => {
-  const { email, name, password } = req.body as {
+  const { email, name, password, referralCode } = req.body as {
     email?: string;
     name?: string;
     password?: string;
+    referralCode?: string;
   };
 
   if (!email || !password) {
@@ -27,11 +28,27 @@ router.post('/register', async (req: Request, res: Response): Promise<void> => {
     return;
   }
 
+  let referrerId: number | undefined;
+  if (referralCode) {
+    const referrer = await prisma.user.findUnique({ where: { referralCode: (referralCode as string).toUpperCase() } });
+    if (referrer) referrerId = referrer.id;
+  }
+
   const hashed = await bcrypt.hash(password, 10);
+  const newReferralCode = crypto.randomBytes(4).toString('hex').toUpperCase();
   const user = await prisma.user.create({
-    data: { email, name, password: hashed },
+    data: { email, name, password: hashed, referralCode: newReferralCode, referredByUserId: referrerId },
     select: { id: true, email: true, name: true, createdAt: true },
   });
+
+  if (referrerId) {
+    await prisma.$transaction([
+      prisma.user.update({ where: { id: user.id }, data: { smsCredits: { increment: 50 } } }),
+      prisma.user.update({ where: { id: referrerId }, data: { smsCredits: { increment: 50 } } }),
+      prisma.creditTransaction.create({ data: { userId: user.id, amount: 50, type: 'PURCHASE', description: 'Referral bonusu: Davet kodu kullanıldı' } }),
+      prisma.creditTransaction.create({ data: { userId: referrerId, amount: 50, type: 'PURCHASE', description: `Referral bonusu: ${email} davet edildi` } }),
+    ]);
+  }
 
   const token = jwt.sign({ userId: user.id }, process.env['JWT_SECRET']!, { expiresIn: '7d' });
 
@@ -103,7 +120,7 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
 router.get('/me', authenticate, async (req: AuthRequest, res: Response): Promise<void> => {
   const user = await prisma.user.findUnique({
     where: { id: req.userId },
-    select: { id: true, email: true, name: true, smsCredits: true, createdAt: true, lastLoginAt: true },
+    select: { id: true, email: true, name: true, smsCredits: true, createdAt: true, lastLoginAt: true, referralCode: true, _count: { select: { referredUsers: true } } },
   });
 
   if (!user) {
@@ -111,7 +128,7 @@ router.get('/me', authenticate, async (req: AuthRequest, res: Response): Promise
     return;
   }
 
-  res.json({ user });
+  res.json({ user: { ...user, referredCount: user._count.referredUsers, _count: undefined } });
 });
 
 // PATCH /auth/me

@@ -22,6 +22,7 @@ export default function RegisterPage() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [referralCode, setReferralCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -33,7 +34,7 @@ export default function RegisterPage() {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL ?? 'http://127.0.0.1:3001'}/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, password }),
+        body: JSON.stringify({ name, email, password, referralCode: referralCode.trim() || undefined }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || t('register_error_default'));
@@ -118,6 +119,26 @@ export default function RegisterPage() {
                 onFocus={e => e.target.style.borderColor = 'rgba(139,92,246,0.6)'}
                 onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.1)'}
               />
+            </div>
+            <div>
+              <label style={{ display: 'block', color: '#9ca3af', fontSize: 13, fontWeight: 500, marginBottom: 8 }}>
+                Referral Kodu <span style={{ color: '#4b5563', fontWeight: 400 }}>(opsiyonel)</span>
+              </label>
+              <input
+                type="text"
+                value={referralCode}
+                onChange={e => setReferralCode(e.target.value.toUpperCase())}
+                placeholder="XXXXXXXX"
+                maxLength={8}
+                style={{ ...inputStyle, letterSpacing: '3px', textTransform: 'uppercase' }}
+                onFocus={e => e.target.style.borderColor = 'rgba(139,92,246,0.6)'}
+                onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.1)'}
+              />
+              {referralCode && (
+                <p style={{ color: '#a78bfa', fontSize: 12, margin: '4px 0 0' }}>
+                  ✓ Referral kodu uygulandı — kayıt sonrası 50 SMS kredisi kazanacaksın
+                </p>
+              )}
             </div>
             <button type="submit" disabled={loading} style={{
               width: '100%', padding: '13px',

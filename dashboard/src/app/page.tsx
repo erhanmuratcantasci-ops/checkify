@@ -262,6 +262,7 @@ export default function LandingPage() {
         <div style={{ color: '#4b5563', fontSize: 13 }}>{t('landing_footer_rights')}</div>
         <div style={{ display: 'flex', gap: isMobile ? 16 : 24, flexWrap: 'wrap' }}>
           {[
+            ['Blog', '/blog'],
             [t('landing_privacy'), '/gizlilik'],
             [t('landing_kvkk'), '/kvkk'],
             [t('landing_contact'), '/iletisim'],
