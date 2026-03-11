@@ -50,8 +50,15 @@ async function processJob(job: Job<SMSJobData>): Promise<void> {
     throw new Error(phoneCheck.error);
   }
 
+  // 6 haneli OTP üret ve order'a kaydet
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  await prisma.order.update({
+    where: { id: orderId },
+    data: { otpCode: otp },
+  });
+
   const shopTemplate = order?.shop.smsTemplate;
-  const message = shopTemplate
+  const baseMessage = shopTemplate
     ? shopTemplate
         .replace('{isim}', customerName)
         .replace('{tutar}', total.toFixed(2))
@@ -60,6 +67,7 @@ async function processJob(job: Job<SMSJobData>): Promise<void> {
         .replace('{siparis_no}', String(orderId))
     : `Merhaba ${customerName}, ${total.toFixed(2)} TL tutarındaki siparişiniz alındı. ` +
       `Onaylamak: ${confirmUrl} | İptal: ${cancelUrl}${statusUrl ? ` | Durum: ${statusUrl}` : ''}`;
+  const message = `${baseMessage} Doğrulama kodunuz: ${otp} (15 dakika geçerli)`;
 
   // Mesaj validasyonu
   const msgCheck = validateSMSMessage(message);

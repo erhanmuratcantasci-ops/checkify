@@ -99,6 +99,9 @@ model Order {
   confirmToken    String?     @unique
   statusToken     String?     @unique
   tokenExpiresAt  DateTime?
+  otpCode        String?
+  otpVerified    Boolean  @default(false)
+  otpAttempts    Int      @default(0)
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
 
