@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import express, { Request, Response } from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
 import authRouter from './routes/auth';
 import webhookRouter from './routes/webhook';
 import confirmRouter from './routes/confirm';
@@ -11,11 +12,15 @@ import smsTemplatesRouter from './routes/smsTemplates';
 import creditsRouter from './routes/credits';
 import adminRouter from './routes/admin';
 import statusRouter from './routes/status';
-import { loginRateLimiter, webhookRateLimiter } from './middleware/rateLimiter';
+import { loginRateLimiter, webhookRateLimiter, generalRateLimiter, otpRateLimiter } from './middleware/rateLimiter';
 import './workers/smsWorker';
 
 const app = express();
 const PORT = process.env['PORT'] || 3001;
+
+app.use(helmet());
+app.set('trust proxy', 1); // proxy arkasında IP doğru alınsın
+app.use(generalRateLimiter);
 
 app.use(cors({
   origin: [
@@ -34,9 +39,11 @@ app.use(express.json());
 
 app.use('/auth/login', loginRateLimiter);
 app.use('/auth/register', loginRateLimiter);
+app.use('/auth/forgot-password', loginRateLimiter);
 app.use('/auth', authRouter);
 app.use('/webhook', webhookRateLimiter);
 app.use('/webhook', webhookRouter);
+app.use('/confirm/otp', otpRateLimiter);
 app.use('/confirm', confirmRouter);
 app.use('/shopify', shopifyRouter);
 app.use('/orders', ordersRouter);

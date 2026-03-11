@@ -15,6 +15,20 @@ function getToken() {
   return document.cookie.split('; ').find(r => r.startsWith('token='))?.split('=')[1] ?? null;
 }
 
+function getTokenExpiry(token: string): number | null {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return payload.exp * 1000;
+  } catch {
+    return null;
+  }
+}
+
+function getCookie(name: string): string | null {
+  if (typeof window === 'undefined') return null;
+  return document.cookie.split('; ').find(r => r.startsWith(name + '='))?.split('=')[1] ?? null;
+}
+
 export default function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
@@ -38,6 +52,39 @@ export default function Navbar() {
       })
       .catch(() => null);
   }, []);
+
+  const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://127.0.0.1:3001';
+
+  useEffect(() => {
+    const token = getCookie('token');
+    if (!token) return;
+
+    const expiry = getTokenExpiry(token);
+    if (!expiry) return;
+
+    // Token 1 saatten az kaldıysa yenile
+    const timeUntilExpiry = expiry - Date.now();
+    if (timeUntilExpiry > 60 * 60 * 1000) return;
+
+    const refreshToken = getCookie('refreshToken');
+    if (!refreshToken) return;
+
+    fetch(`${API_URL}/auth/refresh`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refreshToken }),
+    })
+      .then(r => r.json())
+      .then(data => {
+        if (data.token) {
+          document.cookie = `token=${data.token}; path=/; max-age=${24 * 3600}; SameSite=Lax`;
+        }
+        if (data.refreshToken) {
+          document.cookie = `refreshToken=${data.refreshToken}; path=/; max-age=${7 * 24 * 3600}; SameSite=Lax`;
+        }
+      })
+      .catch(() => {});
+  }, [API_URL]);
 
   // Close menu on route change
   useEffect(() => { setMenuOpen(false); }, [pathname]);

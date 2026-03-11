@@ -14,7 +14,7 @@ function authHeaders() {
   return { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` };
 }
 
-type Section = 'dashboard' | 'users' | 'shops' | 'orders';
+type Section = 'dashboard' | 'users' | 'shops' | 'orders' | 'security';
 
 interface AdminUser {
   id: number; email: string; name: string | null;
@@ -45,6 +45,13 @@ interface AdminStats {
   totalUsers: number; totalOrders: number; totalSMSSent: number;
   totalCreditsInSystem: number; ordersByStatus: Record<string, number>;
 }
+interface SecurityLog {
+  id: number;
+  ip: string;
+  endpoint: string;
+  reason: string;
+  createdAt: string;
+}
 
 const STATUS_LABELS: Record<string, string> = {
   PENDING: 'Bekliyor', CONFIRMED: 'Onaylandı', PREPARING: 'Hazırlanıyor',
@@ -59,11 +66,12 @@ const SMS_STATUS_COLORS: Record<string, string> = {
 };
 
 const SECTION_LABELS: Record<Section, string> = {
-  dashboard: 'Dashboard', users: 'Kullanıcılar', shops: 'Mağazalar', orders: 'Siparişler',
+  dashboard: 'Dashboard', users: 'Kullanıcılar', shops: 'Mağazalar', orders: 'Siparişler', security: 'Güvenlik Logları',
 };
 const NAV_ITEMS: { key: Section; icon: string }[] = [
   { key: 'dashboard', icon: '◈' }, { key: 'users', icon: '👤' },
   { key: 'shops', icon: '🏪' }, { key: 'orders', icon: '📦' },
+  { key: 'security', icon: '🔒' },
 ];
 
 const modalOverlay: React.CSSProperties = {
@@ -130,6 +138,7 @@ export default function AdminPage() {
   const [shops, setShops] = useState<AdminShop[]>([]);
   const [orders, setOrders] = useState<AdminOrder[]>([]);
   const [stats, setStats] = useState<AdminStats | null>(null);
+  const [securityLogs, setSecurityLogs] = useState<SecurityLog[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [userSearch, setUserSearch] = useState('');
@@ -170,13 +179,15 @@ export default function AdminPage() {
       fetch(`${API}/admin/stats`, { headers: authHeaders() }),
       fetch(`${API}/admin/shops`, { headers: authHeaders() }),
       fetch(`${API}/admin/orders`, { headers: authHeaders() }),
-    ]).then(async ([uRes, sRes, shRes, oRes]) => {
+      fetch(`${API}/admin/security-logs`, { headers: authHeaders() }),
+    ]).then(async ([uRes, sRes, shRes, oRes, secRes]) => {
       if (uRes.status === 403 || uRes.status === 401) { router.push('/dashboard'); return; }
-      const [uData, sData, shData, oData] = await Promise.all([uRes.json(), sRes.json(), shRes.json(), oRes.json()]);
+      const [uData, sData, shData, oData, secData] = await Promise.all([uRes.json(), sRes.json(), shRes.json(), oRes.json(), secRes.json()]);
       setUsers(uData.users || []);
       setStats(sData);
       setShops(shData.shops || []);
       setOrders(oData.orders || []);
+      setSecurityLogs(secData.logs ?? []);
     }).catch(() => router.push('/dashboard'))
       .finally(() => setLoading(false));
   })(); }, [router]);
@@ -728,6 +739,42 @@ export default function AdminPage() {
               </table>
             </div>
           )
+        )}
+
+        {/* ── SECURITY LOGS ── */}
+        {section === 'security' && (
+          <div>
+            <h2 style={{ color: '#fff', fontSize: 18, fontWeight: 700, margin: '0 0 16px', fontFamily: "'Syne', sans-serif" }}>
+              Güvenlik Logları
+            </h2>
+            {securityLogs.length === 0 ? (
+              <div style={{ color: '#6b7280', fontSize: 14, padding: '40px 0', textAlign: 'center' }}>
+                Henüz güvenlik logu yok
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {securityLogs.map(log => (
+                  <div key={log.id} style={{
+                    background: 'rgba(239,68,68,0.05)',
+                    border: '1px solid rgba(239,68,68,0.15)',
+                    borderRadius: 10, padding: '12px 16px',
+                    display: 'flex', flexDirection: 'column', gap: 4,
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+                      <span style={{ color: '#f87171', fontSize: 13, fontWeight: 500 }}>{log.reason}</span>
+                      <span style={{ color: '#4b5563', fontSize: 11, whiteSpace: 'nowrap' }}>
+                        {new Date(log.createdAt).toLocaleString('tr-TR')}
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', gap: 12 }}>
+                      <span style={{ color: '#6b7280', fontSize: 12 }}>IP: <span style={{ color: '#9ca3af' }}>{log.ip}</span></span>
+                      <span style={{ color: '#6b7280', fontSize: 12 }}>Endpoint: <span style={{ color: '#9ca3af' }}>{log.endpoint}</span></span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         )}
 
         {/* ── ORDERS ── */}

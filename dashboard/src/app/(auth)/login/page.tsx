@@ -46,6 +46,9 @@ export default function LoginPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || t('login_error_default'));
       document.cookie = `token=${data.token}; path=/; max-age=${7 * 24 * 60 * 60}`;
+      if (data.refreshToken) {
+        document.cookie = `refreshToken=${data.refreshToken}; path=/; max-age=${7 * 24 * 3600}; SameSite=Lax`;
+      }
       router.push('/dashboard');
     } catch (err) {
       setError(err instanceof Error ? err.message : t('error_occurred'));

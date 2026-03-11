@@ -2,8 +2,15 @@ import { Router, Request, Response } from 'express';
 import prisma from '../lib/prisma';
 import { addTagToOrder } from '../lib/shopify';
 import { sendOrderConfirmationEmail, sendOrderCancellationEmail } from '../lib/mailer';
+import { z } from 'zod';
+import { logSecurityEvent } from '../lib/securityLog';
 
 const router = Router();
+
+const otpSchema = z.object({
+  orderId: z.number().int().positive(),
+  otpCode: z.string().length(6, 'OTP kodu 6 haneli olmalı'),
+});
 
 // GET /confirm/:token
 router.get('/:token', async (req: Request, res: Response): Promise<void> => {
@@ -124,12 +131,12 @@ router.get('/otp/info/:orderId', async (req: Request, res: Response): Promise<vo
 
 // POST /confirm/otp — OTP doğrulama
 router.post('/otp', async (req: Request, res: Response): Promise<void> => {
-  const { orderId, otpCode } = req.body as { orderId?: number; otpCode?: string };
-
-  if (!orderId || !otpCode) {
-    res.status(400).json({ error: 'orderId ve otpCode gerekli' });
+  const parsed = otpSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.errors[0].message });
     return;
   }
+  const { orderId, otpCode } = parsed.data;
 
   const order = await prisma.order.findUnique({
     where: { id: orderId },
@@ -139,17 +146,22 @@ router.post('/otp', async (req: Request, res: Response): Promise<void> => {
   if (!order) { res.status(404).json({ error: 'Sipariş bulunamadı' }); return; }
 
   if (order.otpAttempts >= 3) {
+    await logSecurityEvent(req.ip ?? 'unknown', '/confirm/otp', `Kilitli sipariş OTP denemesi: order #${orderId}`);
     res.status(429).json({ error: 'Çok fazla başarısız deneme. Sipariş kilitlendi.' });
     return;
   }
 
   if (order.otpCode !== otpCode) {
-    await prisma.order.update({
+    const updated = await prisma.order.update({
       where: { id: orderId },
       data: { otpAttempts: { increment: 1 } },
+      select: { otpAttempts: true },
     });
-    const remaining = 2 - order.otpAttempts;
-    res.status(400).json({ error: `Yanlış kod. ${remaining} deneme hakkınız kaldı.` });
+    if (updated.otpAttempts >= 3) {
+      await logSecurityEvent(req.ip ?? 'unknown', '/confirm/otp', `OTP brute force kilidi devreye girdi: order #${orderId}`);
+    }
+    const remaining = Math.max(0, 3 - updated.otpAttempts);
+    res.status(400).json({ error: remaining > 0 ? `Yanlış kod. ${remaining} deneme hakkınız kaldı.` : 'Çok fazla hatalı deneme. Sipariş kilitlendi.' });
     return;
   }
 

@@ -213,4 +213,13 @@ router.get('/stats', adminOnly, async (_req: AuthRequest, res: Response): Promis
   });
 });
 
+// GET /admin/security-logs — son güvenlik logları
+router.get('/security-logs', adminOnly, async (_req: AuthRequest, res: Response): Promise<void> => {
+  const logs = await prisma.securityLog.findMany({
+    orderBy: { createdAt: 'desc' },
+    take: 100,
+  });
+  res.json({ logs });
+});
+
 export default router;

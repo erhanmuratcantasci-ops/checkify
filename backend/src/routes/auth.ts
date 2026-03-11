@@ -5,22 +5,31 @@ import prisma from '../lib/prisma';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { sendWelcomeEmail, sendPasswordResetEmail } from '../lib/mailer';
 import crypto from 'crypto';
+import { z } from 'zod';
+import { logSecurityEvent } from '../lib/securityLog';
 
 const router = Router();
 
+const registerSchema = z.object({
+  email: z.string().email('Geçerli bir email girin'),
+  password: z.string().min(8, 'Şifre en az 8 karakter olmalı'),
+  name: z.string().max(100, 'İsim max 100 karakter olabilir').optional(),
+  referralCode: z.string().optional(),
+});
+
+const loginSchema = z.object({
+  email: z.string().email('Geçerli bir email girin'),
+  password: z.string().min(1, 'Şifre zorunlu'),
+});
+
 // POST /auth/register
 router.post('/register', async (req: Request, res: Response): Promise<void> => {
-  const { email, name, password, referralCode } = req.body as {
-    email?: string;
-    name?: string;
-    password?: string;
-    referralCode?: string;
-  };
-
-  if (!email || !password) {
-    res.status(400).json({ error: 'Email ve şifre zorunlu' });
+  const parsed = registerSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.errors[0].message });
     return;
   }
+  const { email, name, password, referralCode } = parsed.data;
 
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) {
@@ -50,12 +59,20 @@ router.post('/register', async (req: Request, res: Response): Promise<void> => {
     ]);
   }
 
-  const token = jwt.sign({ userId: user.id }, process.env['JWT_SECRET']!, { expiresIn: '7d' });
+  const token = jwt.sign({ userId: user.id }, process.env['JWT_SECRET']!, { expiresIn: '24h' });
+  const refreshTokenValue = crypto.randomBytes(40).toString('hex');
+  await prisma.refreshToken.create({
+    data: {
+      userId: user.id,
+      token: refreshTokenValue,
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+    },
+  });
 
   sendWelcomeEmail(user.email, user.name ?? user.email)
     .catch(err => console.error('[auth] Welcome email gönderilemedi:', err));
 
-  res.status(201).json({ user, token });
+  res.status(201).json({ user, token, refreshToken: refreshTokenValue });
 });
 
 // POST /auth/google — Google OAuth ile giriş/kayıt
@@ -80,19 +97,19 @@ router.post('/google', async (req: Request, res: Response): Promise<void> => {
 
   await prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
 
-  const token = jwt.sign({ userId: user.id }, process.env['JWT_SECRET']!, { expiresIn: '7d' });
+  const token = jwt.sign({ userId: user.id }, process.env['JWT_SECRET']!, { expiresIn: '24h' });
 
   res.json({ token, user: { id: user.id, email: user.email, name: user.name } });
 });
 
 // POST /auth/login
 router.post('/login', async (req: Request, res: Response): Promise<void> => {
-  const { email, password } = req.body as { email?: string; password?: string };
-
-  if (!email || !password) {
-    res.status(400).json({ error: 'Email ve şifre zorunlu' });
+  const parsed = loginSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.errors[0].message });
     return;
   }
+  const { email, password } = parsed.data;
 
   const user = await prisma.user.findUnique({ where: { email } });
   if (!user) {
@@ -102,17 +119,27 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
 
   const valid = await bcrypt.compare(password, user.password);
   if (!valid) {
+    await logSecurityEvent(req.ip ?? 'unknown', '/auth/login', `Başarısız giriş: ${email}`);
     res.status(401).json({ error: 'Geçersiz email veya şifre' });
     return;
   }
 
-  const token = jwt.sign({ userId: user.id }, process.env['JWT_SECRET']!, { expiresIn: '7d' });
+  const token = jwt.sign({ userId: user.id }, process.env['JWT_SECRET']!, { expiresIn: '24h' });
+  const refreshTokenValue = crypto.randomBytes(40).toString('hex');
+  await prisma.refreshToken.create({
+    data: {
+      userId: user.id,
+      token: refreshTokenValue,
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+    },
+  });
 
   await prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
 
   res.json({
     user: { id: user.id, email: user.email, name: user.name, createdAt: user.createdAt },
     token,
+    refreshToken: refreshTokenValue,
   });
 });
 
@@ -260,6 +287,44 @@ router.post('/reset-password', async (req: Request, res: Response): Promise<void
   });
 
   res.json({ message: 'Şifre başarıyla güncellendi' });
+});
+
+// POST /auth/refresh — access token yenile
+router.post('/refresh', async (req: Request, res: Response): Promise<void> => {
+  const { refreshToken } = req.body as { refreshToken?: string };
+
+  if (!refreshToken) {
+    res.status(400).json({ error: 'Refresh token gerekli' });
+    return;
+  }
+
+  const stored = await prisma.refreshToken.findUnique({
+    where: { token: refreshToken },
+    include: { user: { select: { id: true, email: true, name: true } } },
+  });
+
+  if (!stored || stored.expiresAt < new Date()) {
+    if (stored) {
+      await prisma.refreshToken.delete({ where: { id: stored.id } });
+    }
+    res.status(401).json({ error: 'Geçersiz veya süresi dolmuş refresh token' });
+    return;
+  }
+
+  const newToken = jwt.sign({ userId: stored.userId }, process.env['JWT_SECRET']!, { expiresIn: '24h' });
+
+  // Refresh token'ı yenile (rotation)
+  await prisma.refreshToken.delete({ where: { id: stored.id } });
+  const newRefreshToken = crypto.randomBytes(40).toString('hex');
+  await prisma.refreshToken.create({
+    data: {
+      userId: stored.userId,
+      token: newRefreshToken,
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+    },
+  });
+
+  res.json({ token: newToken, refreshToken: newRefreshToken });
 });
 
 export default router;
