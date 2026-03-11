@@ -23,6 +23,8 @@ interface AdminUser {
 }
 interface AdminUserDetail extends AdminUser {
   orderCount: number;
+  billingCycle?: string;
+  planExpiresAt?: string | null;
 }
 interface AdminTransaction {
   id: number; amount: number; type: string; description: string; price?: number; createdAt: string;
@@ -122,6 +124,21 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
+const PLAN_COLORS: Record<string, { color: string; bg: string; border: string }> = {
+  FREE:     { color: '#6b7280', bg: 'rgba(107,114,128,0.12)', border: 'rgba(107,114,128,0.3)' },
+  STARTER:  { color: '#34d399', bg: 'rgba(52,211,153,0.12)',  border: 'rgba(52,211,153,0.3)'  },
+  PRO:      { color: '#60a5fa', bg: 'rgba(96,165,250,0.12)',  border: 'rgba(96,165,250,0.3)'  },
+  BUSINESS: { color: '#a78bfa', bg: 'rgba(167,139,250,0.12)', border: 'rgba(167,139,250,0.3)' },
+};
+function PlanBadge({ plan }: { plan: string }) {
+  const c = PLAN_COLORS[plan] || PLAN_COLORS['FREE'];
+  return (
+    <span style={{ padding: '2px 7px', borderRadius: 5, fontSize: 10, fontWeight: 700, color: c.color, background: c.bg, border: `1px solid ${c.border}`, textTransform: 'uppercase', letterSpacing: '0.3px' }}>
+      {plan}
+    </span>
+  );
+}
+
 function StatCard({ label, value, icon, color }: { label: string; value: string | number; icon: string; color: string }) {
   return (
     <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14, padding: '16px 18px', position: 'relative', overflow: 'hidden' }}>
@@ -155,6 +172,11 @@ export default function AdminPage() {
   const [creditSaving, setCreditSaving] = useState(false);
   const [creditType, setCreditType] = useState<'sms' | 'whatsapp'>('sms');
   const [detailUserTransactions, setDetailUserTransactions] = useState<AdminTransaction[]>([]);
+
+  const [detailPlanValue, setDetailPlanValue] = useState('FREE');
+  const [detailCycleValue, setDetailCycleValue] = useState('monthly');
+  const [detailExpiresValue, setDetailExpiresValue] = useState('');
+  const [detailPlanSaving, setDetailPlanSaving] = useState(false);
 
   const [deleteTarget, setDeleteTarget] = useState<AdminUser | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -255,8 +277,28 @@ export default function AdminPage() {
       if (!res.ok) throw new Error(data.error);
       setDetailUser(data.user);
       setDetailUserTransactions(data.transactions || []);
+      setDetailPlanValue(data.user.plan ?? 'FREE');
+      setDetailCycleValue(data.user.billingCycle ?? 'monthly');
+      setDetailExpiresValue(data.user.planExpiresAt ? new Date(data.user.planExpiresAt).toISOString().slice(0, 10) : '');
     } catch (err) { showToast(err instanceof Error ? err.message : 'Hata oluştu', 'error'); setDetailUserLoading(false); }
     finally { setDetailUserLoading(false); }
+  }
+
+  async function handleUpdatePlan() {
+    if (!detailUser) return;
+    setDetailPlanSaving(true);
+    try {
+      const res = await fetch(`${API}/admin/users/${detailUser.id}/plan`, {
+        method: 'PATCH', headers: authHeaders(),
+        body: JSON.stringify({ plan: detailPlanValue, billingCycle: detailCycleValue, expiresAt: detailExpiresValue || null }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Hata oluştu');
+      setDetailUser(prev => prev ? { ...prev, plan: data.user.plan } : prev);
+      setUsers(prev => prev.map(u => u.id === detailUser.id ? { ...u, plan: data.user.plan } : u));
+      showToast(`Plan ${data.user.plan} olarak güncellendi`, 'success');
+    } catch (err) { showToast(err instanceof Error ? err.message : 'Hata oluştu', 'error'); }
+    finally { setDetailPlanSaving(false); }
   }
 
   async function openOrderDetail(order: AdminOrder) {
@@ -483,6 +525,50 @@ export default function AdminPage() {
                     <div style={{ color: '#4b5563', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>Son Giriş</div>
                     <div style={{ color: '#9ca3af', fontSize: 13 }}>{detailUser.lastLoginAt ? new Date(detailUser.lastLoginAt).toLocaleString('tr-TR') : 'Henüz giriş yapılmadı'}</div>
                   </div>
+
+                  {/* Plan Yönetimi */}
+                  <div style={{ marginTop: 14, background: 'rgba(139,92,246,0.06)', border: '1px solid rgba(139,92,246,0.2)', borderRadius: 12, padding: '14px' }}>
+                    <div style={{ color: '#a78bfa', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 12 }}>Plan Yönetimi</div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                      <div>
+                        <label style={{ display: 'block', color: '#9ca3af', fontSize: 12, marginBottom: 6 }}>Plan</label>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6 }}>
+                          {(['FREE', 'STARTER', 'PRO', 'BUSINESS'] as const).map(p => (
+                            <button key={p} type="button" onClick={() => setDetailPlanValue(p)} style={{ padding: '7px 4px', borderRadius: 7, border: '1px solid', borderColor: detailPlanValue === p ? 'rgba(139,92,246,0.6)' : 'rgba(255,255,255,0.08)', background: detailPlanValue === p ? 'rgba(139,92,246,0.2)' : 'transparent', color: detailPlanValue === p ? '#a78bfa' : '#6b7280', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>{p}</button>
+                          ))}
+                        </div>
+                      </div>
+                      {detailPlanValue !== 'FREE' && (
+                        <>
+                          <div>
+                            <label style={{ display: 'block', color: '#9ca3af', fontSize: 12, marginBottom: 6 }}>Fatura Dönemi</label>
+                            <div style={{ display: 'flex', gap: 6 }}>
+                              {(['monthly', 'yearly'] as const).map(c => (
+                                <button key={c} type="button" onClick={() => setDetailCycleValue(c)} style={{ flex: 1, padding: '7px', borderRadius: 7, border: '1px solid', borderColor: detailCycleValue === c ? 'rgba(139,92,246,0.5)' : 'rgba(255,255,255,0.08)', background: detailCycleValue === c ? 'rgba(139,92,246,0.15)' : 'transparent', color: detailCycleValue === c ? '#a78bfa' : '#6b7280', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+                                  {c === 'monthly' ? 'Aylık' : 'Yıllık'}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                          <div>
+                            <label style={{ display: 'block', color: '#9ca3af', fontSize: 12, marginBottom: 6 }}>Bitiş Tarihi <span style={{ color: '#4b5563' }}>(boş = otomatik)</span></label>
+                            <input type="date" value={detailExpiresValue} onChange={e => setDetailExpiresValue(e.target.value)} style={{ ...inputStyle, fontSize: 12, minHeight: 38 }} />
+                          </div>
+                        </>
+                      )}
+                      <button onClick={handleUpdatePlan} disabled={detailPlanSaving} style={{ padding: '10px', background: detailPlanSaving ? 'rgba(139,92,246,0.3)' : 'linear-gradient(135deg, #7c3aed, #a855f7)', border: 'none', borderRadius: 8, color: '#fff', fontSize: 13, fontWeight: 700, cursor: detailPlanSaving ? 'not-allowed' : 'pointer', minHeight: 40 }}>
+                        {detailPlanSaving ? 'Kaydediliyor...' : 'Planı Güncelle'}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Kredi Yönetimi */}
+                  <div style={{ marginTop: 10 }}>
+                    <button onClick={() => { setCreditTarget(detailUser); setCreditAmount(''); setCreditDesc(''); }} style={{ width: '100%', padding: '10px', background: 'rgba(5,150,105,0.1)', border: '1px solid rgba(5,150,105,0.25)', borderRadius: 10, color: '#34d399', fontSize: 13, fontWeight: 700, cursor: 'pointer', minHeight: 40 }}>
+                      + Kredi Yükle / Düş
+                    </button>
+                  </div>
+
                   {detailUserTransactions.length > 0 && (
                     <div style={{ marginTop: 12 }}>
                       <div style={{ color: '#4b5563', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 }}>Kredi Geçmişi (son {detailUserTransactions.length})</div>
@@ -667,7 +753,8 @@ export default function AdminPage() {
                       </div>
                       <span style={{ color: user.smsCredits === 0 ? '#f87171' : user.smsCredits < 10 ? '#fbbf24' : '#34d399', fontSize: 14, fontWeight: 700, flexShrink: 0 }}>{user.smsCredits}</span>
                     </div>
-                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+                      {user.plan && <PlanBadge plan={user.plan} />}
                       <button onClick={() => handleToggleAdmin(user)} disabled={togglingAdmin === user.id} style={{ padding: '6px 10px', borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: togglingAdmin === user.id ? 'not-allowed' : 'pointer', background: user.isAdmin ? accentLight : 'rgba(255,255,255,0.04)', border: `1px solid ${user.isAdmin ? accentBorder : 'rgba(255,255,255,0.08)'}`, color: user.isAdmin ? '#fca5a5' : '#4b5563', minHeight: 32 }}>
                         {togglingAdmin === user.id ? '...' : user.isAdmin ? '🛡️ Admin' : 'Kullanıcı'}
                       </button>
@@ -683,7 +770,7 @@ export default function AdminPage() {
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                   <thead>
                     <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-                      {['Kullanıcı', 'Email', 'Kredi', 'Mağaza', 'Kayıt', 'Rol', ''].map((h, i) => (
+                      {['Kullanıcı', 'Email', 'Kredi', 'Mağaza', 'Kayıt', 'Plan', 'Rol', ''].map((h, i) => (
                         <th key={i} style={{ padding: '12px 16px', textAlign: 'left', color: '#4b5563', fontSize: 11, fontWeight: 600, letterSpacing: '0.8px', textTransform: 'uppercase' }}>{h}</th>
                       ))}
                     </tr>
@@ -704,6 +791,9 @@ export default function AdminPage() {
                         <td style={{ padding: '12px 16px', color: '#6b7280', fontSize: 12 }}>{user.shopCount}</td>
                         <td style={{ padding: '12px 16px', color: '#6b7280', fontSize: 11 }}>{new Date(user.createdAt).toLocaleDateString('tr-TR')}</td>
                         <td style={{ padding: '12px 16px' }}>
+                          {user.plan && <PlanBadge plan={user.plan} />}
+                        </td>
+                        <td style={{ padding: '12px 16px' }}>
                           <button onClick={() => handleToggleAdmin(user)} disabled={togglingAdmin === user.id} style={{ padding: '3px 9px', borderRadius: 5, fontSize: 11, fontWeight: 700, cursor: togglingAdmin === user.id ? 'not-allowed' : 'pointer', background: user.isAdmin ? accentLight : 'rgba(255,255,255,0.04)', border: `1px solid ${user.isAdmin ? accentBorder : 'rgba(255,255,255,0.08)'}`, color: user.isAdmin ? '#fca5a5' : '#4b5563' }}>
                             {togglingAdmin === user.id ? '...' : user.isAdmin ? '🛡️ Admin' : 'Kullanıcı'}
                           </button>
@@ -716,7 +806,7 @@ export default function AdminPage() {
                         </td>
                       </tr>
                     ))}
-                    {filteredUsers.length === 0 && <tr><td colSpan={7} style={{ padding: 32, textAlign: 'center', color: '#4b5563', fontSize: 13 }}>Sonuç bulunamadı</td></tr>}
+                    {filteredUsers.length === 0 && <tr><td colSpan={8} style={{ padding: 32, textAlign: 'center', color: '#4b5563', fontSize: 13 }}>Sonuç bulunamadı</td></tr>}
                   </tbody>
                 </table>
               </div>

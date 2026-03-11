@@ -1,0 +1,2 @@
+-- Add ADMIN_GIFT to CreditType enum
+ALTER TYPE "CreditType" ADD VALUE IF NOT EXISTS 'ADMIN_GIFT';

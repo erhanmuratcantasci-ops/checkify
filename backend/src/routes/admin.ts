@@ -1,6 +1,7 @@
 import { Router, Response } from 'express';
 import prisma from '../lib/prisma';
 import { adminJwt, AdminRequest } from '../middleware/adminAuth';
+import { PlanType } from '../../generated/prisma';
 
 const router = Router();
 
@@ -78,13 +79,60 @@ router.post('/users/:id/credits', adminJwt, async (req: AdminRequest, res: Respo
       data: {
         userId: id,
         amount,
-        type: isWhatsapp ? 'WHATSAPP_PURCHASE' : (amount > 0 ? 'PURCHASE' : 'USAGE'),
+        type: 'ADMIN_GIFT',
         description: description || `Admin tarafından ${amount > 0 ? 'yüklendi' : 'düşüldü'}: ${amount} ${isWhatsapp ? 'WhatsApp' : 'SMS'} kredi`,
       },
     }),
   ]);
 
   res.json({ user, message: `${amount} ${isWhatsapp ? 'WhatsApp' : 'SMS'} kredi ${amount > 0 ? 'eklendi' : 'düşüldü'}` });
+});
+
+// PATCH /admin/users/:id/plan — kullanıcının planını güncelle
+router.patch('/users/:id/plan', adminJwt, async (req: AdminRequest, res: Response): Promise<void> => {
+  const id = parseInt(req.params['id'] as string);
+  if (isNaN(id)) { res.status(400).json({ error: 'Geçersiz id' }); return; }
+
+  const { plan, billingCycle, expiresAt } = req.body as {
+    plan?: string;
+    billingCycle?: 'monthly' | 'yearly';
+    expiresAt?: string | null;
+  };
+
+  const validPlans = ['FREE', 'STARTER', 'PRO', 'BUSINESS'];
+  if (!plan || !validPlans.includes(plan)) {
+    res.status(400).json({ error: 'Geçersiz plan. FREE, STARTER, PRO veya BUSINESS olmalı.' });
+    return;
+  }
+
+  const planType = plan as PlanType;
+  const cycle = billingCycle || 'monthly';
+
+  // Calculate expiry if not provided
+  let expiry: Date | null = null;
+  if (expiresAt) {
+    expiry = new Date(expiresAt);
+  } else if (planType !== 'FREE') {
+    const now = new Date();
+    expiry = new Date(now);
+    expiry.setDate(expiry.getDate() + (cycle === 'yearly' ? 365 : 30));
+  }
+
+  const target = await prisma.user.findUnique({ where: { id }, select: { id: true } });
+  if (!target) { res.status(404).json({ error: 'Kullanıcı bulunamadı' }); return; }
+
+  const [user] = await prisma.$transaction([
+    prisma.user.update({
+      where: { id },
+      data: { plan: planType, billingCycle: cycle, planExpiresAt: expiry },
+      select: { id: true, email: true, name: true, plan: true, billingCycle: true, planExpiresAt: true },
+    }),
+    prisma.subscription.create({
+      data: { userId: id, plan: planType, billingCycle: cycle, expiresAt: expiry },
+    }),
+  ]);
+
+  res.json({ user, message: `Plan ${planType} olarak güncellendi` });
 });
 
 // GET /admin/users/:id — kullanıcı detayı

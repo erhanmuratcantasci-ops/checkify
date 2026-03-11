@@ -60,6 +60,7 @@ enum CreditType {
   PURCHASE
   USAGE
   WHATSAPP_PURCHASE
+  ADMIN_GIFT
 }
 
 model Shop {
