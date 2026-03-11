@@ -8,7 +8,8 @@ import { useIsMobile } from '@/hooks/useIsMobile';
 const API = process.env.NEXT_PUBLIC_API_URL ?? 'https://checkify-production.up.railway.app';
 
 function getAdminToken() {
-  return document.cookie.split('; ').find(r => r.startsWith('adminToken='))?.split('=')[1] ?? null;
+  const entry = document.cookie.split('; ').find(r => r.startsWith('adminToken='));
+  return entry ? entry.slice('adminToken='.length) : null;
 }
 function authHeaders() {
   return { 'Content-Type': 'application/json', Authorization: `Bearer ${getAdminToken()}` };
@@ -167,10 +168,11 @@ export default function AdminPage() {
   const [orderSearch, setOrderSearch] = useState('');
 
   const [creditTarget, setCreditTarget] = useState<AdminUser | null>(null);
-  const [creditAmount, setCreditAmount] = useState('');
-  const [creditDesc, setCreditDesc] = useState('');
-  const [creditSaving, setCreditSaving] = useState(false);
-  const [creditType, setCreditType] = useState<'sms' | 'whatsapp'>('sms');
+  const [creditSmsAmt, setCreditSmsAmt] = useState('');
+  const [creditWpAmt, setCreditWpAmt] = useState('');
+  const [creditNote, setCreditNote] = useState('');
+  const [creditSmsSaving, setCreditSmsSaving] = useState(false);
+  const [creditWpSaving, setCreditWpSaving] = useState(false);
   const [detailUserTransactions, setDetailUserTransactions] = useState<AdminTransaction[]>([]);
 
   const [detailPlanValue, setDetailPlanValue] = useState('FREE');
@@ -220,24 +222,29 @@ export default function AdminPage() {
       .finally(() => setLoading(false));
   })(); }, [router]);
 
-  async function handleAddCredits(e: React.FormEvent) {
-    e.preventDefault();
+  async function handleAddCredit(type: 'sms' | 'whatsapp') {
     if (!creditTarget) return;
-    const amount = parseInt(creditAmount);
-    if (!amount || isNaN(amount)) { showToast('Geçerli bir miktar girin', 'error'); return; }
-    setCreditSaving(true);
+    const rawAmt = type === 'sms' ? creditSmsAmt : creditWpAmt;
+    const amount = parseInt(rawAmt);
+    if (!rawAmt || isNaN(amount) || amount === 0) { showToast('Geçerli bir miktar girin', 'error'); return; }
+    if (type === 'sms') setCreditSmsSaving(true); else setCreditWpSaving(true);
     try {
       const res = await fetch(`${API}/admin/users/${creditTarget.id}/credits`, {
         method: 'POST', headers: authHeaders(),
-        body: JSON.stringify({ amount, description: creditDesc || undefined, creditType }),
+        body: JSON.stringify({ amount, creditType: type, description: creditNote || undefined }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Hata oluştu');
-      setUsers(prev => prev.map(u => u.id === creditTarget.id ? { ...u, smsCredits: data.user.smsCredits, whatsappCredits: data.user.whatsappCredits } : u));
-      showToast(`${amount > 0 ? '+' : ''}${amount} ${creditType === 'whatsapp' ? 'WhatsApp' : 'SMS'} kredi yüklendi`, 'success');
-      setCreditTarget(null); setCreditAmount(''); setCreditDesc(''); setCreditType('sms');
-    } catch (err) { showToast(err instanceof Error ? err.message : 'Hata oluştu', 'error'); }
-    finally { setCreditSaving(false); }
+      setUsers(prev => prev.map(u => u.id === creditTarget!.id ? { ...u, smsCredits: data.user.smsCredits, whatsappCredits: data.user.whatsappCredits } : u));
+      setCreditTarget(prev => prev ? { ...prev, smsCredits: data.user.smsCredits, whatsappCredits: data.user.whatsappCredits } : prev);
+      if (type === 'sms') setCreditSmsAmt(''); else setCreditWpAmt('');
+      showToast(`${amount > 0 ? '+' : ''}${amount} ${type === 'whatsapp' ? 'WhatsApp' : 'SMS'} kredi güncellendi`, 'success');
+    } catch (err) {
+      console.error('[credit]', err);
+      showToast(err instanceof Error ? err.message : 'Hata oluştu', 'error');
+    } finally {
+      if (type === 'sms') setCreditSmsSaving(false); else setCreditWpSaving(false);
+    }
   }
 
   async function handleToggleAdmin(user: AdminUser) {
@@ -286,19 +293,26 @@ export default function AdminPage() {
 
   async function handleUpdatePlan() {
     if (!detailUser) return;
+    const token = getAdminToken();
+    console.log('[plan] token present:', !!token, '| user:', detailUser.id, '| plan:', detailPlanValue);
     setDetailPlanSaving(true);
     try {
       const res = await fetch(`${API}/admin/users/${detailUser.id}/plan`, {
-        method: 'PATCH', headers: authHeaders(),
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ plan: detailPlanValue, billingCycle: detailCycleValue, expiresAt: detailExpiresValue || null }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Hata oluştu');
-      setDetailUser(prev => prev ? { ...prev, plan: data.user.plan } : prev);
-      setUsers(prev => prev.map(u => u.id === detailUser.id ? { ...u, plan: data.user.plan } : u));
-      showToast(`Plan ${data.user.plan} olarak güncellendi`, 'success');
-    } catch (err) { showToast(err instanceof Error ? err.message : 'Hata oluştu', 'error'); }
-    finally { setDetailPlanSaving(false); }
+      let data: { error?: string; user?: { plan: string } } = {};
+      try { data = await res.json(); } catch { /* non-JSON response */ }
+      console.log('[plan] response:', res.status, data);
+      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+      setDetailUser(prev => prev ? { ...prev, plan: data.user!.plan } : prev);
+      setUsers(prev => prev.map(u => u.id === detailUser.id ? { ...u, plan: data.user!.plan } : u));
+      showToast(`Plan ${data.user!.plan} olarak güncellendi`, 'success');
+    } catch (err) {
+      console.error('[plan] error:', err);
+      showToast(err instanceof Error ? err.message : 'Hata oluştu', 'error');
+    } finally { setDetailPlanSaving(false); }
   }
 
   async function openOrderDetail(order: AdminOrder) {
@@ -439,43 +453,6 @@ export default function AdminPage() {
 
       {/* ── Modals ── */}
 
-      {creditTarget && (
-        <div onClick={() => setCreditTarget(null)} style={modalOverlay}>
-          <div onClick={e => e.stopPropagation()} style={modalBox('rgba(5,150,105,0.25)')}>
-            <ModalHeader title="Kredi Yükle" onClose={() => setCreditTarget(null)} />
-            <div style={{ padding: '14px 20px 20px' }}>
-              <p style={{ color: '#6b7280', fontSize: 13, margin: '0 0 16px' }}>
-                {creditTarget.name || creditTarget.email} — SMS: <strong style={{ color: '#34d399' }}>{creditTarget.smsCredits}</strong> · WP: <strong style={{ color: '#4ade80' }}>{creditTarget.whatsappCredits}</strong>
-              </p>
-              <form onSubmit={handleAddCredits} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                <div>
-                  <label style={{ display: 'block', color: '#9ca3af', fontSize: 13, marginBottom: 6 }}>Kredi Türü</label>
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    {(['sms', 'whatsapp'] as const).map(t => (
-                      <button key={t} type="button" onClick={() => setCreditType(t)} style={{ flex: 1, padding: '9px', borderRadius: 8, border: '1px solid', borderColor: creditType === t ? (t === 'whatsapp' ? 'rgba(37,211,102,0.5)' : 'rgba(5,150,105,0.5)') : 'rgba(255,255,255,0.08)', background: creditType === t ? (t === 'whatsapp' ? 'rgba(37,211,102,0.15)' : 'rgba(5,150,105,0.15)') : 'transparent', color: creditType === t ? (t === 'whatsapp' ? '#4ade80' : '#34d399') : '#6b7280', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
-                        {t === 'sms' ? '📱 SMS' : '💬 WhatsApp'}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  <label style={{ display: 'block', color: '#9ca3af', fontSize: 13, marginBottom: 6 }}>Miktar <span style={{ color: '#4b5563' }}>(negatif = düş)</span></label>
-                  <input type="number" required value={creditAmount} onChange={e => setCreditAmount(e.target.value)} placeholder="100" style={inputStyle} />
-                </div>
-                <div>
-                  <label style={{ display: 'block', color: '#9ca3af', fontSize: 13, marginBottom: 6 }}>Açıklama (opsiyonel)</label>
-                  <input type="text" value={creditDesc} onChange={e => setCreditDesc(e.target.value)} placeholder="Kampanya kredisi" style={inputStyle} />
-                </div>
-                <div style={{ display: 'flex', gap: 10 }}>
-                  <button type="submit" disabled={creditSaving} style={{ flex: 1, padding: '12px', background: creditSaving ? 'rgba(5,150,105,0.3)' : 'linear-gradient(135deg, #059669, #10b981)', border: 'none', borderRadius: 10, color: '#fff', fontSize: 14, fontWeight: 600, cursor: creditSaving ? 'not-allowed' : 'pointer', minHeight: 44 }}>{creditSaving ? 'Yükleniyor...' : 'Yükle'}</button>
-                  <button type="button" onClick={() => { setCreditTarget(null); setCreditType('sms'); }} style={{ flex: 1, padding: '12px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, color: '#9ca3af', fontSize: 14, cursor: 'pointer', minHeight: 44 }}>İptal</button>
-                </div>
-              </form>
-            </div>
-          </div>
-        </div>
-      )}
-
       {deleteTarget && (
         <div onClick={() => !deleting && setDeleteTarget(null)} style={modalOverlay}>
           <div onClick={e => e.stopPropagation()} style={modalBox('rgba(239,68,68,0.25)')}>
@@ -530,62 +507,74 @@ export default function AdminPage() {
                   <div style={{ marginTop: 14, background: 'rgba(139,92,246,0.06)', border: '1px solid rgba(139,92,246,0.2)', borderRadius: 12, padding: '14px' }}>
                     <div style={{ color: '#a78bfa', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 12 }}>Plan Yönetimi</div>
                     {/* Plan kartları */}
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 12 }}>
-                      {([
-                        { key: 'FREE',     label: 'Free',     price: 'Ücretsiz', desc: '100 SMS/ay · 1 mağaza · Temel OTP' },
-                        { key: 'STARTER',  label: 'Starter',  price: '199₺/ay',  desc: '500 SMS/ay · 3 mağaza · WhatsApp' },
-                        { key: 'PRO',      label: 'Pro',      price: '399₺/ay',  desc: '2.000 SMS/ay · 10 mağaza · Öncelikli' },
-                        { key: 'BUSINESS', label: 'Business', price: '799₺/ay',  desc: '5.000 SMS/ay · Sınırsız · API erişimi' },
-                      ] as const).map(({ key, label, price, desc }) => {
-                        const isSelected = detailPlanValue === key;
-                        const isCurrent = detailUser.plan === key;
-                        const colors: Record<string, { border: string; bg: string; badge: string; text: string }> = {
-                          FREE:     { border: 'rgba(107,114,128,0.5)', bg: 'rgba(107,114,128,0.12)', badge: '#6b7280', text: '#9ca3af' },
-                          STARTER:  { border: 'rgba(52,211,153,0.5)',  bg: 'rgba(52,211,153,0.12)',  badge: '#34d399', text: '#34d399' },
-                          PRO:      { border: 'rgba(96,165,250,0.5)',  bg: 'rgba(96,165,250,0.12)',  badge: '#60a5fa', text: '#60a5fa' },
-                          BUSINESS: { border: 'rgba(167,139,250,0.5)', bg: 'rgba(167,139,250,0.12)', badge: '#a78bfa', text: '#a78bfa' },
-                        };
-                        const c = colors[key];
-                        return (
-                          <button
-                            key={key} type="button"
-                            onClick={() => setDetailPlanValue(key)}
-                            style={{
-                              padding: '10px 10px 8px', borderRadius: 10, textAlign: 'left', cursor: 'pointer',
-                              border: `2px solid ${isSelected ? c.border : 'rgba(255,255,255,0.07)'}`,
-                              background: isSelected ? c.bg : 'rgba(255,255,255,0.02)',
-                              outline: 'none', transition: 'border-color 0.15s',
-                            }}
-                          >
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-                              <span style={{ color: isSelected ? c.text : '#e5e7eb', fontSize: 13, fontWeight: 700 }}>{label}</span>
-                              {isCurrent && <span style={{ fontSize: 9, fontWeight: 700, color: c.badge, background: `${c.badge}20`, border: `1px solid ${c.badge}50`, borderRadius: 4, padding: '1px 5px', letterSpacing: '0.3px', textTransform: 'uppercase' }}>Mevcut</span>}
-                            </div>
-                            <div style={{ color: isSelected ? c.text : '#9ca3af', fontSize: 12, fontWeight: 700, marginBottom: 4 }}>{price}</div>
-                            <div style={{ color: '#4b5563', fontSize: 10, lineHeight: 1.4 }}>{desc}</div>
-                          </button>
-                        );
-                      })}
-                    </div>
-                    {/* Fatura dönemi + bitiş */}
-                    {detailPlanValue !== 'FREE' && (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12 }}>
-                        <div>
-                          <div style={{ color: '#6b7280', fontSize: 11, fontWeight: 600, marginBottom: 6 }}>Fatura Dönemi</div>
-                          <div style={{ display: 'flex', gap: 6 }}>
-                            {(['monthly', 'yearly'] as const).map(c => (
-                              <button key={c} type="button" onClick={() => setDetailCycleValue(c)} style={{ flex: 1, padding: '8px', borderRadius: 8, border: `1px solid ${detailCycleValue === c ? 'rgba(139,92,246,0.5)' : 'rgba(255,255,255,0.08)'}`, background: detailCycleValue === c ? 'rgba(139,92,246,0.15)' : 'transparent', color: detailCycleValue === c ? '#a78bfa' : '#6b7280', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
-                                {c === 'monthly' ? '📅 Aylık' : '🗓 Yıllık'}
-                              </button>
-                            ))}
+                    {(() => {
+                      const planCards = [
+                        { key: 'FREE',     label: 'Free',     price: 'Ücretsiz', desc: '100 SMS/ay · 1 mağaza · Temel OTP', days: 0 },
+                        { key: 'STARTER',  label: 'Starter',  price: '199₺/ay',  desc: '500 SMS/ay · 3 mağaza · WhatsApp', days: 30 },
+                        { key: 'PRO',      label: 'Pro',      price: '399₺/ay',  desc: '2.000 SMS/ay · 10 mağaza · RTO', days: 30 },
+                        { key: 'BUSINESS', label: 'Business', price: '799₺/ay',  desc: '5.000 SMS/ay · Sınırsız · API', days: 30 },
+                      ] as const;
+                      const colors: Record<string, { border: string; bg: string; badge: string; text: string }> = {
+                        FREE:     { border: 'rgba(107,114,128,0.5)', bg: 'rgba(107,114,128,0.12)', badge: '#6b7280', text: '#9ca3af' },
+                        STARTER:  { border: 'rgba(52,211,153,0.5)',  bg: 'rgba(52,211,153,0.12)',  badge: '#34d399', text: '#34d399' },
+                        PRO:      { border: 'rgba(96,165,250,0.5)',  bg: 'rgba(96,165,250,0.12)',  badge: '#60a5fa', text: '#60a5fa' },
+                        BUSINESS: { border: 'rgba(167,139,250,0.5)', bg: 'rgba(167,139,250,0.12)', badge: '#a78bfa', text: '#a78bfa' },
+                      };
+                      function calcExpiry(cycle: string) {
+                        const d = new Date(); d.setDate(d.getDate() + (cycle === 'yearly' ? 365 : 30));
+                        return d.toISOString().slice(0, 10);
+                      }
+                      return (
+                        <>
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 12 }}>
+                            {planCards.map(({ key, label, price, desc }) => {
+                              const isSelected = detailPlanValue === key;
+                              const isCurrent = detailUser.plan === key;
+                              const c = colors[key];
+                              return (
+                                <button key={key} type="button"
+                                  onClick={() => {
+                                    setDetailPlanValue(key);
+                                    if (key !== 'FREE') setDetailExpiresValue(calcExpiry(detailCycleValue));
+                                    else setDetailExpiresValue('');
+                                  }}
+                                  style={{ padding: '10px 10px 8px', borderRadius: 10, textAlign: 'left', cursor: 'pointer', border: `2px solid ${isSelected ? c.border : 'rgba(255,255,255,0.07)'}`, background: isSelected ? c.bg : 'rgba(255,255,255,0.02)', outline: 'none' }}
+                                >
+                                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                                    <span style={{ color: isSelected ? c.text : '#e5e7eb', fontSize: 13, fontWeight: 700 }}>{label}</span>
+                                    {isCurrent && <span style={{ fontSize: 9, fontWeight: 700, color: c.badge, background: `${c.badge}20`, border: `1px solid ${c.badge}50`, borderRadius: 4, padding: '1px 5px', letterSpacing: '0.3px', textTransform: 'uppercase' }}>Mevcut</span>}
+                                  </div>
+                                  <div style={{ color: isSelected ? c.text : '#9ca3af', fontSize: 12, fontWeight: 700, marginBottom: 4 }}>{price}</div>
+                                  <div style={{ color: '#4b5563', fontSize: 10, lineHeight: 1.4 }}>{desc}</div>
+                                </button>
+                              );
+                            })}
                           </div>
-                        </div>
-                        <div>
-                          <div style={{ color: '#6b7280', fontSize: 11, fontWeight: 600, marginBottom: 6 }}>Bitiş Tarihi <span style={{ color: '#374151', fontWeight: 400 }}>(boş = otomatik hesapla)</span></div>
-                          <input type="date" value={detailExpiresValue} onChange={e => setDetailExpiresValue(e.target.value)} style={{ ...inputStyle, fontSize: 12, minHeight: 38 }} />
-                        </div>
-                      </div>
-                    )}
+                          {/* Fatura dönemi + bitiş */}
+                          {detailPlanValue !== 'FREE' && (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12 }}>
+                              <div>
+                                <div style={{ color: '#6b7280', fontSize: 11, fontWeight: 600, marginBottom: 6 }}>Fatura Dönemi</div>
+                                <div style={{ display: 'flex', gap: 6 }}>
+                                  {(['monthly', 'yearly'] as const).map(c => (
+                                    <button key={c} type="button"
+                                      onClick={() => { setDetailCycleValue(c); setDetailExpiresValue(calcExpiry(c)); }}
+                                      style={{ flex: 1, padding: '8px', borderRadius: 8, border: `1px solid ${detailCycleValue === c ? 'rgba(139,92,246,0.5)' : 'rgba(255,255,255,0.08)'}`, background: detailCycleValue === c ? 'rgba(139,92,246,0.15)' : 'transparent', color: detailCycleValue === c ? '#a78bfa' : '#6b7280', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
+                                    >
+                                      {c === 'monthly' ? '📅 Aylık (30 gün)' : '🗓 Yıllık (365 gün)'}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                              <div>
+                                <div style={{ color: '#6b7280', fontSize: 11, fontWeight: 600, marginBottom: 6 }}>Bitiş Tarihi</div>
+                                <input type="date" value={detailExpiresValue} onChange={e => setDetailExpiresValue(e.target.value)} style={{ ...inputStyle, fontSize: 12, minHeight: 38 }} />
+                              </div>
+                            </div>
+                          )}
+                        </>
+                      );
+                    })()}
                     <button onClick={handleUpdatePlan} disabled={detailPlanSaving} style={{ width: '100%', padding: '11px', background: detailPlanSaving ? 'rgba(139,92,246,0.3)' : 'linear-gradient(135deg, #7c3aed, #a855f7)', border: 'none', borderRadius: 9, color: '#fff', fontSize: 13, fontWeight: 700, cursor: detailPlanSaving ? 'not-allowed' : 'pointer', minHeight: 42 }}>
                       {detailPlanSaving ? 'Kaydediliyor...' : `Planı Güncelle → ${detailPlanValue}`}
                     </button>
@@ -593,7 +582,7 @@ export default function AdminPage() {
 
                   {/* Kredi Yönetimi */}
                   <div style={{ marginTop: 10 }}>
-                    <button onClick={() => { setCreditTarget(detailUser); setCreditAmount(''); setCreditDesc(''); }} style={{ width: '100%', padding: '10px', background: 'rgba(5,150,105,0.1)', border: '1px solid rgba(5,150,105,0.25)', borderRadius: 10, color: '#34d399', fontSize: 13, fontWeight: 700, cursor: 'pointer', minHeight: 40 }}>
+                    <button onClick={() => { setCreditTarget(detailUser); setCreditSmsAmt(''); setCreditWpAmt(''); setCreditNote(''); }} style={{ width: '100%', padding: '10px', background: 'rgba(5,150,105,0.1)', border: '1px solid rgba(5,150,105,0.25)', borderRadius: 10, color: '#34d399', fontSize: 13, fontWeight: 700, cursor: 'pointer', minHeight: 40 }}>
                       + Kredi Yükle / Düş
                     </button>
                   </div>
@@ -621,6 +610,63 @@ export default function AdminPage() {
                   )}
                 </>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Credit modal — rendered AFTER user detail modal so it stacks on top */}
+      {creditTarget && (
+        <div onClick={() => setCreditTarget(null)} style={{ ...modalOverlay, zIndex: 110 }}>
+          <div onClick={e => e.stopPropagation()} style={{ ...modalBox('rgba(5,150,105,0.25)'), zIndex: 111 }}>
+            <ModalHeader title="Kredi Yönetimi" onClose={() => setCreditTarget(null)} />
+            <div style={{ padding: '14px 20px 20px' }}>
+              <p style={{ color: '#6b7280', fontSize: 13, margin: '0 0 16px', lineHeight: 1.5 }}>
+                <strong style={{ color: '#e5e7eb' }}>{creditTarget.name || creditTarget.email}</strong>
+                <br />SMS: <strong style={{ color: '#34d399' }}>{creditTarget.smsCredits}</strong> · WP: <strong style={{ color: '#4ade80' }}>{creditTarget.whatsappCredits}</strong>
+              </p>
+
+              {/* Note field shared */}
+              <div style={{ marginBottom: 14 }}>
+                <label style={{ display: 'block', color: '#9ca3af', fontSize: 12, marginBottom: 6 }}>Not (opsiyonel)</label>
+                <input type="text" value={creditNote} onChange={e => setCreditNote(e.target.value)} placeholder="Kampanya kredisi..." style={inputStyle} />
+              </div>
+
+              {/* SMS row */}
+              <div style={{ background: 'rgba(5,150,105,0.06)', border: '1px solid rgba(5,150,105,0.2)', borderRadius: 10, padding: '12px', marginBottom: 10 }}>
+                <div style={{ color: '#34d399', fontSize: 12, fontWeight: 700, marginBottom: 8 }}>📱 SMS Kredisi</div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <input
+                    type="number" value={creditSmsAmt} onChange={e => setCreditSmsAmt(e.target.value)}
+                    placeholder="Miktar (negatif = düş)" style={{ ...inputStyle, flex: 1, minHeight: 40, fontSize: 13 }}
+                  />
+                  <button
+                    onClick={() => handleAddCredit('sms')} disabled={creditSmsSaving}
+                    style={{ padding: '8px 16px', background: creditSmsSaving ? 'rgba(5,150,105,0.3)' : 'linear-gradient(135deg, #059669, #10b981)', border: 'none', borderRadius: 8, color: '#fff', fontSize: 13, fontWeight: 700, cursor: creditSmsSaving ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap', minHeight: 40 }}
+                  >
+                    {creditSmsSaving ? '...' : 'Uygula'}
+                  </button>
+                </div>
+              </div>
+
+              {/* WhatsApp row */}
+              <div style={{ background: 'rgba(37,211,102,0.06)', border: '1px solid rgba(37,211,102,0.2)', borderRadius: 10, padding: '12px', marginBottom: 14 }}>
+                <div style={{ color: '#4ade80', fontSize: 12, fontWeight: 700, marginBottom: 8 }}>💬 WhatsApp Kredisi</div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <input
+                    type="number" value={creditWpAmt} onChange={e => setCreditWpAmt(e.target.value)}
+                    placeholder="Miktar (negatif = düş)" style={{ ...inputStyle, flex: 1, minHeight: 40, fontSize: 13 }}
+                  />
+                  <button
+                    onClick={() => handleAddCredit('whatsapp')} disabled={creditWpSaving}
+                    style={{ padding: '8px 16px', background: creditWpSaving ? 'rgba(37,211,102,0.3)' : 'linear-gradient(135deg, #16a34a, #22c55e)', border: 'none', borderRadius: 8, color: '#fff', fontSize: 13, fontWeight: 700, cursor: creditWpSaving ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap', minHeight: 40 }}
+                  >
+                    {creditWpSaving ? '...' : 'Uygula'}
+                  </button>
+                </div>
+              </div>
+
+              <button onClick={() => setCreditTarget(null)} style={{ width: '100%', padding: '10px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 9, color: '#6b7280', fontSize: 13, cursor: 'pointer' }}>Kapat</button>
             </div>
           </div>
         </div>
@@ -787,7 +833,7 @@ export default function AdminPage() {
                       <button onClick={() => handleToggleAdmin(user)} disabled={togglingAdmin === user.id} style={{ padding: '6px 10px', borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: togglingAdmin === user.id ? 'not-allowed' : 'pointer', background: user.isAdmin ? accentLight : 'rgba(255,255,255,0.04)', border: `1px solid ${user.isAdmin ? accentBorder : 'rgba(255,255,255,0.08)'}`, color: user.isAdmin ? '#fca5a5' : '#4b5563', minHeight: 32 }}>
                         {togglingAdmin === user.id ? '...' : user.isAdmin ? '🛡️ Admin' : 'Kullanıcı'}
                       </button>
-                      <button onClick={() => { setCreditTarget(user); setCreditAmount(''); setCreditDesc(''); }} style={{ padding: '6px 10px', borderRadius: 6, fontSize: 11, fontWeight: 600, background: 'rgba(5,150,105,0.1)', border: '1px solid rgba(5,150,105,0.25)', color: '#34d399', cursor: 'pointer', minHeight: 32 }}>Kredi</button>
+                      <button onClick={() => { setCreditTarget(user); setCreditSmsAmt(''); setCreditWpAmt(''); setCreditNote(''); }} style={{ padding: '6px 10px', borderRadius: 6, fontSize: 11, fontWeight: 600, background: 'rgba(5,150,105,0.1)', border: '1px solid rgba(5,150,105,0.25)', color: '#34d399', cursor: 'pointer', minHeight: 32 }}>Kredi</button>
                       <button onClick={() => setDeleteTarget(user)} style={{ padding: '6px 10px', borderRadius: 6, fontSize: 11, fontWeight: 700, background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.35)', color: '#f87171', cursor: 'pointer', minHeight: 32 }}>Sil</button>
                     </div>
                   </div>
@@ -829,7 +875,7 @@ export default function AdminPage() {
                         </td>
                         <td style={{ padding: '12px 16px' }}>
                           <div style={{ display: 'flex', gap: 6 }}>
-                            <button onClick={() => { setCreditTarget(user); setCreditAmount(''); setCreditDesc(''); }} style={{ padding: '5px 10px', borderRadius: 6, fontSize: 11, fontWeight: 600, background: 'rgba(5,150,105,0.1)', border: '1px solid rgba(5,150,105,0.25)', color: '#34d399', cursor: 'pointer', whiteSpace: 'nowrap' }}>Kredi</button>
+                            <button onClick={() => { setCreditTarget(user); setCreditSmsAmt(''); setCreditWpAmt(''); setCreditNote(''); }} style={{ padding: '5px 10px', borderRadius: 6, fontSize: 11, fontWeight: 600, background: 'rgba(5,150,105,0.1)', border: '1px solid rgba(5,150,105,0.25)', color: '#34d399', cursor: 'pointer', whiteSpace: 'nowrap' }}>Kredi</button>
                             <button onClick={() => setDeleteTarget(user)} style={{ padding: '5px 10px', borderRadius: 6, fontSize: 11, fontWeight: 700, background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.35)', color: '#f87171', cursor: 'pointer' }}>Sil</button>
                           </div>
                         </td>
