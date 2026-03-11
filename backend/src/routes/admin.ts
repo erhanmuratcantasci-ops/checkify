@@ -93,19 +93,26 @@ router.get('/users/:id', adminOnly, async (req: AuthRequest, res: Response): Pro
   const id = parseInt(req.params['id'] as string);
   if (isNaN(id)) { res.status(400).json({ error: 'Geçersiz id' }); return; }
 
-  const user = await prisma.user.findUnique({
-    where: { id },
-    select: {
-      id: true, email: true, name: true, smsCredits: true, whatsappCredits: true,
-      isAdmin: true, createdAt: true, lastLoginAt: true, plan: true, planExpiresAt: true, billingCycle: true,
-      _count: { select: { shops: true } },
-      shops: { select: { _count: { select: { orders: true } } } },
-    },
-  });
+  const [user, recentTransactions] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id },
+      select: {
+        id: true, email: true, name: true, smsCredits: true, whatsappCredits: true,
+        isAdmin: true, createdAt: true, lastLoginAt: true, plan: true, planExpiresAt: true, billingCycle: true,
+        _count: { select: { shops: true } },
+        shops: { select: { _count: { select: { orders: true } } } },
+      },
+    }),
+    prisma.creditTransaction.findMany({
+      where: { userId: id },
+      orderBy: { createdAt: 'desc' },
+      take: 20,
+    }),
+  ]);
   if (!user) { res.status(404).json({ error: 'Kullanıcı bulunamadı' }); return; }
 
   const orderCount = user.shops.reduce((sum, s) => sum + s._count.orders, 0);
-  res.json({ user: { ...user, shopCount: user._count.shops, orderCount, shops: undefined, _count: undefined } });
+  res.json({ user: { ...user, shopCount: user._count.shops, orderCount, shops: undefined, _count: undefined }, transactions: recentTransactions });
 });
 
 // DELETE /admin/users/:id — kullanıcı sil

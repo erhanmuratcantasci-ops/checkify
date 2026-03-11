@@ -54,6 +54,60 @@ router.post('/add', authenticate, async (req: AuthRequest, res: Response): Promi
   res.json({ smsCredits: user.smsCredits, whatsappCredits: user.whatsappCredits, message: `${amount} ${isWhatsapp ? 'WhatsApp' : 'SMS'} kredisi eklendi` });
 });
 
+// POST /credits/extra — kullanıcının kendi satın alması (plan zorunlu)
+router.post('/extra', authenticate, async (req: AuthRequest, res: Response): Promise<void> => {
+  const { type, amount } = req.body as { type?: string; amount?: number };
+
+  if (!type || !['sms', 'whatsapp'].includes(type)) {
+    res.status(400).json({ error: "type 'sms' veya 'whatsapp' olmalı" });
+    return;
+  }
+  if (!amount || typeof amount !== 'number' || !Number.isInteger(amount) || amount < 100) {
+    res.status(400).json({ error: 'Minimum 100 adet satın alınabilir' });
+    return;
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { id: req.userId },
+    select: { plan: true, smsCredits: true, whatsappCredits: true },
+  });
+  if (!user) { res.status(404).json({ error: 'Kullanıcı bulunamadı' }); return; }
+  if (user.plan === 'FREE') {
+    res.status(403).json({ error: 'Ekstra kredi satın almak için aktif bir plan gerekli', upgrade: true });
+    return;
+  }
+
+  const unitPrice = type === 'whatsapp' ? 0.15 : 0.25;
+  const totalPrice = Math.round(amount * unitPrice * 100) / 100;
+  const isWhatsapp = type === 'whatsapp';
+
+  // Ödeme simülasyonu (iyzico entegrasyonu gelince gerçek olacak)
+  const [updatedUser] = await prisma.$transaction([
+    prisma.user.update({
+      where: { id: req.userId },
+      data: isWhatsapp ? { whatsappCredits: { increment: amount } } : { smsCredits: { increment: amount } },
+      select: { id: true, smsCredits: true, whatsappCredits: true },
+    }),
+    prisma.creditTransaction.create({
+      data: {
+        userId: req.userId!,
+        amount,
+        type: isWhatsapp ? 'WHATSAPP_PURCHASE' : 'PURCHASE',
+        description: `${amount} ${isWhatsapp ? 'WhatsApp' : 'SMS'} ekstra kredi — ${totalPrice}₺`,
+        price: totalPrice,
+      },
+    }),
+  ]);
+
+  res.json({
+    smsCredits: updatedUser.smsCredits,
+    whatsappCredits: updatedUser.whatsappCredits,
+    purchased: amount,
+    totalPrice,
+    message: `${amount} ${isWhatsapp ? 'WhatsApp' : 'SMS'} kredisi eklendi`,
+  });
+});
+
 // GET /credits/invoice/:transactionId — PDF fatura indir
 router.get('/invoice/:transactionId', authenticate, requireFeature('pdf_invoice'), async (req: AuthRequest, res: Response): Promise<void> => {
   const transactionId = parseInt(req.params['transactionId'] as string);

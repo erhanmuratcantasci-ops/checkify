@@ -18,10 +18,15 @@ type Section = 'dashboard' | 'users' | 'shops' | 'orders' | 'security';
 
 interface AdminUser {
   id: number; email: string; name: string | null;
-  smsCredits: number; isAdmin: boolean; shopCount: number;
-  createdAt: string; lastLoginAt: string | null;
+  smsCredits: number; whatsappCredits: number; isAdmin: boolean; shopCount: number;
+  createdAt: string; lastLoginAt: string | null; plan?: string;
 }
-interface AdminUserDetail extends AdminUser { orderCount: number; }
+interface AdminUserDetail extends AdminUser {
+  orderCount: number;
+}
+interface AdminTransaction {
+  id: number; amount: number; type: string; description: string; price?: number; createdAt: string;
+}
 interface AdminShop {
   id: number; name: string; shopDomain: string | null; createdAt: string;
   orderCount: number; user: { id: number; email: string; name: string | null };
@@ -148,6 +153,8 @@ export default function AdminPage() {
   const [creditAmount, setCreditAmount] = useState('');
   const [creditDesc, setCreditDesc] = useState('');
   const [creditSaving, setCreditSaving] = useState(false);
+  const [creditType, setCreditType] = useState<'sms' | 'whatsapp'>('sms');
+  const [detailUserTransactions, setDetailUserTransactions] = useState<AdminTransaction[]>([]);
 
   const [deleteTarget, setDeleteTarget] = useState<AdminUser | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -201,13 +208,13 @@ export default function AdminPage() {
     try {
       const res = await fetch(`${API}/admin/users/${creditTarget.id}/credits`, {
         method: 'POST', headers: authHeaders(),
-        body: JSON.stringify({ amount, description: creditDesc || undefined }),
+        body: JSON.stringify({ amount, description: creditDesc || undefined, creditType }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Hata oluştu');
-      setUsers(prev => prev.map(u => u.id === creditTarget.id ? { ...u, smsCredits: data.user.smsCredits } : u));
-      showToast(`${amount > 0 ? '+' : ''}${amount} kredi yüklendi`, 'success');
-      setCreditTarget(null); setCreditAmount(''); setCreditDesc('');
+      setUsers(prev => prev.map(u => u.id === creditTarget.id ? { ...u, smsCredits: data.user.smsCredits, whatsappCredits: data.user.whatsappCredits } : u));
+      showToast(`${amount > 0 ? '+' : ''}${amount} ${creditType === 'whatsapp' ? 'WhatsApp' : 'SMS'} kredi yüklendi`, 'success');
+      setCreditTarget(null); setCreditAmount(''); setCreditDesc(''); setCreditType('sms');
     } catch (err) { showToast(err instanceof Error ? err.message : 'Hata oluştu', 'error'); }
     finally { setCreditSaving(false); }
   }
@@ -242,12 +249,13 @@ export default function AdminPage() {
   }
 
   async function openUserDetail(user: AdminUser) {
-    setDetailUserLoading(true); setDetailUser(null);
+    setDetailUserLoading(true); setDetailUser(null); setDetailUserTransactions([]);
     try {
       const res = await fetch(`${API}/admin/users/${parseInt(String(user.id))}`, { headers: authHeaders() });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       setDetailUser(data.user);
+      setDetailUserTransactions(data.transactions || []);
     } catch (err) { showToast(err instanceof Error ? err.message : 'Hata oluştu', 'error'); setDetailUserLoading(false); }
     finally { setDetailUserLoading(false); }
   }
@@ -396,9 +404,19 @@ export default function AdminPage() {
             <ModalHeader title="Kredi Yükle" onClose={() => setCreditTarget(null)} />
             <div style={{ padding: '14px 20px 20px' }}>
               <p style={{ color: '#6b7280', fontSize: 13, margin: '0 0 16px' }}>
-                {creditTarget.name || creditTarget.email} — mevcut: <strong style={{ color: '#e5e7eb' }}>{creditTarget.smsCredits}</strong>
+                {creditTarget.name || creditTarget.email} — SMS: <strong style={{ color: '#34d399' }}>{creditTarget.smsCredits}</strong> · WP: <strong style={{ color: '#4ade80' }}>{creditTarget.whatsappCredits}</strong>
               </p>
               <form onSubmit={handleAddCredits} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <div>
+                  <label style={{ display: 'block', color: '#9ca3af', fontSize: 13, marginBottom: 6 }}>Kredi Türü</label>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    {(['sms', 'whatsapp'] as const).map(t => (
+                      <button key={t} type="button" onClick={() => setCreditType(t)} style={{ flex: 1, padding: '9px', borderRadius: 8, border: '1px solid', borderColor: creditType === t ? (t === 'whatsapp' ? 'rgba(37,211,102,0.5)' : 'rgba(5,150,105,0.5)') : 'rgba(255,255,255,0.08)', background: creditType === t ? (t === 'whatsapp' ? 'rgba(37,211,102,0.15)' : 'rgba(5,150,105,0.15)') : 'transparent', color: creditType === t ? (t === 'whatsapp' ? '#4ade80' : '#34d399') : '#6b7280', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+                        {t === 'sms' ? '📱 SMS' : '💬 WhatsApp'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
                 <div>
                   <label style={{ display: 'block', color: '#9ca3af', fontSize: 13, marginBottom: 6 }}>Miktar <span style={{ color: '#4b5563' }}>(negatif = düş)</span></label>
                   <input type="number" required value={creditAmount} onChange={e => setCreditAmount(e.target.value)} placeholder="100" style={inputStyle} />
@@ -409,7 +427,7 @@ export default function AdminPage() {
                 </div>
                 <div style={{ display: 'flex', gap: 10 }}>
                   <button type="submit" disabled={creditSaving} style={{ flex: 1, padding: '12px', background: creditSaving ? 'rgba(5,150,105,0.3)' : 'linear-gradient(135deg, #059669, #10b981)', border: 'none', borderRadius: 10, color: '#fff', fontSize: 14, fontWeight: 600, cursor: creditSaving ? 'not-allowed' : 'pointer', minHeight: 44 }}>{creditSaving ? 'Yükleniyor...' : 'Yükle'}</button>
-                  <button type="button" onClick={() => setCreditTarget(null)} style={{ flex: 1, padding: '12px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, color: '#9ca3af', fontSize: 14, cursor: 'pointer', minHeight: 44 }}>İptal</button>
+                  <button type="button" onClick={() => { setCreditTarget(null); setCreditType('sms'); }} style={{ flex: 1, padding: '12px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, color: '#9ca3af', fontSize: 14, cursor: 'pointer', minHeight: 44 }}>İptal</button>
                 </div>
               </form>
             </div>
@@ -456,14 +474,37 @@ export default function AdminPage() {
                   </div>
                   <InfoGrid items={[
                     { label: 'SMS Kredisi', value: detailUser.smsCredits, color: detailUser.smsCredits === 0 ? '#f87171' : detailUser.smsCredits < 10 ? '#fbbf24' : '#34d399' },
+                    { label: 'WP Kredisi', value: detailUser.whatsappCredits, color: detailUser.whatsappCredits === 0 ? '#f87171' : '#4ade80' },
                     { label: 'Mağaza', value: detailUser.shopCount },
                     { label: 'Sipariş', value: detailUser.orderCount },
+                    { label: 'Plan', value: detailUser.plan ?? 'FREE', color: '#a78bfa' },
                     { label: 'Kayıt', value: new Date(detailUser.createdAt).toLocaleDateString('tr-TR'), color: '#9ca3af' },
                   ]} />
                   <div style={{ marginTop: 10, padding: '10px 12px', background: 'rgba(255,255,255,0.02)', borderRadius: 10, border: '1px solid rgba(255,255,255,0.06)' }}>
                     <div style={{ color: '#4b5563', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>Son Giriş</div>
                     <div style={{ color: '#9ca3af', fontSize: 13 }}>{detailUser.lastLoginAt ? new Date(detailUser.lastLoginAt).toLocaleString('tr-TR') : 'Henüz giriş yapılmadı'}</div>
                   </div>
+                  {detailUserTransactions.length > 0 && (
+                    <div style={{ marginTop: 12 }}>
+                      <div style={{ color: '#4b5563', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 }}>Kredi Geçmişi (son {detailUserTransactions.length})</div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4, maxHeight: 200, overflowY: 'auto' }}>
+                        {detailUserTransactions.map(tx => (
+                          <div key={tx.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 8, padding: '8px 10px' }}>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ color: '#9ca3af', fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{tx.description}</div>
+                              <div style={{ color: '#4b5563', fontSize: 10, marginTop: 2 }}>{new Date(tx.createdAt).toLocaleDateString('tr-TR')}</div>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, marginLeft: 8 }}>
+                              {tx.price && tx.price > 0 && <span style={{ color: '#6b7280', fontSize: 11 }}>{tx.price}₺</span>}
+                              <span style={{ fontSize: 12, fontWeight: 700, color: tx.type === 'USAGE' ? '#a78bfa' : tx.type === 'WHATSAPP_PURCHASE' ? '#4ade80' : '#34d399' }}>
+                                {tx.type === 'USAGE' ? '' : '+'}{tx.amount} {tx.type === 'WHATSAPP_PURCHASE' ? 'WP' : 'SMS'}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </>
               )}
             </div>
