@@ -3,15 +3,33 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import prisma from '../lib/prisma';
 import { authenticate, AuthRequest } from '../middleware/auth';
-import { sendWelcomeEmail, sendPasswordResetEmail } from '../lib/mailer';
+import { sendWelcomeEmail, sendPasswordResetEmail, sendVerificationEmail } from '../lib/mailer';
 import crypto from 'crypto';
 import { z } from 'zod';
 import { logSecurityEvent } from '../lib/securityLog';
+import { isDisposableEmail } from '../lib/disposableEmails';
 // @ts-ignore
 import * as speakeasy from 'speakeasy';
 import * as qrcode from 'qrcode';
 
 const router = Router();
+
+
+// IP başına kayıt sayacı (in-memory, production için Redis kullan)
+const registrationAttempts = new Map<string, { count: number; resetAt: number }>();
+
+function checkIpRateLimit(ip: string): boolean {
+  const now = Date.now();
+  const dayMs = 24 * 60 * 60 * 1000;
+  const entry = registrationAttempts.get(ip);
+  if (!entry || entry.resetAt < now) {
+    registrationAttempts.set(ip, { count: 1, resetAt: now + dayMs });
+    return true;
+  }
+  if (entry.count >= 3) return false;
+  entry.count++;
+  return true;
+}
 
 const registerSchema = z.object({
   email: z.string().email('Geçerli bir email girin'),
@@ -33,6 +51,19 @@ router.post('/register', async (req: Request, res: Response): Promise<void> => {
     return;
   }
   const { email, name, password, referralCode } = parsed.data;
+
+  // IP rate limit
+  const clientIp = (req.headers['cf-connecting-ip'] || req.ip || 'unknown');
+  if (!checkIpRateLimit(clientIp)) {
+    res.status(429).json({ error: 'Günlük kayıt limitine ulaştınız. 24 saat sonra tekrar deneyin.' });
+    return;
+  }
+
+  // Disposable email engeli
+  if (isDisposableEmail(email)) {
+    res.status(400).json({ error: 'Geçici email adresleri kabul edilmemektedir.' });
+    return;
+  }
 
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) {
@@ -71,6 +102,14 @@ router.post('/register', async (req: Request, res: Response): Promise<void> => {
       expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
     },
   });
+
+  // Email doğrulama token
+  const emailVerifyToken = crypto.randomBytes(32).toString('hex');
+  await prisma.user.update({ where: { id: user.id }, data: { emailVerifyToken } });
+
+  const verifyUrl = `https://checkify-production.up.railway.app/auth/verify-email/${emailVerifyToken}`;
+  sendVerificationEmail(user.email, user.name ?? user.email, verifyUrl)
+    .catch(err => console.error('[auth] Verification email gönderilemedi:', err));
 
   sendWelcomeEmail(user.email, user.name ?? user.email)
     .catch(err => console.error('[auth] Welcome email gönderilemedi:', err));
@@ -124,6 +163,12 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
   if (!valid) {
     await logSecurityEvent(req.ip ?? 'unknown', '/auth/login', `Başarısız giriş: ${email}`);
     res.status(401).json({ error: 'Geçersiz email veya şifre' });
+    return;
+  }
+
+  // Email doğrulama kontrolü
+  if (!user.emailVerified) {
+    res.status(403).json({ error: 'Email adresinizi doğrulamanız gerekiyor. Lütfen gelen kutunuzu kontrol edin.', code: 'EMAIL_NOT_VERIFIED' });
     return;
   }
 
@@ -474,6 +519,46 @@ router.post('/2fa/verify', async (req: Request, res: Response): Promise<void> =>
     refreshToken: refreshTokenValue,
     user: { id: user.id, email: user.email, name: user.name, createdAt: user.createdAt },
   });
+});
+
+// GET /auth/verify-email/:token
+router.get('/verify-email/:token', async (req: Request, res: Response): Promise<void> => {
+  const { token } = req.params;
+  const user = await prisma.user.findFirst({ where: { emailVerifyToken: token } });
+
+  if (!user) {
+    res.redirect('https://chekkify.com/login?error=invalid_token');
+    return;
+  }
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { emailVerified: true, emailVerifyToken: null },
+  });
+
+  res.redirect('https://chekkify.com/login?verified=1');
+});
+
+// POST /auth/resend-verification
+router.post('/resend-verification', async (req: Request, res: Response): Promise<void> => {
+  const { email } = req.body as { email?: string };
+  if (!email) { res.status(400).json({ error: 'Email gerekli' }); return; }
+
+  const user = await prisma.user.findUnique({ where: { email } });
+  if (!user || user.emailVerified) {
+    res.json({ message: 'Eğer email doğrulanmamışsa yeni link gönderildi' });
+    return;
+  }
+
+  const newToken = crypto.randomBytes(32).toString('hex');
+  await prisma.user.update({ where: { id: user.id }, data: { emailVerifyToken: newToken } });
+
+  const verifyUrl = `https://checkify-production.up.railway.app/auth/verify-email/${newToken}`;
+  const { sendVerificationEmail } = await import('../lib/mailer');
+  sendVerificationEmail(user.email, user.name ?? user.email, verifyUrl)
+    .catch(err => console.error('[auth] Verification email gönderilemedi:', err));
+
+  res.json({ message: 'Doğrulama emaili gönderildi' });
 });
 
 export default router;

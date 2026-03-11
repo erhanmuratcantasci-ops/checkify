@@ -25,6 +25,8 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [emailNotVerified, setEmailNotVerified] = useState(false);
+  const [unverifiedEmail, setUnverifiedEmail] = useState('');
 
   const [require2FA, setRequire2FA] = useState(false);
   const [preAuthToken, setPreAuthToken] = useState('');
@@ -41,6 +43,7 @@ export default function LoginPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError('');
+    setEmailNotVerified(false);
     setLoading(true);
     try {
       const res = await fetch(`${API}/auth/login`, {
@@ -49,7 +52,15 @@ export default function LoginPage() {
         body: JSON.stringify({ email, password }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || t('login_error_default'));
+      if (!res.ok) {
+        if (data.code === 'EMAIL_NOT_VERIFIED') {
+          setEmailNotVerified(true);
+          setUnverifiedEmail(email);
+          setLoading(false);
+          return;
+        }
+        throw new Error(data.error || t('login_error_default'));
+      }
       if (data.require2FA) {
         setPreAuthToken(data.preAuthToken);
         setRequire2FA(true);
@@ -60,6 +71,7 @@ export default function LoginPage() {
       if (data.refreshToken) {
         document.cookie = `refreshToken=${data.refreshToken}; path=/; max-age=${7 * 24 * 3600}; SameSite=Lax`;
       }
+      setEmailNotVerified(false);
       router.push('/dashboard');
     } catch (err) {
       setError(err instanceof Error ? err.message : t('error_occurred'));
@@ -126,6 +138,18 @@ export default function LoginPage() {
         <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 20, padding: '36px 32px', backdropFilter: 'blur(10px)', boxShadow: '0 25px 50px rgba(0,0,0,0.4)' }}>
           <h1 style={{ fontSize: 22, fontWeight: 700, color: '#fff', margin: '0 0 6px', fontFamily: "'Outfit', sans-serif" }}>{t('login_welcome')}</h1>
           <p style={{ color: '#6b7280', fontSize: 14, margin: '0 0 28px' }}>{t('login_sign_in_subtitle')}</p>
+          {emailNotVerified && (
+            <div style={{ background: 'rgba(217,119,6,0.1)', border: '1px solid rgba(217,119,6,0.3)', borderRadius: 10, padding: '12px 14px', marginBottom: 20 }}>
+              <p style={{ color: '#fbbf24', fontSize: 14, margin: '0 0 8px', fontWeight: 600 }}>📧 Email adresiniz doğrulanmamış</p>
+              <p style={{ color: '#9ca3af', fontSize: 13, margin: '0 0 10px' }}>Gelen kutunuzu kontrol edin veya yeni doğrulama emaili isteyin.</p>
+              <button onClick={async () => {
+                await fetch(`${API}/auth/resend-verification`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: unverifiedEmail }) });
+                alert('Doğrulama emaili gönderildi!');
+              }} style={{ background: 'rgba(217,119,6,0.2)', border: '1px solid rgba(217,119,6,0.4)', borderRadius: 6, padding: '6px 12px', color: '#fbbf24', fontSize: 13, cursor: 'pointer', fontWeight: 600 }}>
+                Tekrar Gönder
+              </button>
+            </div>
+          )}
           {error && (
             <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 10, padding: '10px 14px', color: '#f87171', fontSize: 14, marginBottom: 20 }}>{error}</div>
           )}

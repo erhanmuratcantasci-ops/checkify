@@ -213,3 +213,34 @@ export async function sendPasswordResetEmail(
   await resend.emails.send({ from: `Chekkify <${FROM}>`, to, subject: 'Şifre Sıfırlama Talebi', html });
   console.log(`[mailer] Password reset email → ${to}`);
 }
+
+export async function sendVerificationEmail(to: string, name: string, verifyUrl: string): Promise<void> {
+  await resend.emails.send({
+    from: 'Chekkify <noreply@chekkify.com>',
+    to,
+    subject: 'Email adresinizi doğrulayın — Chekkify',
+    html: `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#0a0a14;font-family:'Segoe UI',Arial,sans-serif">
+<div style="max-width:520px;margin:40px auto;background:#13132a;border-radius:16px;border:1px solid rgba(139,92,246,0.2);overflow:hidden">
+  <div style="background:linear-gradient(135deg,#7c3aed,#a855f7);padding:32px;text-align:center">
+    <h1 style="color:#fff;margin:0;font-size:24px;font-weight:800">Chekkify</h1>
+    <p style="color:rgba(255,255,255,0.8);margin:8px 0 0;font-size:14px">COD Doğrulama Platformu</p>
+  </div>
+  <div style="padding:32px">
+    <h2 style="color:#e5e7eb;font-size:20px;margin:0 0 12px">Merhaba ${name} 👋</h2>
+    <p style="color:#9ca3af;font-size:15px;line-height:1.6;margin:0 0 24px">
+      Chekkify hesabınızı aktifleştirmek için email adresinizi doğrulamanız gerekiyor.
+    </p>
+    <div style="text-align:center;margin:28px 0">
+      <a href="${verifyUrl}" style="display:inline-block;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;text-decoration:none;padding:14px 32px;border-radius:10px;font-weight:700;font-size:15px">
+        ✅ Email Adresimi Doğrula
+      </a>
+    </div>
+    <p style="color:#6b7280;font-size:13px;text-align:center;margin:0">
+      Bu link 24 saat geçerlidir. Eğer bu işlemi siz yapmadıysanız bu emaili görmezden gelebilirsiniz.
+    </p>
+  </div>
+</div>
+</body></html>`,
+  });
+}

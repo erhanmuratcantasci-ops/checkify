@@ -13,6 +13,8 @@ model User {
   email        String    @unique
   name         String?
   password     String
+  emailVerified    Boolean   @default(false)
+  emailVerifyToken String?
   smsCredits       Int       @default(0)
   whatsappCredits  Int       @default(0)
   isAdmin      Boolean   @default(false)

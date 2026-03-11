@@ -26,7 +26,10 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  const [honeypot, setHoneypot] = useState('');
+
   async function handleSubmit(e: React.FormEvent) {
+    if (honeypot) return; // Bot tespiti
     e.preventDefault();
     setError('');
     setLoading(true);
@@ -99,6 +102,16 @@ export default function RegisterPage() {
           )}
 
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {/* Honeypot - botlar için gizli alan */}
+            <input
+              type="text"
+              name="website"
+              value={honeypot}
+              onChange={e => setHoneypot(e.target.value)}
+              style={{ display: 'none' }}
+              tabIndex={-1}
+              autoComplete="off"
+            />
             <div>
               <label style={{ display: 'block', color: '#9ca3af', fontSize: 13, fontWeight: 500, marginBottom: 8 }}>{t('register_name')}</label>
               <input type="text" required value={name} onChange={e => setName(e.target.value)} placeholder={t('register_name_placeholder')}
