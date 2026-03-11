@@ -970,6 +970,52 @@ export default function ShopsPage() {
                     </div>
                   )}
                 </div>
+
+                {/* Ön Ödeme Ayarları */}
+                <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                  <div style={{ color: '#9ca3af', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 12 }}>
+                    Ön Ödeme Teşviki
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                      <div
+                        onClick={() => updatePrepaid(shop.id, !shop.prepaidEnabled, shop.prepaidDiscount)}
+                        style={{
+                          width: 40, height: 22, borderRadius: 11,
+                          background: shop.prepaidEnabled ? '#7c3aed' : 'rgba(255,255,255,0.1)',
+                          position: 'relative', cursor: 'pointer', transition: 'background 0.2s',
+                        }}
+                      >
+                        <div style={{
+                          position: 'absolute', top: 3, left: shop.prepaidEnabled ? 21 : 3,
+                          width: 16, height: 16, borderRadius: '50%', background: '#fff',
+                          transition: 'left 0.2s',
+                        }} />
+                      </div>
+                      <span style={{ color: shop.prepaidEnabled ? '#a855f7' : '#6b7280', fontSize: 13 }}>
+                        {shop.prepaidEnabled ? 'Aktif' : 'Kapalı'}
+                      </span>
+                    </label>
+                    {shop.prepaidEnabled && (
+                      <div style={{ display: 'flex', gap: 6 }}>
+                        {[5, 10, 15].map(pct => (
+                          <button
+                            key={pct}
+                            onClick={() => updatePrepaid(shop.id, true, pct)}
+                            style={{
+                              padding: '4px 12px', borderRadius: 20, border: 'none', cursor: 'pointer', fontSize: 13,
+                              background: shop.prepaidDiscount === pct ? 'rgba(139,92,246,0.3)' : 'rgba(255,255,255,0.05)',
+                              color: shop.prepaidDiscount === pct ? '#a855f7' : '#6b7280',
+                            }}
+                          >
+                            %{pct}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    {prepaidSaving[shop.id] && <span style={{ color: '#6b7280', fontSize: 12 }}>Kaydediliyor...</span>}
+                  </div>
+                </div>
               </div>
             ))}
           </div>

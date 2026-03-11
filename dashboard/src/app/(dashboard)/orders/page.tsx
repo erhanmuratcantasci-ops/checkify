@@ -303,6 +303,8 @@ export default function OrdersPage() {
   const [selectedOrder, setSelectedOrder] = useState<OrderDetail | null>(null);
   const [loadingDetail, setLoadingDetail] = useState<number | null>(null);
   const [search, setSearch] = useState('');
+  const [prepaidLoading, setPrepaidLoading] = useState<Record<number, boolean>>({});
+  const [prepaidUrls, setPrepaidUrls] = useState<Record<number, string>>({});
 
   const STATUS_LABELS: Record<string, string> = {
     PENDING: t('orders_status_pending'),
@@ -342,6 +344,20 @@ export default function OrdersPage() {
     } finally {
       setLoadingDetail(null);
     }
+  }
+
+  async function getPrepaidLink(orderId: number) {
+    setPrepaidLoading(prev => ({ ...prev, [orderId]: true }));
+    const token = document.cookie.split('; ').find(r => r.startsWith('token='))?.split('=')[1];
+    const res = await fetch(`${API}/orders/${orderId}/prepaid-link`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const data = await res.json();
+    if (data.prepaidUrl) {
+      setPrepaidUrls(prev => ({ ...prev, [orderId]: data.prepaidUrl }));
+    }
+    setPrepaidLoading(prev => ({ ...prev, [orderId]: false }));
   }
 
   function handleOrderUpdate(updated: OrderDetail) {
@@ -445,6 +461,30 @@ export default function OrdersPage() {
                   <div style={{ color: '#4b5563', fontSize: 12, marginTop: 6 }}>
                     {new Date(order.createdAt).toLocaleDateString('tr-TR')}
                   </div>
+                  {order.status === 'PENDING' && (
+                    <div style={{ marginTop: 6 }}>
+                      {prepaidUrls[order.id] ? (
+                        <div style={{
+                          fontSize: 11, color: '#a855f7', wordBreak: 'break-all',
+                          background: 'rgba(139,92,246,0.1)', padding: '4px 8px', borderRadius: 6,
+                        }}>
+                          💳 {prepaidUrls[order.id]}
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => getPrepaidLink(order.id)}
+                          disabled={prepaidLoading[order.id]}
+                          style={{
+                            padding: '4px 10px', borderRadius: 6, border: '1px solid rgba(139,92,246,0.3)',
+                            background: 'rgba(139,92,246,0.08)', color: '#a855f7',
+                            fontSize: 12, cursor: 'pointer',
+                          }}
+                        >
+                          {prepaidLoading[order.id] ? '...' : '💳 Ön Ödeme'}
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -481,18 +521,44 @@ export default function OrdersPage() {
                         {new Date(order.createdAt).toLocaleDateString('tr-TR')}
                       </td>
                       <td style={{ padding: '14px 20px' }}>
-                        <button
-                          onClick={() => openDetail(order.id)}
-                          disabled={isLoadingThis}
-                          style={{
-                            padding: '6px 14px', borderRadius: 7, fontSize: 12, fontWeight: 600,
-                            background: 'rgba(139,92,246,0.12)', border: '1px solid rgba(139,92,246,0.25)',
-                            color: isLoadingThis ? '#6b7280' : '#a78bfa',
-                            cursor: isLoadingThis ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap',
-                          }}
-                        >
-                          {isLoadingThis ? '...' : t('edit')}
-                        </button>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                          <button
+                            onClick={() => openDetail(order.id)}
+                            disabled={isLoadingThis}
+                            style={{
+                              padding: '6px 14px', borderRadius: 7, fontSize: 12, fontWeight: 600,
+                              background: 'rgba(139,92,246,0.12)', border: '1px solid rgba(139,92,246,0.25)',
+                              color: isLoadingThis ? '#6b7280' : '#a78bfa',
+                              cursor: isLoadingThis ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap',
+                            }}
+                          >
+                            {isLoadingThis ? '...' : t('edit')}
+                          </button>
+                          {order.status === 'PENDING' && (
+                            <div style={{ marginTop: 6 }}>
+                              {prepaidUrls[order.id] ? (
+                                <div style={{
+                                  fontSize: 11, color: '#a855f7', wordBreak: 'break-all',
+                                  background: 'rgba(139,92,246,0.1)', padding: '4px 8px', borderRadius: 6,
+                                }}>
+                                  💳 {prepaidUrls[order.id]}
+                                </div>
+                              ) : (
+                                <button
+                                  onClick={() => getPrepaidLink(order.id)}
+                                  disabled={prepaidLoading[order.id]}
+                                  style={{
+                                    padding: '4px 10px', borderRadius: 6, border: '1px solid rgba(139,92,246,0.3)',
+                                    background: 'rgba(139,92,246,0.08)', color: '#a855f7',
+                                    fontSize: 12, cursor: 'pointer',
+                                  }}
+                                >
+                                  {prepaidLoading[order.id] ? '...' : '💳 Ön Ödeme'}
+                                </button>
+                              )}
+                            </div>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   );
