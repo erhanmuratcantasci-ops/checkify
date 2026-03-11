@@ -96,7 +96,7 @@ router.get('/users/:id', adminOnly, async (req: AuthRequest, res: Response): Pro
       id: true, email: true, name: true, smsCredits: true,
       isAdmin: true, createdAt: true, lastLoginAt: true,
       _count: { select: { shops: true } },
-      shops: { include: { _count: { select: { orders: true } } } },
+      shops: { select: { _count: { select: { orders: true } } } },
     },
   });
   if (!user) { res.status(404).json({ error: 'Kullanıcı bulunamadı' }); return; }
