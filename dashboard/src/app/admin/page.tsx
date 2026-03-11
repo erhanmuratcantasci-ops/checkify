@@ -5,14 +5,17 @@ import { useRouter } from 'next/navigation';
 import { useToast } from '@/components/Toast';
 import { useIsMobile } from '@/hooks/useIsMobile';
 
-const API = process.env.NEXT_PUBLIC_API_URL ?? 'https://checkify-production.up.railway.app';
+// Hardcoded Railway URL — admin panel bypasses NEXT_PUBLIC_API_URL
+// because that env var may point to api.chekkify.com (DNS not ready)
+const API = 'https://checkify-production.up.railway.app';
 
 function getAdminToken() {
   const entry = document.cookie.split('; ').find(r => r.startsWith('adminToken='));
   return entry ? entry.slice('adminToken='.length) : null;
 }
 function authHeaders() {
-  return { 'Content-Type': 'application/json', Authorization: `Bearer ${getAdminToken()}` };
+  const token = getAdminToken();
+  return { 'Content-Type': 'application/json', Authorization: `Bearer ${token ?? ''}` };
 }
 
 type Section = 'dashboard' | 'users' | 'shops' | 'orders' | 'security';
@@ -200,23 +203,24 @@ export default function AdminPage() {
 
     // Verify admin token — only redirect on explicit 401/403, not on network errors
     try {
+      console.log('[admin] verifying token at', API);
       const meRes = await fetch(`${API}/admin-auth/me`, { headers: authHeaders() });
+      console.log('[admin] /admin-auth/me status:', meRes.status);
       if (meRes.status === 401 || meRes.status === 403) {
         router.push('/admin/login'); return;
       }
     } catch (e) {
-      // Network error or Railway down — log and continue, token might still be valid
       console.warn('[admin] /admin-auth/me unreachable, proceeding with stored token', e);
     }
 
     Promise.all([
-      fetch(`${API}/admin/users`, { headers: authHeaders() }),
-      fetch(`${API}/admin/stats`, { headers: authHeaders() }),
-      fetch(`${API}/admin/shops`, { headers: authHeaders() }),
-      fetch(`${API}/admin/orders`, { headers: authHeaders() }),
-      fetch(`${API}/admin/security-logs`, { headers: authHeaders() }),
+      fetch(`${API}/admin/users`, { headers: authHeaders() }).catch(e => { console.error('[admin] /users', e); return new Response('{}', { status: 500 }); }),
+      fetch(`${API}/admin/stats`, { headers: authHeaders() }).catch(e => { console.error('[admin] /stats', e); return new Response('{}', { status: 500 }); }),
+      fetch(`${API}/admin/shops`, { headers: authHeaders() }).catch(e => { console.error('[admin] /shops', e); return new Response('{}', { status: 500 }); }),
+      fetch(`${API}/admin/orders`, { headers: authHeaders() }).catch(e => { console.error('[admin] /orders', e); return new Response('{}', { status: 500 }); }),
+      fetch(`${API}/admin/security-logs`, { headers: authHeaders() }).catch(e => { console.error('[admin] /security-logs', e); return new Response('{}', { status: 500 }); }),
     ]).then(async ([uRes, sRes, shRes, oRes, secRes]) => {
-      // Only redirect to login on auth failure, not other errors
+      console.log('[admin] data responses:', uRes.status, sRes.status, shRes.status, oRes.status, secRes.status);
       if (uRes.status === 401 || uRes.status === 403) { router.push('/admin/login'); return; }
       const [uData, sData, shData, oData, secData] = await Promise.all([uRes.json(), sRes.json(), shRes.json(), oRes.json(), secRes.json()]);
       setUsers(uData.users || []);
