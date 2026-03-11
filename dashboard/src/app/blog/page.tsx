@@ -98,13 +98,17 @@ export default function BlogPage() {
       {/* Footer */}
       <footer style={{
         borderTop: '1px solid rgba(255,255,255,0.06)',
-        padding: '24px',
-        textAlign: 'center',
-        color: '#4b5563', fontSize: 13,
-        position: 'relative', zIndex: 1,
-        marginTop: 60,
+        padding: '24px 40px',
+        display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+        position: 'relative', zIndex: 1, flexWrap: 'wrap', gap: 12, marginTop: 60,
       }}>
-        © 2026 Chekkify. Tüm hakları saklıdır.
+        <Link href="/" style={{ textDecoration: 'none' }}><Logo size="sm" /></Link>
+        <div style={{ color: '#4b5563', fontSize: 13 }}>© 2026 Chekkify. Tüm hakları saklıdır.</div>
+        <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
+          {[['Blog', '/blog'], ['KVKK', '/kvkk'], ['Gizlilik Politikası', '/privacy'], ['Kullanım Koşulları', '/terms']].map(([l, h]) => (
+            <Link key={l} href={h} style={{ color: '#6b7280', fontSize: 13, textDecoration: 'none' }}>{l}</Link>
+          ))}
+        </div>
       </footer>
     </div>
   );

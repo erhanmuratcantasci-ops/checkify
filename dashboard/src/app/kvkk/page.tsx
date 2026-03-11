@@ -7,7 +7,7 @@ import Logo from '@/components/Logo';
 const sections = [
   {
     title: '1. Veri Sorumlusunun Kimliği',
-    text: '6698 sayılı Kişisel Verilerin Korunması Kanunu ("KVKK") kapsamında veri sorumlusu sıfatıyla Chekkify, kullanıcılarına ait kişisel verileri işlemektedir. Veri sorumlusuna destek@checkkify.com adresi üzerinden ulaşılabilir.',
+    text: '6698 sayılı Kişisel Verilerin Korunması Kanunu ("KVKK") kapsamında veri sorumlusu sıfatıyla Chekkify, kullanıcılarına ait kişisel verileri işlemektedir. Veri sorumlusuna support@chekkify.com adresi üzerinden ulaşılabilir.',
   },
   {
     title: '2. İşlenen Kişisel Veriler',
@@ -30,8 +30,12 @@ const sections = [
     text: 'KVKK\'nın 11. maddesi uyarınca; kişisel verilerinizin işlenip işlenmediğini öğrenme, işlenmişse buna ilişkin bilgi talep etme, işlenme amacını ve bunların amacına uygun kullanılıp kullanılmadığını öğrenme, yurt içinde veya yurt dışında kişisel verilerin aktarıldığı üçüncü kişileri bilme, eksik veya yanlış işlenmiş olması hâlinde bunların düzeltilmesini isteme, silinmesini veya yok edilmesini isteme, bu işlemlerin kişisel verilerin aktarıldığı üçüncü kişilere bildirilmesini isteme, münhasıran otomatik sistemler vasıtasıyla analiz edilmesi suretiyle aleyhinize bir sonucun ortaya çıkmasına itiraz etme ve kanuna aykırı olarak işlenmesi sebebiyle zarara uğramanız hâlinde zararın giderilmesini talep etme haklarına sahipsiniz.',
   },
   {
-    title: '7. Başvuru Yöntemi',
-    text: 'Yukarıda belirtilen haklarınızı kullanmak için destek@checkkify.com adresine kimliğinizi doğrulayan belgelerle birlikte yazılı başvuruda bulunabilirsiniz. Başvurularınız en geç 30 gün içinde sonuçlandırılacaktır.',
+    title: '7. Kişisel Verilerin Saklama Süreleri',
+    text: 'Kişisel verileriniz, işlenme amacının ortadan kalkmasıyla birlikte silinir, yok edilir veya anonim hâle getirilir. Hesap bilgileri hesap aktif olduğu sürece; sipariş verileri işlem tarihinden itibaren 5 yıl; SMS ve doğrulama kayıtları 2 yıl; güvenlik günlükleri 1 yıl süreyle saklanır. Yasal yükümlülük gerektiren veriler ilgili mevzuatta öngörülen süre boyunca tutulur.',
+  },
+  {
+    title: '8. Başvuru Yöntemi',
+    text: 'Yukarıda belirtilen haklarınızı kullanmak için support@chekkify.com adresine kimliğinizi doğrulayan belgelerle birlikte yazılı başvuruda bulunabilirsiniz. Başvurularınız en geç 30 gün içinde sonuçlandırılacaktır.',
   },
 ];
 
@@ -71,10 +75,33 @@ export default function KVKKPage() {
         <div style={{ marginTop: 48, padding: '24px', background: '#0f0f18', border: '1px solid #1a1a2e', borderRadius: 14 }}>
           <p style={{ color: '#9ca3af', fontSize: 14, margin: 0, lineHeight: 1.7 }}>
             KVKK başvurularınız için:{' '}
-            <a href="mailto:destek@checkkify.com" style={{ color: '#a855f7', textDecoration: 'none' }}>destek@checkkify.com</a>
+            <a href="mailto:support@chekkify.com" style={{ color: '#a855f7', textDecoration: 'none' }}>support@chekkify.com</a>
+          </p>
+        </div>
+
+        <div style={{ marginTop: 40, padding: '20px 24px', background: 'rgba(139,92,246,0.05)', border: '1px solid rgba(139,92,246,0.12)', borderRadius: 14 }}>
+          <p style={{ color: '#6b7280', fontSize: 13, margin: 0, lineHeight: 1.7 }}>
+            İlgili sayfalar:{' '}
+            <Link href="/privacy" style={{ color: '#a855f7', textDecoration: 'none', marginRight: 16 }}>Gizlilik Politikası</Link>
+            <Link href="/terms" style={{ color: '#a855f7', textDecoration: 'none' }}>Kullanım Koşulları</Link>
           </p>
         </div>
       </main>
+
+      <footer style={{
+        borderTop: '1px solid rgba(255,255,255,0.06)',
+        padding: '24px 40px',
+        display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+        position: 'relative', zIndex: 1, flexWrap: 'wrap', gap: 12,
+      }}>
+        <Link href="/" style={{ textDecoration: 'none' }}><Logo size="sm" /></Link>
+        <div style={{ color: '#4b5563', fontSize: 13 }}>© 2026 Chekkify. Tüm hakları saklıdır.</div>
+        <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
+          {[['Blog', '/blog'], ['KVKK', '/kvkk'], ['Gizlilik Politikası', '/privacy'], ['Kullanım Koşulları', '/terms']].map(([l, h]) => (
+            <Link key={l} href={h} style={{ color: '#6b7280', fontSize: 13, textDecoration: 'none' }}>{l}</Link>
+          ))}
+        </div>
+      </footer>
     </div>
   );
 }

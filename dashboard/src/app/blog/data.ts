@@ -172,6 +172,131 @@ Eğer SMS gelmiyorsa kontrol edin:
 
 Destek için: destek@chekkify.com`,
   },
+  {
+    slug: 'whatsapp-cod-dogrulama',
+    title: "WhatsApp ile COD Doğrulama: SMS'ten Farkı Nedir?",
+    date: '2026-03-08',
+    readTime: '6 dk okuma',
+    excerpt: "WhatsApp mesajlarının SMS'e kıyasla açılma oranı %98'e ulaşıyor. Peki COD doğrulamada WhatsApp kullanmak gerçekten fark yaratır mı? Her iki kanalın avantaj ve dezavantajlarını karşılaştırıyoruz.",
+    content: `## Neden WhatsApp?
+
+Türkiye'de akıllı telefon kullanıcılarının büyük çoğunluğu WhatsApp'ı günlük iletişim aracı olarak kullanıyor. Bu durum, WhatsApp mesajlarının SMS'e kıyasla çok daha hızlı okunmasını sağlıyor.
+
+Araştırmalar gösteriyor ki:
+- WhatsApp mesaj açılma oranı: **%98**
+- SMS açılma oranı: **%85**
+- WhatsApp yanıt süresi: Ortalama **4 dakika**
+- SMS yanıt süresi: Ortalama **11 dakika**
+
+## SMS'in Avantajları
+
+Her yenilik, her zaman mevcut sistemin yerini almaz. SMS'in hâlâ güçlü olduğu alanlar var:
+
+**1. Evrensel erişim:** Akıllı telefon yoksa veya internet bağlantısı zayıfsa bile SMS çalışır.
+
+**2. Maliyet:** SMS gönderimi genellikle WhatsApp'tan biraz daha ucuzdur.
+
+**3. Kurumsal güven:** Bazı kullanıcılar bilinmeyen WhatsApp numaralarından gelen mesajları spam olarak algılar; SMS'e daha çok güvenir.
+
+## WhatsApp'ın Avantajları
+
+**1. Zengin içerik:** Logo, formatlı metin ve butonlar kullanılabilir (Twilio API'siyle).
+
+**2. Yüksek görünürlük:** WhatsApp bildirimleri telefonda öncelikli gösterilir.
+
+**3. İki yönlü iletişim:** Müşteri doğrudan yanıt verebilir.
+
+**4. Okuma bildirimi:** Mesajın okunup okunmadığını anlayabilirsiniz.
+
+## Chekkify'da İki Kanal Birlikte
+
+Chekkify Pro ve Business planlarında bildirim kanalını **"Her İkisi"** olarak ayarlayabilirsiniz. Bu durumda:
+
+1. Önce WhatsApp gönderilir
+2. WhatsApp kredisi yetersizse otomatik SMS'e geçer
+
+Bu "fallback" sistemi, hiçbir siparişin onay almadan kalmamasını garanti eder.
+
+## Hangi Kanalı Seçmeliyim?
+
+- **Yüksek hacimli mağaza (500+ sipariş/ay):** Her ikisini birden deneyin, hangisinin daha iyi onay oranı verdiğine bakın.
+- **Düşük hacimli mağaza:** SMS ile başlayın, Pro plana geçince WhatsApp ekleyin.
+- **Genç müşteri kitlesine sahip mağaza:** WhatsApp ilk tercih olabilir.
+
+## Ücretsiz Başla
+
+Chekkify'ı ücretsiz deneyin. Starter ve Pro planlarıyla WhatsApp entegrasyonunu birkaç tıklamayla aktif edin.`,
+  },
+  {
+    slug: 'chekkify-plan-karsilastirma',
+    title: 'Chekkify Plan Karşılaştırması: Hangi Plan Size Uygun?',
+    date: '2026-03-10',
+    readTime: '5 dk okuma',
+    excerpt: 'Ücretsizden Business\'a 4 farklı plan. Hangi plan kaç SMS içeriyor, hangi özellikler dahil? Mağaza büyüklüğünüze göre doğru planı seçmek için bu rehberi okuyun.',
+    content: `## Chekkify Plan Yapısı
+
+Chekkify'ın 4 planı, farklı büyüklükteki mağazalara göre tasarlanmıştır. Her plan bir öncekinin özelliklerini kapsar ve ek özellikler ekler.
+
+## Ücretsiz Plan — Başlangıç için ideal
+
+- 1 mağaza
+- 50 SMS/ay (kredi)
+- SMS Doğrulama
+- OTP Kodu Doğrulama
+- **Fiyat: 0₺**
+
+Yeni başlayan, düşük hacimli veya sistemi test etmek isteyen mağazalar için mükemmel. Kredi kartı gerekmez.
+
+## Starter Plan — Büyüyen mağazalar için
+
+- 3 mağaza
+- 300 SMS/ay
+- PDF Fatura
+- Telefon Kara Listesi
+- Tüm ücretsiz plan özellikleri
+- **Fiyat: 99₺/ay | 79₺/ay (yıllık)**
+
+Birden fazla mağaza işleten veya PDF faturaya ihtiyaç duyan satıcılar için ideal. Yıllık ödemede aylık ~20₺ tasarruf edersiniz.
+
+## Pro Plan — En Popüler
+
+- 10 mağaza
+- 1.000 SMS/ay
+- WhatsApp Bildirimi
+- RTO Analizi
+- Posta Kodu Engeli
+- Tüm Starter özellikleri
+- **Fiyat: 249₺/ay | 199₺/ay (yıllık)**
+
+Orta-büyük mağazalar için en dengeli seçim. WhatsApp ve RTO analizi, iade oranını ciddi ölçüde düşürür. Yıllık ödemede aylık ~50₺ tasarruf.
+
+## Business Plan — Büyük operasyonlar için
+
+- Sınırsız mağaza
+- 3.000 SMS/ay
+- Öncelikli Müşteri Desteği
+- Tüm Pro özellikleri
+- **Fiyat: 499₺/ay | 399₺/ay (yıllık)**
+
+Birden fazla marka veya sınırsız mağaza kapasitesi gerektiren e-ticaret operasyonları için. Yıllık ödemede aylık ~100₺ tasarruf.
+
+## Hangi Planı Seçmeli?
+
+| Aylık Sipariş | Önerilen Plan |
+|---|---|
+| 0–50 | Ücretsiz |
+| 50–300 | Starter |
+| 300–1.000 | Pro |
+| 1.000+ | Business |
+
+## Yıllık mı, Aylık mı?
+
+Her iki seçenek de mevcut. Yıllık ödeme tercih ederseniz her planda %20 indirim uygulanır. Deneme aşamasındaysanız aylık, uzun vadeli kullanımda yıllık daha avantajlı.
+
+## Ücretsiz Başla
+
+Herhangi bir planı risksiz deneyin. Ücretsiz planla başlayın, mağazanız büyüdükçe yükseltin.`,
+  },
 ];
 
 export function getPost(slug: string): BlogPost | undefined {

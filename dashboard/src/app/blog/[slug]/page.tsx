@@ -142,10 +142,31 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
           </ul>
         </div>
 
+        {/* CTA */}
+        <div style={{
+          marginTop: 56, padding: '32px', textAlign: 'center',
+          background: 'rgba(139,92,246,0.08)', border: '1px solid rgba(139,92,246,0.25)',
+          borderRadius: 20,
+        }}>
+          <div style={{ fontSize: 22, fontWeight: 800, margin: '0 0 8px' }}>Chekkify&apos;ı Ücretsiz Deneyin</div>
+          <p style={{ color: '#9ca3af', fontSize: 15, margin: '0 0 20px', lineHeight: 1.6 }}>
+            50 SMS kredisiyle başlayın, kredi kartı gerekmez.
+          </p>
+          <Link href="/register" style={{
+            display: 'inline-block', textDecoration: 'none',
+            background: 'linear-gradient(135deg, #7c3aed, #a855f7)',
+            color: '#fff', fontSize: 15, fontWeight: 700,
+            padding: '13px 32px', borderRadius: 12,
+            boxShadow: '0 6px 20px rgba(139,92,246,0.35)',
+          }}>
+            Ücretsiz Başla →
+          </Link>
+        </div>
+
         {/* Navigation */}
         <div style={{
           display: 'grid', gridTemplateColumns: prev && next ? '1fr 1fr' : '1fr',
-          gap: 12, marginTop: 60, paddingTop: 36,
+          gap: 12, marginTop: 40, paddingTop: 36,
           borderTop: '1px solid rgba(255,255,255,0.06)',
         }}>
           {prev && (
@@ -172,6 +193,21 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
           )}
         </div>
       </main>
+
+      <footer style={{
+        borderTop: '1px solid rgba(255,255,255,0.06)',
+        padding: '24px 40px',
+        display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+        position: 'relative', zIndex: 1, flexWrap: 'wrap', gap: 12,
+      }}>
+        <Link href="/" style={{ textDecoration: 'none' }}><Logo size="sm" /></Link>
+        <div style={{ color: '#4b5563', fontSize: 13 }}>© 2026 Chekkify. Tüm hakları saklıdır.</div>
+        <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
+          {[['Blog', '/blog'], ['KVKK', '/kvkk'], ['Gizlilik Politikası', '/privacy'], ['Kullanım Koşulları', '/terms']].map(([l, h]) => (
+            <Link key={l} href={h} style={{ color: '#6b7280', fontSize: 13, textDecoration: 'none' }}>{l}</Link>
+          ))}
+        </div>
+      </footer>
     </div>
   );
 }

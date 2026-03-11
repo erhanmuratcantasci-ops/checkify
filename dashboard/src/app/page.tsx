@@ -19,6 +19,19 @@ export default function LandingPage() {
     { q: t('landing_faq_q2'), a: t('landing_faq_a2') },
     { q: t('landing_faq_q3'), a: t('landing_faq_a3') },
     { q: t('landing_faq_q4'), a: t('landing_faq_a4') },
+    { q: t('landing_faq_q5'), a: t('landing_faq_a5') },
+    { q: t('landing_faq_q6'), a: t('landing_faq_a6') },
+    { q: t('landing_faq_q7'), a: t('landing_faq_a7') },
+    { q: t('landing_faq_q8'), a: t('landing_faq_a8') },
+  ];
+
+  const features = [
+    { icon: '💬', title: 'SMS & WhatsApp Doğrulama', desc: 'Her sipariş için müşteriye otomatik SMS veya WhatsApp mesajı gönderilir. Mağaza bazında kanal seçimi.' },
+    { icon: '🔐', title: 'OTP Kodu Güvenliği', desc: '6 haneli tek kullanımlık kod ile kimlik doğrulama. 3 yanlış denemede otomatik kilitlenme.' },
+    { icon: '📊', title: 'RTO Analizi', desc: '30 günlük iade trendi, RTO oranı ve en çok iptal yapan numaraların maskeli listesi.' },
+    { icon: '🚫', title: 'Otomatik Kara Liste', desc: 'Tekrar iptal yapan müşteriler ve şüpheli numaralar otomatik olarak engellenir.' },
+    { icon: '📮', title: 'Posta Kodu Kuralı', desc: 'Belirli bölge veya posta kodlarından gelen siparişleri otomatik filtreleyin.' },
+    { icon: '🏷️', title: 'Shopify Tag Entegrasyonu', desc: 'Onaylanan/iptal edilen siparişler otomatik olarak Shopify\'da etiketlenir.' },
   ];
 
   const steps = [
@@ -154,6 +167,31 @@ export default function LandingPage() {
                 WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
               }}>{val}</div>
               <div style={{ color: '#6b7280', fontSize: isMobile ? 12 : 13, marginTop: 4 }}>{label}</div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* FEATURES */}
+      <section style={{ maxWidth: 1100, margin: '0 auto', padding: isMobile ? '40px 16px' : '64px 24px', position: 'relative', zIndex: 1 }}>
+        <div style={{ textAlign: 'center', marginBottom: isMobile ? 28 : 44 }}>
+          <h2 style={{ fontSize: isMobile ? 28 : 48, fontWeight: 800, margin: '0 0 10px', letterSpacing: '-0.5px' }}>Her şey dahil</h2>
+          <p style={{ color: '#6b7280', fontSize: isMobile ? 15 : 18, margin: 0 }}>COD siparişleri için ihtiyacınız olan tüm araçlar tek platformda.</p>
+        </div>
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)',
+          gap: isMobile ? 12 : 20,
+        }}>
+          {features.map((f) => (
+            <div key={f.title} style={{
+              background: '#0f0f18', border: '1px solid #1a1a2e', borderRadius: 18,
+              padding: isMobile ? '20px 18px' : '28px 24px',
+              transition: 'border-color 0.2s',
+            }}>
+              <div style={{ fontSize: 32, marginBottom: 14 }}>{f.icon}</div>
+              <h3 style={{ fontSize: 17, fontWeight: 700, margin: '0 0 8px', color: '#e5e7eb' }}>{f.title}</h3>
+              <p style={{ color: '#6b7280', fontSize: 14, lineHeight: 1.7, margin: 0 }}>{f.desc}</p>
             </div>
           ))}
         </div>
@@ -326,9 +364,9 @@ export default function LandingPage() {
         <div style={{ display: 'flex', gap: isMobile ? 16 : 24, flexWrap: 'wrap' }}>
           {[
             ['Blog', '/blog'],
-            [t('landing_privacy'), '/gizlilik'],
             [t('landing_kvkk'), '/kvkk'],
-            [t('landing_contact'), '/iletisim'],
+            [t('landing_privacy'), '/privacy'],
+            [t('landing_terms'), '/terms'],
           ].map(([label, href]) => (
             <Link key={label} href={href} style={{ color: '#6b7280', fontSize: 13, textDecoration: 'none' }}>{label}</Link>
           ))}
