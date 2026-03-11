@@ -875,6 +875,83 @@ export default function ShopsPage() {
                     </div>
                   )}
                 </div>
+
+                {/* Blocked Postal Codes */}
+                <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: 16 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: postalOpen[shop.id] ? 12 : 0 }}>
+                    <div>
+                      <label style={{ ...sectionLabel, marginBottom: 0 }}>Engellenen Posta Kodları</label>
+                      {!postalOpen[shop.id] && (
+                        <p style={{ color: '#9ca3af', fontSize: 13, margin: '4px 0 0' }}>
+                          {blockedPostalCodes[shop.id]?.length
+                            ? `${blockedPostalCodes[shop.id].length} posta kodu engellendi`
+                            : 'Engellenen posta kodu yok'}
+                        </p>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => togglePostalSection(shop.id)}
+                      style={{
+                        background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)',
+                        borderRadius: 8, padding: '8px 16px', color: '#f87171', fontSize: 13, cursor: 'pointer', whiteSpace: 'nowrap', marginLeft: 16,
+                      }}
+                    >
+                      {postalOpen[shop.id] ? t('close') : t('manage')}
+                    </button>
+                  </div>
+
+                  {postalOpen[shop.id] && (
+                    <div>
+                      {/* Add postal code */}
+                      <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+                        <input
+                          value={newPostalCode[shop.id] ?? ''}
+                          onChange={e => setNewPostalCode(prev => ({ ...prev, [shop.id]: e.target.value }))}
+                          onKeyDown={e => { if (e.key === 'Enter') addPostalCode(shop.id); }}
+                          placeholder="34xxx"
+                          style={{ ...inputStyle, flex: 1 }}
+                        />
+                        <button
+                          onClick={() => addPostalCode(shop.id)}
+                          disabled={postalLoading[shop.id]}
+                          style={{
+                            background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)',
+                            borderRadius: 8, padding: '10px 16px', color: '#f87171', fontSize: 13,
+                            fontWeight: 600, cursor: postalLoading[shop.id] ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {postalLoading[shop.id] ? '...' : 'Ekle'}
+                        </button>
+                      </div>
+
+                      {/* List */}
+                      {(blockedPostalCodes[shop.id] ?? []).length === 0 ? (
+                        <p style={{ color: '#4b5563', fontSize: 13, margin: 0 }}>Engellenen posta kodu yok</p>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                          {(blockedPostalCodes[shop.id] ?? []).map(b => (
+                            <div key={b.id} style={{
+                              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                              background: 'rgba(239,68,68,0.05)', border: '1px solid rgba(239,68,68,0.15)',
+                              borderRadius: 8, padding: '8px 14px',
+                            }}>
+                              <span style={{ color: '#f87171', fontSize: 13, fontFamily: 'monospace' }}>{b.postalCode}</span>
+                              <button
+                                onClick={() => removePostalCode(shop.id, b.postalCode)}
+                                style={{
+                                  background: 'none', border: 'none', color: '#6b7280',
+                                  fontSize: 16, cursor: 'pointer', lineHeight: 1, padding: '0 4px',
+                                }}
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
             ))}
           </div>
