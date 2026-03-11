@@ -53,7 +53,7 @@ router.post('/register', async (req: Request, res: Response): Promise<void> => {
   const { email, name, password, referralCode } = parsed.data;
 
   // IP rate limit
-  const clientIp = (req.headers['cf-connecting-ip'] || req.ip || 'unknown');
+  const clientIp = (Array.isArray(req.headers['cf-connecting-ip']) ? req.headers['cf-connecting-ip'][0] : req.headers['cf-connecting-ip']) || req.ip || 'unknown';
   if (!checkIpRateLimit(clientIp)) {
     res.status(429).json({ error: 'Günlük kayıt limitine ulaştınız. 24 saat sonra tekrar deneyin.' });
     return;
@@ -524,7 +524,7 @@ router.post('/2fa/verify', async (req: Request, res: Response): Promise<void> =>
 // GET /auth/verify-email/:token
 router.get('/verify-email/:token', async (req: Request, res: Response): Promise<void> => {
   const { token } = req.params;
-  const user = await prisma.user.findFirst({ where: { emailVerifyToken: token } });
+  const user = await prisma.user.findFirst({ where: { emailVerifyToken: token as string } });
 
   if (!user) {
     res.redirect('https://chekkify.com/login?error=invalid_token');
