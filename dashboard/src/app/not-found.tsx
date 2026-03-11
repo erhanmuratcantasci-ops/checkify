@@ -26,21 +26,13 @@ export default function NotFound() {
           Aradığınız sayfa mevcut değil veya taşınmış olabilir.
         </p>
         <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
-          <Link href="/" style={{
+          <Link href="/dashboard" style={{
             padding: '12px 24px', borderRadius: 10, fontSize: 14, fontWeight: 600,
             background: 'linear-gradient(135deg, #7c3aed, #a855f7)',
             color: '#fff', textDecoration: 'none',
             boxShadow: '0 4px 20px rgba(139,92,246,0.35)',
           }}>
-            Ana Sayfaya Dön
-          </Link>
-          <Link href="/dashboard" style={{
-            padding: '12px 24px', borderRadius: 10, fontSize: 14, fontWeight: 600,
-            background: 'rgba(255,255,255,0.06)',
-            border: '1px solid rgba(255,255,255,0.1)',
-            color: '#d1d5db', textDecoration: 'none',
-          }}>
-            Dashboard'a Git
+            Dashboard&apos;a Dön
           </Link>
         </div>
       </div>

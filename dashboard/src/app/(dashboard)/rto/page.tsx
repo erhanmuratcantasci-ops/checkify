@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import Navbar from '@/components/Navbar';
 import GeometricBackground from '@/components/GeometricBackground';
+import PlanUpgradeOverlay from '@/components/PlanUpgradeOverlay';
 import { useIsMobile } from '@/hooks/useIsMobile';
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://127.0.0.1:3001';
@@ -41,16 +42,21 @@ export default function RTOPage() {
     if (!token) { router.push('/login'); return; }
 
     const headers = { Authorization: `Bearer ${token}` };
-    Promise.all([
-      fetch(`${API}/orders/stats/rto`, { headers }).then(r => r.json()),
-      fetch(`${API}/plans/current`, { headers }).then(r => r.json()),
-    ])
-      .then(([rtoData, planData]) => {
-        setData(rtoData);
+    fetch(`${API}/plans/current`, { headers })
+      .then(r => r.json())
+      .then(planData => {
         const allowed = ['PRO', 'BUSINESS'].includes(planData.plan ?? '');
         setPlanAllowed(allowed);
+        if (allowed) {
+          return fetch(`${API}/orders/stats/rto`, { headers }).then(r => r.json());
+        }
+        return null;
       })
-      .catch(() => router.push('/login'))
+      .then(rtoData => { if (rtoData) setData(rtoData); })
+      .catch((err) => {
+        // Only redirect to login on auth errors
+        if (err?.status === 401 || String(err).includes('401')) router.push('/login');
+      })
       .finally(() => setLoading(false));
   }, [router]);
 
@@ -82,28 +88,7 @@ export default function RTOPage() {
         </div>
 
         {planAllowed === false && (
-          <div style={{
-            background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)',
-            borderRadius: 20, padding: '60px 40px', textAlign: 'center', marginTop: 20,
-          }}>
-            <div style={{ fontSize: 56, marginBottom: 16 }}>🔒</div>
-            <h2 style={{ color: '#fff', fontSize: 22, fontWeight: 700, margin: '0 0 8px', fontFamily: "'Syne', sans-serif" }}>
-              Pro Plan Gerekli
-            </h2>
-            <p style={{ color: '#6b7280', fontSize: 14, margin: '0 0 20px' }}>
-              RTO Analizi Pro ve Business planlarında kullanılabilir.
-            </p>
-            <button
-              onClick={() => router.push('/pricing')}
-              style={{
-                padding: '12px 28px', borderRadius: 10, border: 'none', cursor: 'pointer',
-                background: 'linear-gradient(135deg, #7c3aed, #a855f7)', color: '#fff',
-                fontSize: 14, fontWeight: 600,
-              }}
-            >
-              Planları Görüntüle →
-            </button>
-          </div>
+          <PlanUpgradeOverlay featureName="RTO Analizi" requiredPlan="PRO" />
         )}
 
         {planAllowed === true && (

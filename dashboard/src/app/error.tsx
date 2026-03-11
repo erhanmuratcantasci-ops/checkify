@@ -58,13 +58,13 @@ export default function Error({ error, reset }: { error: Error & { digest?: stri
           }}>
             Sayfayı Yenile
           </button>
-          <Link href="/" style={{
+          <Link href="/dashboard" style={{
             padding: '12px 24px', borderRadius: 10, fontSize: 14, fontWeight: 600,
             background: 'rgba(255,255,255,0.06)',
             border: '1px solid rgba(255,255,255,0.1)',
             color: '#d1d5db', textDecoration: 'none',
           }}>
-            Ana Sayfaya Dön
+            Dashboard&apos;a Dön
           </Link>
         </div>
       </div>
