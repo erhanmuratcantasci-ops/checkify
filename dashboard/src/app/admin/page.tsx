@@ -529,37 +529,66 @@ export default function AdminPage() {
                   {/* Plan Yönetimi */}
                   <div style={{ marginTop: 14, background: 'rgba(139,92,246,0.06)', border: '1px solid rgba(139,92,246,0.2)', borderRadius: 12, padding: '14px' }}>
                     <div style={{ color: '#a78bfa', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 12 }}>Plan Yönetimi</div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                      <div>
-                        <label style={{ display: 'block', color: '#9ca3af', fontSize: 12, marginBottom: 6 }}>Plan</label>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6 }}>
-                          {(['FREE', 'STARTER', 'PRO', 'BUSINESS'] as const).map(p => (
-                            <button key={p} type="button" onClick={() => setDetailPlanValue(p)} style={{ padding: '7px 4px', borderRadius: 7, border: '1px solid', borderColor: detailPlanValue === p ? 'rgba(139,92,246,0.6)' : 'rgba(255,255,255,0.08)', background: detailPlanValue === p ? 'rgba(139,92,246,0.2)' : 'transparent', color: detailPlanValue === p ? '#a78bfa' : '#6b7280', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>{p}</button>
-                          ))}
+                    {/* Plan kartları */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 12 }}>
+                      {([
+                        { key: 'FREE',     label: 'Free',     price: 'Ücretsiz', desc: '100 SMS/ay · 1 mağaza · Temel OTP' },
+                        { key: 'STARTER',  label: 'Starter',  price: '199₺/ay',  desc: '500 SMS/ay · 3 mağaza · WhatsApp' },
+                        { key: 'PRO',      label: 'Pro',      price: '399₺/ay',  desc: '2.000 SMS/ay · 10 mağaza · Öncelikli' },
+                        { key: 'BUSINESS', label: 'Business', price: '799₺/ay',  desc: '5.000 SMS/ay · Sınırsız · API erişimi' },
+                      ] as const).map(({ key, label, price, desc }) => {
+                        const isSelected = detailPlanValue === key;
+                        const isCurrent = detailUser.plan === key;
+                        const colors: Record<string, { border: string; bg: string; badge: string; text: string }> = {
+                          FREE:     { border: 'rgba(107,114,128,0.5)', bg: 'rgba(107,114,128,0.12)', badge: '#6b7280', text: '#9ca3af' },
+                          STARTER:  { border: 'rgba(52,211,153,0.5)',  bg: 'rgba(52,211,153,0.12)',  badge: '#34d399', text: '#34d399' },
+                          PRO:      { border: 'rgba(96,165,250,0.5)',  bg: 'rgba(96,165,250,0.12)',  badge: '#60a5fa', text: '#60a5fa' },
+                          BUSINESS: { border: 'rgba(167,139,250,0.5)', bg: 'rgba(167,139,250,0.12)', badge: '#a78bfa', text: '#a78bfa' },
+                        };
+                        const c = colors[key];
+                        return (
+                          <button
+                            key={key} type="button"
+                            onClick={() => setDetailPlanValue(key)}
+                            style={{
+                              padding: '10px 10px 8px', borderRadius: 10, textAlign: 'left', cursor: 'pointer',
+                              border: `2px solid ${isSelected ? c.border : 'rgba(255,255,255,0.07)'}`,
+                              background: isSelected ? c.bg : 'rgba(255,255,255,0.02)',
+                              outline: 'none', transition: 'border-color 0.15s',
+                            }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                              <span style={{ color: isSelected ? c.text : '#e5e7eb', fontSize: 13, fontWeight: 700 }}>{label}</span>
+                              {isCurrent && <span style={{ fontSize: 9, fontWeight: 700, color: c.badge, background: `${c.badge}20`, border: `1px solid ${c.badge}50`, borderRadius: 4, padding: '1px 5px', letterSpacing: '0.3px', textTransform: 'uppercase' }}>Mevcut</span>}
+                            </div>
+                            <div style={{ color: isSelected ? c.text : '#9ca3af', fontSize: 12, fontWeight: 700, marginBottom: 4 }}>{price}</div>
+                            <div style={{ color: '#4b5563', fontSize: 10, lineHeight: 1.4 }}>{desc}</div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {/* Fatura dönemi + bitiş */}
+                    {detailPlanValue !== 'FREE' && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12 }}>
+                        <div>
+                          <div style={{ color: '#6b7280', fontSize: 11, fontWeight: 600, marginBottom: 6 }}>Fatura Dönemi</div>
+                          <div style={{ display: 'flex', gap: 6 }}>
+                            {(['monthly', 'yearly'] as const).map(c => (
+                              <button key={c} type="button" onClick={() => setDetailCycleValue(c)} style={{ flex: 1, padding: '8px', borderRadius: 8, border: `1px solid ${detailCycleValue === c ? 'rgba(139,92,246,0.5)' : 'rgba(255,255,255,0.08)'}`, background: detailCycleValue === c ? 'rgba(139,92,246,0.15)' : 'transparent', color: detailCycleValue === c ? '#a78bfa' : '#6b7280', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+                                {c === 'monthly' ? '📅 Aylık' : '🗓 Yıllık'}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                        <div>
+                          <div style={{ color: '#6b7280', fontSize: 11, fontWeight: 600, marginBottom: 6 }}>Bitiş Tarihi <span style={{ color: '#374151', fontWeight: 400 }}>(boş = otomatik hesapla)</span></div>
+                          <input type="date" value={detailExpiresValue} onChange={e => setDetailExpiresValue(e.target.value)} style={{ ...inputStyle, fontSize: 12, minHeight: 38 }} />
                         </div>
                       </div>
-                      {detailPlanValue !== 'FREE' && (
-                        <>
-                          <div>
-                            <label style={{ display: 'block', color: '#9ca3af', fontSize: 12, marginBottom: 6 }}>Fatura Dönemi</label>
-                            <div style={{ display: 'flex', gap: 6 }}>
-                              {(['monthly', 'yearly'] as const).map(c => (
-                                <button key={c} type="button" onClick={() => setDetailCycleValue(c)} style={{ flex: 1, padding: '7px', borderRadius: 7, border: '1px solid', borderColor: detailCycleValue === c ? 'rgba(139,92,246,0.5)' : 'rgba(255,255,255,0.08)', background: detailCycleValue === c ? 'rgba(139,92,246,0.15)' : 'transparent', color: detailCycleValue === c ? '#a78bfa' : '#6b7280', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
-                                  {c === 'monthly' ? 'Aylık' : 'Yıllık'}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                          <div>
-                            <label style={{ display: 'block', color: '#9ca3af', fontSize: 12, marginBottom: 6 }}>Bitiş Tarihi <span style={{ color: '#4b5563' }}>(boş = otomatik)</span></label>
-                            <input type="date" value={detailExpiresValue} onChange={e => setDetailExpiresValue(e.target.value)} style={{ ...inputStyle, fontSize: 12, minHeight: 38 }} />
-                          </div>
-                        </>
-                      )}
-                      <button onClick={handleUpdatePlan} disabled={detailPlanSaving} style={{ padding: '10px', background: detailPlanSaving ? 'rgba(139,92,246,0.3)' : 'linear-gradient(135deg, #7c3aed, #a855f7)', border: 'none', borderRadius: 8, color: '#fff', fontSize: 13, fontWeight: 700, cursor: detailPlanSaving ? 'not-allowed' : 'pointer', minHeight: 40 }}>
-                        {detailPlanSaving ? 'Kaydediliyor...' : 'Planı Güncelle'}
-                      </button>
-                    </div>
+                    )}
+                    <button onClick={handleUpdatePlan} disabled={detailPlanSaving} style={{ width: '100%', padding: '11px', background: detailPlanSaving ? 'rgba(139,92,246,0.3)' : 'linear-gradient(135deg, #7c3aed, #a855f7)', border: 'none', borderRadius: 9, color: '#fff', fontSize: 13, fontWeight: 700, cursor: detailPlanSaving ? 'not-allowed' : 'pointer', minHeight: 42 }}>
+                      {detailPlanSaving ? 'Kaydediliyor...' : `Planı Güncelle → ${detailPlanValue}`}
+                    </button>
                   </div>
 
                   {/* Kredi Yönetimi */}
