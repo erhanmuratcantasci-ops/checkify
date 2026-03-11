@@ -24,6 +24,7 @@ interface Shop {
   createdAt: string;
   prepaidEnabled: boolean;
   prepaidDiscount: number;
+  notificationChannel: string;
 }
 
 interface BlockedPhone {
@@ -339,6 +340,15 @@ export default function ShopsPage() {
       body: JSON.stringify({ prepaidEnabled: enabled, prepaidDiscount: discount }),
     });
     setPrepaidSaving(prev => ({ ...prev, [shopId]: false }));
+    loadShops();
+  }
+
+  async function updateNotificationChannel(shopId: number, channel: string) {
+    await fetch(`${API}/shops/${shopId}/notification-channel`, {
+      method: 'PATCH',
+      headers: authHeaders(),
+      body: JSON.stringify({ notificationChannel: channel }),
+    });
     loadShops();
   }
 
@@ -670,6 +680,33 @@ export default function ShopsPage() {
                     >
                       {t('copy')}
                     </button>
+                  </div>
+                </div>
+
+                {/* Bildirim Kanalı */}
+                <div style={{ marginBottom: 16, paddingBottom: 16, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                  <div style={{ color: '#9ca3af', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 10 }}>
+                    Bildirim Kanalı
+                  </div>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    {[
+                      { value: 'sms', label: '📱 SMS', color: '#a855f7' },
+                      { value: 'whatsapp', label: '💬 WhatsApp', color: '#4ade80' },
+                      { value: 'both', label: '🔀 Her İkisi', color: '#60a5fa' },
+                    ].map(opt => (
+                      <button
+                        key={opt.value}
+                        onClick={() => updateNotificationChannel(shop.id, opt.value)}
+                        style={{
+                          padding: '6px 14px', borderRadius: 20, border: 'none', cursor: 'pointer', fontSize: 13,
+                          background: shop.notificationChannel === opt.value ? `${opt.color}20` : 'rgba(255,255,255,0.05)',
+                          color: shop.notificationChannel === opt.value ? opt.color : '#6b7280',
+                          outline: shop.notificationChannel === opt.value ? `1px solid ${opt.color}40` : 'none',
+                        }}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
                   </div>
                 </div>
 

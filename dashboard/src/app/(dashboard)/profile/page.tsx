@@ -19,6 +19,8 @@ interface User {
   referralCode?: string | null;
   referredCount?: number;
   twoFactorEnabled?: boolean;
+  smsCredits?: number;
+  whatsappCredits?: number;
 }
 
 function getToken() {
@@ -223,6 +225,8 @@ export default function ProfilePage() {
               {[
                 [t('profile_created_at'), user?.createdAt ? new Date(user.createdAt).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' }) : '—'],
                 [t('profile_last_login'), user?.lastLoginAt ? new Date(user.lastLoginAt).toLocaleString('tr-TR', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : t('profile_last_login_unknown')],
+                ['SMS Kredisi', String(user?.smsCredits ?? 0)],
+                ['WhatsApp Kredisi', String(user?.whatsappCredits ?? 0)],
               ].map(([label, value]) => (
                 <div key={label} style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 10, padding: '12px 14px' }}>
                   <div style={{ color: '#4b5563', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: 4 }}>{label}</div>
