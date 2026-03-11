@@ -31,9 +31,11 @@ export default function CreditsPage() {
   const { t } = useTranslation();
   const { showToast } = useToast();
   const [credits, setCredits] = useState<number | null>(null);
+  const [whatsappCredits, setWhatsappCredits] = useState(0);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [showTooltip, setShowTooltip] = useState(false);
+  const [activeTab, setActiveTab] = useState<'sms' | 'whatsapp'>('sms');
 
   useEffect(() => {
     const token = getToken();
@@ -42,6 +44,7 @@ export default function CreditsPage() {
       .then(r => r.json())
       .then(data => {
         setCredits(data.smsCredits ?? 0);
+        setWhatsappCredits(data.whatsappCredits ?? 0);
         setTransactions(data.transactions || []);
       })
       .catch(() => router.push('/login'))
@@ -66,6 +69,26 @@ export default function CreditsPage() {
     }
   }
 
+  async function purchaseWhatsapp(amount: number) {
+    try {
+      const res = await fetch(`${API}/credits/add`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({ amount, type: 'whatsapp' }),
+      });
+      if (!res.ok) { showToast('Satın alma başarısız', 'error'); return; }
+      showToast(`${amount} WhatsApp kredisi eklendi!`, 'success');
+      const res2 = await fetch(`${API}/credits`, { headers: authHeaders() });
+      if (res2.ok) {
+        const data = await res2.json();
+        setWhatsappCredits(data.whatsappCredits ?? 0);
+        setTransactions(data.transactions || []);
+      }
+    } catch {
+      showToast('Satın alma başarısız', 'error');
+    }
+  }
+
   const pad = isMobile ? '16px' : '40px 24px';
 
   return (
@@ -85,10 +108,27 @@ export default function CreditsPage() {
           <p style={{ color: '#6b7280', fontSize: 14, margin: '4px 0 0' }}>{t('credits_subtitle')}</p>
         </div>
 
+        {/* Tab switcher */}
+        <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+          {(['sms', 'whatsapp'] as const).map(tab => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              style={{
+                padding: '8px 20px', borderRadius: 20, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 500,
+                background: activeTab === tab ? (tab === 'whatsapp' ? 'rgba(37,211,102,0.2)' : 'rgba(139,92,246,0.2)') : 'rgba(255,255,255,0.05)',
+                color: activeTab === tab ? (tab === 'whatsapp' ? '#4ade80' : '#a855f7') : '#6b7280',
+              }}
+            >
+              {tab === 'sms' ? '📱 SMS Kredileri' : '💬 WhatsApp Kredileri'}
+            </button>
+          ))}
+        </div>
+
         {/* Credit balance card */}
         <div style={{
-          background: 'rgba(139,92,246,0.06)',
-          border: '1px solid rgba(139,92,246,0.25)',
+          background: activeTab === 'whatsapp' ? 'rgba(37,211,102,0.06)' : 'rgba(139,92,246,0.06)',
+          border: `1px solid ${activeTab === 'whatsapp' ? 'rgba(37,211,102,0.25)' : 'rgba(139,92,246,0.25)'}`,
           borderRadius: 20, padding: isMobile ? '24px 20px' : '36px 32px',
           marginBottom: 20, position: 'relative', overflow: 'hidden',
           display: 'flex',
@@ -99,7 +139,9 @@ export default function CreditsPage() {
           <div style={{
             position: 'absolute', top: -60, right: -60,
             width: 200, height: 200, borderRadius: '50%',
-            background: 'radial-gradient(circle, rgba(139,92,246,0.15) 0%, transparent 70%)',
+            background: activeTab === 'whatsapp'
+              ? 'radial-gradient(circle, rgba(37,211,102,0.15) 0%, transparent 70%)'
+              : 'radial-gradient(circle, rgba(139,92,246,0.15) 0%, transparent 70%)',
             pointerEvents: 'none',
           }} />
 
@@ -112,11 +154,13 @@ export default function CreditsPage() {
             ) : (
               <div style={{
                 fontSize: isMobile ? 42 : 56, fontWeight: 900, lineHeight: 1,
-                background: 'linear-gradient(135deg, #7c3aed, #a855f7, #c084fc)',
+                background: activeTab === 'whatsapp'
+                  ? 'linear-gradient(135deg, #22c55e, #4ade80, #86efac)'
+                  : 'linear-gradient(135deg, #7c3aed, #a855f7, #c084fc)',
                 WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
                 letterSpacing: '-2px',
               }}>
-                {credits?.toLocaleString('tr-TR')}
+                {activeTab === 'whatsapp' ? whatsappCredits.toLocaleString('tr-TR') : credits?.toLocaleString('tr-TR')}
               </div>
             )}
             <div style={{ color: '#6b7280', fontSize: 13, marginTop: 6 }}>{t('credits_remaining')}</div>
@@ -124,21 +168,21 @@ export default function CreditsPage() {
 
           <div style={{ position: 'relative', flexShrink: 0, width: isMobile ? '100%' : 'auto' }}>
             <button
-              onMouseEnter={() => !isMobile && setShowTooltip(true)}
+              onMouseEnter={() => !isMobile && activeTab === 'sms' && setShowTooltip(true)}
               onMouseLeave={() => setShowTooltip(false)}
-              onClick={() => isMobile && setShowTooltip(v => !v)}
+              onClick={() => isMobile && activeTab === 'sms' && setShowTooltip(v => !v)}
               style={{
                 padding: '13px 28px',
-                background: 'rgba(139,92,246,0.15)',
-                border: '1px solid rgba(139,92,246,0.35)',
-                borderRadius: 12, color: '#a78bfa',
-                fontSize: 14, fontWeight: 600, cursor: 'not-allowed',
+                background: activeTab === 'whatsapp' ? 'rgba(37,211,102,0.15)' : 'rgba(139,92,246,0.15)',
+                border: `1px solid ${activeTab === 'whatsapp' ? 'rgba(37,211,102,0.35)' : 'rgba(139,92,246,0.35)'}`,
+                borderRadius: 12, color: activeTab === 'whatsapp' ? '#4ade80' : '#a78bfa',
+                fontSize: 14, fontWeight: 600, cursor: activeTab === 'sms' ? 'not-allowed' : 'default',
                 width: isMobile ? '100%' : 'auto', minHeight: 44,
               }}
             >
               {t('credits_buy')}
             </button>
-            {showTooltip && (
+            {showTooltip && activeTab === 'sms' && (
               <div style={{
                 position: 'absolute', bottom: 'calc(100% + 8px)', right: 0,
                 background: 'rgba(15,15,28,0.98)', border: '1px solid rgba(139,92,246,0.3)',
@@ -158,7 +202,8 @@ export default function CreditsPage() {
           </div>
         </div>
 
-        {/* Packages — 3 col desktop, 1 col mobile */}
+        {/* SMS Packages — 3 col desktop, 1 col mobile */}
+        {activeTab === 'sms' && (
         <div style={{
           display: 'grid',
           gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)',
@@ -204,6 +249,67 @@ export default function CreditsPage() {
             </div>
           ))}
         </div>
+        )}
+
+        {/* WhatsApp Packages */}
+        {activeTab === 'whatsapp' && (
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)',
+          gap: 12, marginBottom: 24,
+        }}>
+          {[
+            { label: '100 WP', amount: 100, price: '50₺', badge: null },
+            { label: '250 WP', amount: 250, price: '115₺', badge: 'Popüler' },
+            { label: '500 WP', amount: 500, price: '210₺', badge: 'Pro' },
+          ].map(pkg => (
+            <div key={pkg.label} style={{
+              background: 'rgba(37,211,102,0.03)', border: '1px solid rgba(37,211,102,0.15)',
+              borderRadius: 14, padding: isMobile ? '16px 20px' : '20px 18px',
+              textAlign: isMobile ? 'left' : 'center',
+              position: 'relative',
+              display: isMobile ? 'flex' : 'block',
+              alignItems: 'center', justifyContent: 'space-between',
+            }}>
+              {pkg.badge && !isMobile && (
+                <div style={{
+                  position: 'absolute', top: -10, left: '50%', transform: 'translateX(-50%)',
+                  background: 'linear-gradient(135deg, #22c55e, #4ade80)',
+                  borderRadius: 20, padding: '3px 10px', fontSize: 10, fontWeight: 700,
+                  color: '#fff', whiteSpace: 'nowrap',
+                }}>
+                  {pkg.badge}
+                </div>
+              )}
+              <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 12 : 0, flexDirection: isMobile ? 'row' : 'column' }}>
+                {pkg.badge && isMobile && (
+                  <span style={{
+                    background: 'linear-gradient(135deg, #22c55e, #4ade80)',
+                    borderRadius: 6, padding: '2px 8px', fontSize: 10, fontWeight: 700, color: '#fff',
+                  }}>{pkg.badge}</span>
+                )}
+                <div style={{ color: '#e5e7eb', fontSize: 16, fontWeight: 700, marginBottom: isMobile ? 0 : 4 }}>{pkg.label}</div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexDirection: isMobile ? 'row' : 'column', marginTop: isMobile ? 0 : 8 }}>
+                <div style={{ color: '#4ade80', fontSize: 20, fontWeight: 800 }}>{pkg.price}</div>
+                <button
+                  onClick={() => purchaseWhatsapp(pkg.amount)}
+                  style={{
+                    padding: isMobile ? '6px 14px' : '8px 20px',
+                    background: 'rgba(37,211,102,0.15)',
+                    border: '1px solid rgba(37,211,102,0.35)',
+                    borderRadius: 8, color: '#4ade80',
+                    fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  Satın Al
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+        )}
 
         {/* Transaction history */}
         <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 16, overflow: 'hidden' }}>

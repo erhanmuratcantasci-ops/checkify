@@ -14,6 +14,7 @@ router.get('/users', adminOnly, async (_req: AuthRequest, res: Response): Promis
       email: true,
       name: true,
       smsCredits: true,
+      whatsappCredits: true,
       isAdmin: true,
       createdAt: true,
       lastLoginAt: true,
@@ -56,7 +57,7 @@ router.post('/users/:id/credits', adminOnly, async (req: AuthRequest, res: Respo
   const id = parseInt(req.params['id'] as string);
   if (isNaN(id)) { res.status(400).json({ error: 'Geçersiz id' }); return; }
 
-  const { amount, description } = req.body as { amount?: number; description?: string };
+  const { amount, description, creditType } = req.body as { amount?: number; description?: string; creditType?: 'sms' | 'whatsapp' };
 
   if (!amount || typeof amount !== 'number' || amount === 0) {
     res.status(400).json({ error: 'Geçerli bir miktar girin' });
@@ -66,23 +67,24 @@ router.post('/users/:id/credits', adminOnly, async (req: AuthRequest, res: Respo
   const target = await prisma.user.findUnique({ where: { id }, select: { id: true } });
   if (!target) { res.status(404).json({ error: 'Kullanıcı bulunamadı' }); return; }
 
+  const isWhatsapp = creditType === 'whatsapp';
   const [user] = await prisma.$transaction([
     prisma.user.update({
       where: { id },
-      data: { smsCredits: { increment: amount } },
-      select: { id: true, email: true, name: true, smsCredits: true },
+      data: isWhatsapp ? { whatsappCredits: { increment: amount } } : { smsCredits: { increment: amount } },
+      select: { id: true, email: true, name: true, smsCredits: true, whatsappCredits: true },
     }),
     prisma.creditTransaction.create({
       data: {
         userId: id,
         amount,
-        type: amount > 0 ? 'PURCHASE' : 'USAGE',
-        description: description || `Admin tarafından ${amount > 0 ? 'yüklendi' : 'düşüldü'}: ${amount} kredi`,
+        type: isWhatsapp ? 'WHATSAPP_PURCHASE' : (amount > 0 ? 'PURCHASE' : 'USAGE'),
+        description: description || `Admin tarafından ${amount > 0 ? 'yüklendi' : 'düşüldü'}: ${amount} ${isWhatsapp ? 'WhatsApp' : 'SMS'} kredi`,
       },
     }),
   ]);
 
-  res.json({ user, message: `${amount} kredi ${amount > 0 ? 'eklendi' : 'düşüldü'}` });
+  res.json({ user, message: `${amount} ${isWhatsapp ? 'WhatsApp' : 'SMS'} kredi ${amount > 0 ? 'eklendi' : 'düşüldü'}` });
 });
 
 // GET /admin/users/:id — kullanıcı detayı
@@ -93,7 +95,7 @@ router.get('/users/:id', adminOnly, async (req: AuthRequest, res: Response): Pro
   const user = await prisma.user.findUnique({
     where: { id },
     select: {
-      id: true, email: true, name: true, smsCredits: true,
+      id: true, email: true, name: true, smsCredits: true, whatsappCredits: true,
       isAdmin: true, createdAt: true, lastLoginAt: true,
       _count: { select: { shops: true } },
       shops: { select: { _count: { select: { orders: true } } } },

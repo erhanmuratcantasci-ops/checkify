@@ -4,6 +4,7 @@ import { redisConnection, SMSJobData } from '../lib/queue';
 import { validateSMSMessage, validatePhone } from '../middleware/smsValidator';
 import { checkSmsRateLimit } from '../middleware/rateLimiter';
 import { sendLowCreditEmail } from '../lib/mailer';
+import { sendWhatsAppMessage } from '../lib/whatsapp';
 
 const LOW_CREDIT_THRESHOLD = 10;
 
@@ -20,7 +21,7 @@ async function processJob(job: Job<SMSJobData>): Promise<void> {
     where: { id: orderId },
     select: {
       shopId: true,
-      shop: { select: { userId: true, smsStartHour: true, smsEndHour: true, smsTemplate: true } },
+      shop: { select: { userId: true, smsStartHour: true, smsEndHour: true, smsTemplate: true, notificationChannel: true } },
     },
   });
 
@@ -106,37 +107,80 @@ async function processJob(job: Job<SMSJobData>): Promise<void> {
     console.log(`[SMS] Rate limit — Shop #${order.shopId} bu saat ${100 - rateCheck.remaining}/100 SMS kullandı`);
   }
 
-  await sendSMS(phone, message);
+  const channel = order?.shop.notificationChannel ?? 'sms';
 
-  // SMS logu + kredi düşümü atomik
-  if (order) {
-    const [updatedUser] = await prisma.$transaction([
-      prisma.user.update({
+  // WhatsApp gönderimi
+  if (channel === 'whatsapp' || channel === 'both') {
+    if (order) {
+      const wpUser = await prisma.user.findUnique({
         where: { id: order.shop.userId },
-        data: { smsCredits: { decrement: 1 } },
-        select: { id: true, email: true, name: true, smsCredits: true },
-      }),
-      prisma.sMSLog.create({
-        data: { phone, message, status: 'SENT', orderId },
-      }),
-      prisma.creditTransaction.create({
-        data: {
-          userId: order.shop.userId,
-          amount: -1,
-          type: 'USAGE',
-          description: `Sipariş #${orderId} için SMS gönderildi`,
-        },
-      }),
-    ]);
+        select: { id: true, whatsappCredits: true },
+      });
 
-    if (updatedUser.smsCredits < LOW_CREDIT_THRESHOLD) {
-      sendLowCreditEmail(updatedUser.email, updatedUser.name ?? updatedUser.email, updatedUser.smsCredits)
-        .catch(err => console.error('[smsWorker] Low credit email gönderilemedi:', err));
+      if (!wpUser || wpUser.whatsappCredits <= 0) {
+        console.warn(`[WhatsApp] Yetersiz kredi — Order #${orderId}, SMS'e fallback`);
+        // SMS'e fallback yap
+        await sendSMS(phone, message);
+        if (order) {
+          await prisma.$transaction([
+            prisma.user.update({
+              where: { id: order.shop.userId },
+              data: { smsCredits: { decrement: 1 } },
+              select: { id: true },
+            }),
+            prisma.sMSLog.create({ data: { phone, message, status: 'SENT', orderId } }),
+            prisma.creditTransaction.create({
+              data: { userId: order.shop.userId, amount: -1, type: 'USAGE', description: `Sipariş #${orderId} için SMS (WP fallback)` },
+            }),
+          ]);
+        }
+      } else {
+        try {
+          await sendWhatsAppMessage(phone, message);
+          await prisma.$transaction([
+            prisma.user.update({
+              where: { id: order.shop.userId },
+              data: { whatsappCredits: { decrement: 1 } },
+              select: { id: true },
+            }),
+            prisma.sMSLog.create({ data: { phone, message, status: 'SENT', orderId } }),
+            prisma.creditTransaction.create({
+              data: { userId: order.shop.userId, amount: -1, type: 'USAGE', description: `Sipariş #${orderId} için WhatsApp gönderildi` },
+            }),
+          ]);
+        } catch (err) {
+          console.error(`[WhatsApp] Gönderilemedi — Order #${orderId}:`, err);
+          await prisma.sMSLog.create({ data: { phone, message, status: 'FAILED', errorMessage: String(err), orderId } });
+          throw err;
+        }
+      }
     }
-  } else {
-    await prisma.sMSLog.create({
-      data: { phone, message, status: 'SENT', orderId },
-    });
+  }
+
+  // SMS gönderimi
+  if (channel === 'sms' || channel === 'both') {
+    await sendSMS(phone, message);
+
+    if (order) {
+      const [updatedUser] = await prisma.$transaction([
+        prisma.user.update({
+          where: { id: order.shop.userId },
+          data: { smsCredits: { decrement: 1 } },
+          select: { id: true, email: true, name: true, smsCredits: true },
+        }),
+        prisma.sMSLog.create({ data: { phone, message, status: 'SENT', orderId } }),
+        prisma.creditTransaction.create({
+          data: { userId: order.shop.userId, amount: -1, type: 'USAGE', description: `Sipariş #${orderId} için SMS gönderildi` },
+        }),
+      ]);
+
+      if (updatedUser.smsCredits < LOW_CREDIT_THRESHOLD) {
+        sendLowCreditEmail(updatedUser.email, updatedUser.name ?? updatedUser.email, updatedUser.smsCredits)
+          .catch(err => console.error('[smsWorker] Low credit email gönderilemedi:', err));
+      }
+    } else {
+      await prisma.sMSLog.create({ data: { phone, message, status: 'SENT', orderId } });
+    }
   }
 
   console.log(`[SMS] ✓ Gönderildi — Order #${orderId}, ${phone}`);

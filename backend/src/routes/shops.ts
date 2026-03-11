@@ -217,4 +217,21 @@ router.patch('/:id/prepaid', async (req: AuthRequest, res: Response): Promise<vo
   res.json({ shop: updated });
 });
 
+// PATCH /shops/:id/notification-channel
+router.patch('/:id/notification-channel', async (req: AuthRequest, res: Response): Promise<void> => {
+  const id = parseInt(req.params['id'] as string);
+  const { notificationChannel } = req.body as { notificationChannel?: string };
+
+  if (!notificationChannel || !['sms', 'whatsapp', 'both'].includes(notificationChannel)) {
+    res.status(400).json({ error: 'Geçerli kanal: sms, whatsapp, both' });
+    return;
+  }
+
+  const shop = await prisma.shop.findFirst({ where: { id, userId: req.userId! } });
+  if (!shop) { res.status(404).json({ error: 'Shop bulunamadı' }); return; }
+
+  const updated = await prisma.shop.update({ where: { id }, data: { notificationChannel } });
+  res.json({ shop: updated });
+});
+
 export default router;

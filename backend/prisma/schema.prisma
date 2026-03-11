@@ -13,7 +13,8 @@ model User {
   email        String    @unique
   name         String?
   password     String
-  smsCredits   Int       @default(0)
+  smsCredits       Int       @default(0)
+  whatsappCredits  Int       @default(0)
   isAdmin      Boolean   @default(false)
   lastLoginAt         DateTime?
   passwordResetToken  String?
@@ -47,6 +48,7 @@ model CreditTransaction {
 enum CreditType {
   PURCHASE
   USAGE
+  WHATSAPP_PURCHASE
 }
 
 model Shop {
@@ -56,7 +58,8 @@ model Shop {
   shopDomain     String?  @unique
   accessToken    String?
   webhookSecret  String?
-  smsTemplate    String?
+  smsTemplate         String?
+  notificationChannel String @default("sms")
   smsStartHour   Int      @default(9)
   smsEndHour     Int      @default(21)
   userId      Int

@@ -36,6 +36,7 @@ export default function Navbar() {
   const { t } = useTranslation();
   const [userName, setUserName] = useState<string | null>(null);
   const [smsCredits, setSmsCredits] = useState<number | null>(null);
+  const [whatsappCredits, setWhatsappCredits] = useState<number | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
@@ -48,6 +49,7 @@ export default function Navbar() {
           const u = data.user ?? data;
           setUserName(u.name ?? null);
           setSmsCredits(u.smsCredits ?? null);
+          setWhatsappCredits(u.whatsappCredits ?? null);
         }
       })
       .catch(() => null);
@@ -137,6 +139,22 @@ export default function Navbar() {
                 <span style={{ color: '#a78bfa', fontSize: 12, fontWeight: 700 }}>
                   {smsCredits.toLocaleString('tr-TR')}
                 </span>
+              </Link>
+            )}
+            {whatsappCredits !== null && (
+              <Link href="/credits" style={{
+                display: 'flex', alignItems: 'center', gap: 4,
+                textDecoration: 'none',
+                padding: '4px 10px',
+                borderRadius: 20,
+                border: '1px solid rgba(37,211,102,0.25)',
+                background: 'rgba(37,211,102,0.08)',
+              }}>
+                <span style={{ fontSize: 12 }}>💬</span>
+                <span style={{ color: '#4ade80', fontSize: 12, fontWeight: 700 }}>
+                  {whatsappCredits.toLocaleString('tr-TR')}
+                </span>
+                <span style={{ color: '#6b7280', fontSize: 11 }}>WP</span>
               </Link>
             )}
 
@@ -324,6 +342,22 @@ export default function Navbar() {
               {smsCredits.toLocaleString('tr-TR')}
             </span>
             <span style={{ color: '#6b7280', fontSize: 11 }}>{t('nav_credits_short')}</span>
+          </Link>
+        )}
+        {whatsappCredits !== null && (
+          <Link href="/credits" style={{
+            display: 'flex', alignItems: 'center', gap: 5,
+            textDecoration: 'none',
+            padding: '4px 10px',
+            borderRadius: 20,
+            border: '1px solid rgba(37,211,102,0.25)',
+            background: 'rgba(37,211,102,0.08)',
+          }}>
+            <span style={{ fontSize: 12 }}>💬</span>
+            <span style={{ color: '#4ade80', fontSize: 12, fontWeight: 700 }}>
+              {whatsappCredits.toLocaleString('tr-TR')}
+            </span>
+            <span style={{ color: '#6b7280', fontSize: 11 }}>WP</span>
           </Link>
         )}
         <LanguageSwitcher />
