@@ -4,13 +4,12 @@ import { redisConnection, SMSJobData } from '../lib/queue';
 import { validateSMSMessage, validatePhone } from '../middleware/smsValidator';
 import { checkSmsRateLimit } from '../middleware/rateLimiter';
 import { sendLowCreditEmail } from '../lib/mailer';
-import { sendWhatsAppMessage } from '../lib/whatsapp';
+import { sendSMS as vatanSendSMS, sendWhatsApp as vatanSendWhatsApp } from '../lib/vatansms';
 
 const LOW_CREDIT_THRESHOLD = 10;
 
 async function sendSMS(phone: string, message: string): Promise<void> {
-  // TODO: Netgsm entegrasyonu buraya gelecek
-  console.log(`[SMS] → ${phone}: ${message}`);
+  await vatanSendSMS(phone, message);
 }
 
 async function processJob(job: Job<SMSJobData>): Promise<void> {
@@ -136,7 +135,7 @@ async function processJob(job: Job<SMSJobData>): Promise<void> {
         }
       } else {
         try {
-          await sendWhatsAppMessage(phone, message);
+          await vatanSendWhatsApp(phone, message);
           await prisma.$transaction([
             prisma.user.update({
               where: { id: order.shop.userId },
