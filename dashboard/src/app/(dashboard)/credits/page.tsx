@@ -28,8 +28,8 @@ interface Transaction {
 
 const SMS_PRESETS = [100, 250, 500, 1000];
 const WA_PRESETS = [100, 250, 500, 1000];
-const SMS_UNIT = 0.25;
-const WA_UNIT = 0.15;
+const SMS_UNIT = 0.60;
+const WA_UNIT = 0.60;
 
 export default function CreditsPage() {
   const router = useRouter();
@@ -259,7 +259,7 @@ export default function CreditsPage() {
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
               <span style={{ fontSize: 20 }}>📱</span>
               <h2 style={{ color: '#e5e7eb', fontSize: 15, fontWeight: 700, margin: 0 }}>Ekstra SMS Kredisi</h2>
-              <span style={{ color: '#6b7280', fontSize: 12, marginLeft: 4 }}>0.25₺ / SMS</span>
+              <span style={{ color: '#6b7280', fontSize: 12, marginLeft: 4 }}>0.60₺ / SMS</span>
             </div>
             {/* Presets */}
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
@@ -329,7 +329,7 @@ export default function CreditsPage() {
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
               <span style={{ fontSize: 20 }}>💬</span>
               <h2 style={{ color: '#e5e7eb', fontSize: 15, fontWeight: 700, margin: 0 }}>Ekstra WhatsApp Kredisi</h2>
-              <span style={{ color: '#6b7280', fontSize: 12, marginLeft: 4 }}>0.15₺ / WP</span>
+              <span style={{ color: '#6b7280', fontSize: 12, marginLeft: 4 }}>0.60₺ / WP</span>
             </div>
             {/* Presets */}
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>

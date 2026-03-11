@@ -77,7 +77,7 @@ router.post('/extra', authenticate, async (req: AuthRequest, res: Response): Pro
     return;
   }
 
-  const unitPrice = type === 'whatsapp' ? 0.15 : 0.25;
+  const unitPrice = type === 'whatsapp' ? 0.60 : 0.60;
   const totalPrice = Math.round(amount * unitPrice * 100) / 100;
   const isWhatsapp = type === 'whatsapp';
 
