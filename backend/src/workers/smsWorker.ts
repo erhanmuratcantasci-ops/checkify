@@ -4,12 +4,13 @@ import { redisConnection, SMSJobData } from '../lib/queue';
 import { validateSMSMessage, validatePhone } from '../middleware/smsValidator';
 import { checkSmsRateLimit } from '../middleware/rateLimiter';
 import { sendLowCreditEmail } from '../lib/mailer';
-import { sendSMS as vatanSendSMS, sendWhatsApp as vatanSendWhatsApp } from '../lib/vatansms';
+import { sendWhatsAppMessage } from '../lib/whatsapp';
 
 const LOW_CREDIT_THRESHOLD = 10;
 
 async function sendSMS(phone: string, message: string): Promise<void> {
-  await vatanSendSMS(phone, message);
+  // TODO: SMS entegrasyonu buraya gelecek
+  console.log(`[SMS] → ${phone}: ${message}`);
 }
 
 async function processJob(job: Job<SMSJobData>): Promise<void> {
@@ -135,7 +136,7 @@ async function processJob(job: Job<SMSJobData>): Promise<void> {
         }
       } else {
         try {
-          await vatanSendWhatsApp(phone, message);
+          await sendWhatsAppMessage(phone, message);
           await prisma.$transaction([
             prisma.user.update({
               where: { id: order.shop.userId },
