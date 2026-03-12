@@ -1,29 +1,4 @@
-import { shopifyApi, ApiVersion, LogSeverity, Session } from '@shopify/shopify-api';
-import '@shopify/shopify-api/adapters/node';
-
-export { Session };
-
-export const shopify = shopifyApi({
-  apiKey: process.env['SHOPIFY_API_KEY'] || 'dummy_key',
-  apiSecretKey: process.env['SHOPIFY_API_SECRET'] || 'dummy_secret',
-  scopes: ['read_orders', 'write_orders'],
-  hostName: (process.env['HOST'] || process.env['BASE_URL'] || 'localhost').replace(/^https?:\/\//, ''),
-  apiVersion: ApiVersion.July25,
-  isEmbeddedApp: false,
-  logger: { level: LogSeverity.Warning },
-});
-
-export function makeSession(shopDomain: string, accessToken: string): Session {
-  const session = new Session({
-    id: shopDomain,
-    shop: shopDomain,
-    state: '',
-    isOnline: false,
-  });
-  session.accessToken = accessToken;
-  session.scope = 'read_orders,write_orders';
-  return session;
-}
+const SHOPIFY_API_VERSION = '2025-07';
 
 export async function addTagToOrder(
   shopDomain: string,
@@ -31,25 +6,24 @@ export async function addTagToOrder(
   shopifyOrderId: number,
   tag: string
 ): Promise<void> {
-  const client = new shopify.clients.Rest({ session: makeSession(shopDomain, accessToken) });
+  const base = `https://${shopDomain}/admin/api/${SHOPIFY_API_VERSION}`;
+  const headers: Record<string, string> = { 'Content-Type': 'application/json', 'X-Shopify-Access-Token': accessToken };
 
-  // Mevcut tag'leri oku
-  const { body } = await client.get<{ order: { tags: string } }>({
-    path: `orders/${shopifyOrderId}`,
-    query: { fields: 'id,tags' },
-  });
+  const getRes = await fetch(`${base}/orders/${shopifyOrderId}.json?fields=id,tags`, { headers });
+  const getData = await getRes.json() as { order: { tags: string } };
 
-  const existingTags = body.order.tags
-    ? body.order.tags.split(',').map((t) => t.trim()).filter(Boolean)
+  const existingTags = getData.order.tags
+    ? getData.order.tags.split(',').map((t: string) => t.trim()).filter(Boolean)
     : [];
 
-  if (existingTags.includes(tag)) return; // zaten var
+  if (existingTags.includes(tag)) return;
 
   const newTags = [...existingTags, tag].join(', ');
 
-  await client.put({
-    path: `orders/${shopifyOrderId}`,
-    data: { order: { id: shopifyOrderId, tags: newTags } },
+  await fetch(`${base}/orders/${shopifyOrderId}.json`, {
+    method: 'PUT',
+    headers,
+    body: JSON.stringify({ order: { id: shopifyOrderId, tags: newTags } }),
   });
 
   console.log(`[shopify] Tag eklendi: order #${shopifyOrderId} → "${tag}"`);
