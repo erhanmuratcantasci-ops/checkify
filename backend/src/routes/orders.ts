@@ -388,4 +388,38 @@ router.post('/:id/prepaid-link', authenticate, async (req: AuthRequest, res: Res
   });
 });
 
+
+// GET /orders/sms-logs — kullanıcının tüm SMS logları
+router.get('/sms-logs', authenticate, async (req: AuthRequest, res: Response): Promise<void> => {
+  const userId = req.userId!;
+  const page = parseInt(req.query['page'] as string) || 1;
+  const limit = parseInt(req.query['limit'] as string) || 20;
+  const status = req.query['status'] as string | undefined;
+  const skip = (page - 1) * limit;
+
+  const shops = await prisma.shop.findMany({ where: { userId }, select: { id: true } });
+  const shopIds = shops.map(s => s.id);
+
+  const orders = await prisma.order.findMany({ where: { shopId: { in: shopIds } }, select: { id: true } });
+  const orderIds = orders.map(o => o.id);
+
+  const where: any = { orderId: { in: orderIds } };
+  if (status) where.status = status;
+
+  const [logs, total] = await Promise.all([
+    prisma.sMSLog.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      skip,
+      take: limit,
+      include: {
+        order: { select: { id: true, customerName: true, customerPhone: true, shop: { select: { name: true } } } },
+      },
+    }),
+    prisma.sMSLog.count({ where }),
+  ]);
+
+  res.json({ logs, total, page, limit, totalPages: Math.ceil(total / limit) });
+});
+
 export default router;
