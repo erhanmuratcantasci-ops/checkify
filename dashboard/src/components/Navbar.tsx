@@ -113,6 +113,7 @@ export default function Navbar() {
     { href: '/credits', label: t('nav_credits'), icon: '💳' },
     { href: '/pricing', label: 'Fiyatlandırma', icon: '⭐' },
     { href: '/sms-logs', label: 'SMS Geçmişi', icon: '📋' },
+    { href: '/blocklist', label: 'Engel Listesi', icon: '🚫' },
     { href: '/profile', label: t('nav_profile'), icon: '👤' },
   ];
 
