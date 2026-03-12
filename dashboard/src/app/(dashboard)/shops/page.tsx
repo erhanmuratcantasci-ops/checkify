@@ -298,11 +298,18 @@ export default function ShopsPage() {
 
   const [prepaidSaving, setPrepaidSaving] = useState<Record<number, boolean>>({});
   const [connectingShopId, setConnectingShopId] = useState<number | null>(null);
+  const [connectingShopId, setConnectingShopId] = useState<number | null>(null);
 
   useEffect(() => {
     const token = getToken();
     if (!token) { router.push('/login'); return; }
     fetchShops();
+    const urlParams = new URLSearchParams(window.location.search);
+    const connected = urlParams.get('connected');
+    if (connected) {
+      showToast(`${decodeURIComponent(connected)} Shopify'a başarıyla bağlandı! 🎉`, 'success');
+      window.history.replaceState({}, '', '/shops');
+    }
     fetch(`${API}/plans/current`, { headers: authHeaders() }).then(r => r.json()).then(d => setUserPlan(d.plan ?? 'FREE')).catch(() => {});
 
     // OAuth callback sonrasi basari mesaji
@@ -353,6 +360,26 @@ export default function ShopsPage() {
       setShops([]);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleShopifyConnect(shop: Shop) {
+    if (!shop.shopDomain) {
+      showToast("Önce mağaza domain'i ekleyin (örn: magaza.myshopify.com)", 'error');
+      return;
+    }
+    setConnectingShopId(shop.id);
+    try {
+      const res = await fetch(
+        `${API}/shopify/install?shop=${encodeURIComponent(shop.shopDomain)}&shopId=${shop.id}`,
+        { headers: authHeaders() }
+      );
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Hata oluştu');
+      window.location.href = data.url;
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Hata oluştu', 'error');
+      setConnectingShopId(null);
     }
   }
 
