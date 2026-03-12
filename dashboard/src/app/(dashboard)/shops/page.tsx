@@ -25,6 +25,7 @@ interface Shop {
   prepaidEnabled: boolean;
   prepaidDiscount: number;
   notificationChannel: string;
+  shopifyConnected: boolean;
 }
 
 interface BlockedPhone {
@@ -267,14 +268,12 @@ export default function ShopsPage() {
   const [loading, setLoading] = useState(true);
   const [userPlan, setUserPlan] = useState<string>('FREE');
 
-  // Create modal
   const [showModal, setShowModal] = useState(false);
   const [newName, setNewName] = useState('');
   const [newDomain, setNewDomain] = useState('');
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState('');
 
-  // Per-shop UI state
   const [secretVisible, setSecretVisible] = useState<Record<number, boolean>>({});
   const [templateEdit, setTemplateEdit] = useState<Record<number, string>>({});
   const [templateOpen, setTemplateOpen] = useState<Record<number, boolean>>({});
@@ -283,33 +282,58 @@ export default function ShopsPage() {
   const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
   const [guideShop, setGuideShop] = useState<Shop | null>(null);
 
-  // Schedule state
   const [scheduleEdit, setScheduleEdit] = useState<Record<number, { start: number; end: number }>>({});
   const [scheduleOpen, setScheduleOpen] = useState<Record<number, boolean>>({});
   const [scheduleSaving, setScheduleSaving] = useState<Record<number, boolean>>({});
 
-  // Blocked phones state
   const [blockedPhones, setBlockedPhones] = useState<Record<number, BlockedPhone[]>>({});
   const [blockOpen, setBlockOpen] = useState<Record<number, boolean>>({});
   const [blockInput, setBlockInput] = useState<Record<number, string>>({});
   const [blockLoading, setBlockLoading] = useState<Record<number, boolean>>({});
 
-  // Blocked postal codes state
   const [blockedPostalCodes, setBlockedPostalCodes] = useState<Record<number, BlockedPostalCode[]>>({});
   const [postalOpen, setPostalOpen] = useState<Record<number, boolean>>({});
   const [newPostalCode, setNewPostalCode] = useState<Record<number, string>>({});
   const [postalLoading, setPostalLoading] = useState<Record<number, boolean>>({});
 
-  // Prepaid state
   const [prepaidSaving, setPrepaidSaving] = useState<Record<number, boolean>>({});
+  const [connectingShopId, setConnectingShopId] = useState<number | null>(null);
 
   useEffect(() => {
     const token = getToken();
     if (!token) { router.push('/login'); return; }
     fetchShops();
     fetch(`${API}/plans/current`, { headers: authHeaders() }).then(r => r.json()).then(d => setUserPlan(d.plan ?? 'FREE')).catch(() => {});
+
+    // OAuth callback sonrasi basari mesaji
+    const urlParams = new URLSearchParams(window.location.search);
+    const connected = urlParams.get('connected');
+    if (connected) {
+      showToast(`${decodeURIComponent(connected)} Shopify'a başarıyla bağlandı! 🎉`, 'success');
+      window.history.replaceState({}, '', '/shops');
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  async function handleShopifyConnect(shop: Shop) {
+    if (!shop.shopDomain) {
+      showToast('Önce mağaza domain\'i ekleyin (örn: magaza.myshopify.com)', 'error');
+      return;
+    }
+    setConnectingShopId(shop.id);
+    try {
+      const res = await fetch(
+        `${API}/shopify/install?shop=${encodeURIComponent(shop.shopDomain)}&shopId=${shop.id}`,
+        { headers: authHeaders() }
+      );
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Hata oluştu');
+      window.location.href = data.url;
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Hata oluştu', 'error');
+      setConnectingShopId(null);
+    }
+  }
 
   function validateTemplate(template: string): string | null {
     const found = template.match(/\{[^}]+\}/g) || [];
@@ -461,9 +485,7 @@ export default function ShopsPage() {
 
   async function toggleBlockSection(shopId: number) {
     const isOpen = blockOpen[shopId];
-    if (!isOpen && !blockedPhones[shopId]) {
-      await fetchBlocked(shopId);
-    }
+    if (!isOpen && !blockedPhones[shopId]) await fetchBlocked(shopId);
     setBlockOpen(prev => ({ ...prev, [shopId]: !isOpen }));
   }
 
@@ -491,8 +513,7 @@ export default function ShopsPage() {
 
   async function handleRemoveBlocked(shopId: number, phone: string) {
     const res = await fetch(`${API}/shops/${shopId}/blocked-phones/${encodeURIComponent(phone)}`, {
-      method: 'DELETE',
-      headers: authHeaders(),
+      method: 'DELETE', headers: authHeaders(),
     });
     if (res.ok) {
       setBlockedPhones(prev => ({ ...prev, [shopId]: (prev[shopId] ?? []).filter(b => b.phone !== phone) }));
@@ -514,9 +535,7 @@ export default function ShopsPage() {
 
   async function togglePostalSection(shopId: number) {
     const isOpen = postalOpen[shopId];
-    if (!isOpen && !blockedPostalCodes[shopId]) {
-      await loadPostalCodes(shopId);
-    }
+    if (!isOpen && !blockedPostalCodes[shopId]) await loadPostalCodes(shopId);
     setPostalOpen(prev => ({ ...prev, [shopId]: !isOpen }));
   }
 
@@ -544,8 +563,7 @@ export default function ShopsPage() {
 
   async function removePostalCode(shopId: number, postalCode: string) {
     const res = await fetch(`${API}/shops/${shopId}/blocked-postal-codes/${encodeURIComponent(postalCode)}`, {
-      method: 'DELETE',
-      headers: authHeaders(),
+      method: 'DELETE', headers: authHeaders(),
     });
     if (res.ok) {
       setBlockedPostalCodes(prev => ({ ...prev, [shopId]: (prev[shopId] ?? []).filter(b => b.postalCode !== postalCode) }));
@@ -573,7 +591,6 @@ export default function ShopsPage() {
       <Navbar />
 
       <div style={{ maxWidth: 900, margin: '0 auto', padding: '40px 24px' }}>
-        {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 32 }}>
           <div>
             <h1 style={{ color: '#fff', fontSize: 26, fontWeight: 700, margin: 0 }}>{t('shops_title')}</h1>
@@ -592,7 +609,6 @@ export default function ShopsPage() {
           </button>
         </div>
 
-        {/* Shop list */}
         {loading ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             {Array.from({ length: 2 }).map((_, i) => <SkeletonShopCard key={i} />)}
@@ -616,7 +632,28 @@ export default function ShopsPage() {
                 {/* Shop header */}
                 <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 20 }}>
                   <div>
-                    <h2 style={{ color: '#fff', fontSize: 18, fontWeight: 600, margin: 0 }}>{shop.name}</h2>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <h2 style={{ color: '#fff', fontSize: 18, fontWeight: 600, margin: 0 }}>{shop.name}</h2>
+                      {shop.shopifyConnected ? (
+                        <span style={{
+                          display: 'inline-flex', alignItems: 'center', gap: 5,
+                          background: 'rgba(74,222,128,0.1)', border: '1px solid rgba(74,222,128,0.3)',
+                          borderRadius: 20, padding: '2px 10px',
+                          color: '#4ade80', fontSize: 11, fontWeight: 600,
+                        }}>
+                          <span style={{ fontSize: 8 }}>●</span> Shopify Bağlı
+                        </span>
+                      ) : (
+                        <span style={{
+                          display: 'inline-flex', alignItems: 'center', gap: 5,
+                          background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.25)',
+                          borderRadius: 20, padding: '2px 10px',
+                          color: '#fbbf24', fontSize: 11, fontWeight: 600,
+                        }}>
+                          <span style={{ fontSize: 8 }}>●</span> Bağlı Değil
+                        </span>
+                      )}
+                    </div>
                     {shop.shopDomain && (
                       <span style={{ color: '#a78bfa', fontSize: 13, marginTop: 4, display: 'block' }}>
                         {shop.shopDomain}
@@ -624,6 +661,36 @@ export default function ShopsPage() {
                     )}
                   </div>
                   <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                    {/* Shopify Connect / Connected button */}
+                    {shop.shopifyConnected ? (
+                      <button
+                        onClick={() => handleShopifyConnect(shop)}
+                        title="Yeniden bağla"
+                        style={{
+                          background: 'rgba(74,222,128,0.08)', border: '1px solid rgba(74,222,128,0.25)',
+                          borderRadius: 8, padding: '6px 14px', color: '#4ade80', fontSize: 13,
+                          fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap',
+                        }}
+                      >
+                        ✓ Shopify Bağlı
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => handleShopifyConnect(shop)}
+                        disabled={connectingShopId === shop.id}
+                        style={{
+                          background: connectingShopId === shop.id ? 'rgba(255,255,255,0.05)' : 'rgba(74,222,128,0.12)',
+                          border: `1px solid ${connectingShopId === shop.id ? 'rgba(255,255,255,0.1)' : 'rgba(74,222,128,0.35)'}`,
+                          borderRadius: 8, padding: '6px 14px',
+                          color: connectingShopId === shop.id ? '#6b7280' : '#4ade80',
+                          fontSize: 13, fontWeight: 600,
+                          cursor: connectingShopId === shop.id ? 'not-allowed' : 'pointer',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {connectingShopId === shop.id ? 'Yönlendiriliyor...' : '🔗 Shopify\'a Bağla'}
+                      </button>
+                    )}
                     <button
                       onClick={() => setGuideShop(shop)}
                       style={{
@@ -661,6 +728,21 @@ export default function ShopsPage() {
                   </div>
                 </div>
 
+                {/* Shopify baglanmamissa uyari */}
+                {!shop.shopifyConnected && (
+                  <div style={{
+                    background: 'rgba(251,191,36,0.06)', border: '1px solid rgba(251,191,36,0.2)',
+                    borderRadius: 10, padding: '10px 14px', marginBottom: 16,
+                    display: 'flex', alignItems: 'center', gap: 10,
+                  }}>
+                    <span style={{ fontSize: 16 }}>⚠️</span>
+                    <div>
+                      <span style={{ color: '#fbbf24', fontSize: 13, fontWeight: 600 }}>Shopify bağlantısı yok</span>
+                      <span style={{ color: '#9ca3af', fontSize: 13 }}> — Siparişleri otomatik almak için &quot;Shopify&apos;a Bağla&quot; butonuna tıklayın.</span>
+                    </div>
+                  </div>
+                )}
+
                 {/* Webhook Secret */}
                 <div style={{ marginBottom: 16 }}>
                   <label style={sectionLabel}>{t('shops_webhook_secret')}</label>
@@ -685,7 +767,7 @@ export default function ShopsPage() {
                   </div>
                 </div>
 
-                {/* Bildirim Kanalı */}
+                {/* Bildirim Kanali */}
                 <div style={{ marginBottom: 16, paddingBottom: 16, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
                   <div style={{ color: '#9ca3af', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 10 }}>
                     Bildirim Kanalı
@@ -801,9 +883,7 @@ export default function ShopsPage() {
                             onChange={e => setScheduleEdit(prev => ({ ...prev, [shop.id]: { ...prev[shop.id], start: parseInt(e.target.value) } }))}
                             style={{ ...inputStyle, cursor: 'pointer' }}
                           >
-                            {hourOptions.map(h => (
-                              <option key={h} value={h}>{padHour(h)}:00</option>
-                            ))}
+                            {hourOptions.map(h => <option key={h} value={h}>{padHour(h)}:00</option>)}
                           </select>
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -813,9 +893,7 @@ export default function ShopsPage() {
                             onChange={e => setScheduleEdit(prev => ({ ...prev, [shop.id]: { ...prev[shop.id], end: parseInt(e.target.value) } }))}
                             style={{ ...inputStyle, cursor: 'pointer' }}
                           >
-                            {hourOptions.map(h => (
-                              <option key={h} value={h}>{padHour(h)}:00</option>
-                            ))}
+                            {hourOptions.map(h => <option key={h} value={h}>{padHour(h)}:00</option>)}
                           </select>
                         </div>
                       </div>
@@ -867,9 +945,7 @@ export default function ShopsPage() {
                       <label style={{ ...sectionLabel, marginBottom: 0 }}>{t('shops_blocked_phones')}</label>
                       {!blockOpen[shop.id] && (
                         <p style={{ color: '#9ca3af', fontSize: 13, margin: '4px 0 0' }}>
-                          {blockedPhones[shop.id]?.length
-                            ? `${blockedPhones[shop.id].length} ${t('shops_blocked_count')}`
-                            : t('shops_no_blocked')}
+                          {blockedPhones[shop.id]?.length ? `${blockedPhones[shop.id].length} ${t('shops_blocked_count')}` : t('shops_no_blocked')}
                         </p>
                       )}
                     </div>
@@ -883,10 +959,8 @@ export default function ShopsPage() {
                       {blockOpen[shop.id] ? t('close') : t('manage')}
                     </button>
                   </div>
-
                   {blockOpen[shop.id] && (
                     <div>
-                      {/* Add phone */}
                       <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
                         <input
                           value={blockInput[shop.id] ?? ''}
@@ -907,8 +981,6 @@ export default function ShopsPage() {
                           {blockLoading[shop.id] ? '...' : t('shops_add_block')}
                         </button>
                       </div>
-
-                      {/* List */}
                       {(blockedPhones[shop.id] ?? []).length === 0 ? (
                         <p style={{ color: '#4b5563', fontSize: 13, margin: 0 }}>{t('shops_no_blocked')}</p>
                       ) : (
@@ -920,15 +992,7 @@ export default function ShopsPage() {
                               borderRadius: 8, padding: '8px 14px',
                             }}>
                               <span style={{ color: '#f87171', fontSize: 13, fontFamily: 'monospace' }}>{b.phone}</span>
-                              <button
-                                onClick={() => handleRemoveBlocked(shop.id, b.phone)}
-                                style={{
-                                  background: 'none', border: 'none', color: '#6b7280',
-                                  fontSize: 16, cursor: 'pointer', lineHeight: 1, padding: '0 4px',
-                                }}
-                              >
-                                ✕
-                              </button>
+                              <button onClick={() => handleRemoveBlocked(shop.id, b.phone)} style={{ background: 'none', border: 'none', color: '#6b7280', fontSize: 16, cursor: 'pointer', lineHeight: 1, padding: '0 4px' }}>✕</button>
                             </div>
                           ))}
                         </div>
@@ -944,9 +1008,7 @@ export default function ShopsPage() {
                       <label style={{ ...sectionLabel, marginBottom: 0 }}>Engellenen Posta Kodları</label>
                       {!postalOpen[shop.id] && (
                         <p style={{ color: '#9ca3af', fontSize: 13, margin: '4px 0 0' }}>
-                          {blockedPostalCodes[shop.id]?.length
-                            ? `${blockedPostalCodes[shop.id].length} posta kodu engellendi`
-                            : 'Engellenen posta kodu yok'}
+                          {blockedPostalCodes[shop.id]?.length ? `${blockedPostalCodes[shop.id].length} posta kodu engellendi` : 'Engellenen posta kodu yok'}
                         </p>
                       )}
                     </div>
@@ -960,10 +1022,8 @@ export default function ShopsPage() {
                       {postalOpen[shop.id] ? t('close') : t('manage')}
                     </button>
                   </div>
-
                   {postalOpen[shop.id] && (
                     <div>
-                      {/* Add postal code */}
                       <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
                         <input
                           value={newPostalCode[shop.id] ?? ''}
@@ -984,8 +1044,6 @@ export default function ShopsPage() {
                           {postalLoading[shop.id] ? '...' : 'Ekle'}
                         </button>
                       </div>
-
-                      {/* List */}
                       {(blockedPostalCodes[shop.id] ?? []).length === 0 ? (
                         <p style={{ color: '#4b5563', fontSize: 13, margin: 0 }}>Engellenen posta kodu yok</p>
                       ) : (
@@ -997,15 +1055,7 @@ export default function ShopsPage() {
                               borderRadius: 8, padding: '8px 14px',
                             }}>
                               <span style={{ color: '#f87171', fontSize: 13, fontFamily: 'monospace' }}>{b.postalCode}</span>
-                              <button
-                                onClick={() => removePostalCode(shop.id, b.postalCode)}
-                                style={{
-                                  background: 'none', border: 'none', color: '#6b7280',
-                                  fontSize: 16, cursor: 'pointer', lineHeight: 1, padding: '0 4px',
-                                }}
-                              >
-                                ✕
-                              </button>
+                              <button onClick={() => removePostalCode(shop.id, b.postalCode)} style={{ background: 'none', border: 'none', color: '#6b7280', fontSize: 16, cursor: 'pointer', lineHeight: 1, padding: '0 4px' }}>✕</button>
                             </div>
                           ))}
                         </div>
@@ -1014,7 +1064,7 @@ export default function ShopsPage() {
                   )}
                 </div>
 
-                {/* Ön Ödeme Ayarları */}
+                {/* On Odeme */}
                 <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
                   <div style={{ color: '#9ca3af', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 12 }}>
                     Ön Ödeme Teşviki
@@ -1065,12 +1115,8 @@ export default function ShopsPage() {
         )}
       </div>
 
-      {/* Webhook Guide Modal */}
-      {guideShop && (
-        <WebhookGuideModal shop={guideShop} onClose={() => setGuideShop(null)} />
-      )}
+      {guideShop && <WebhookGuideModal shop={guideShop} onClose={() => setGuideShop(null)} />}
 
-      {/* Create Modal */}
       {showModal && (
         <div
           onClick={() => setShowModal(false)}

@@ -38,7 +38,8 @@ router.get('/', async (req: AuthRequest, res: Response): Promise<void> => {
     orderBy: { createdAt: 'desc' },
   });
 
-  res.json({ shops });
+  const safeShops = shops.map(({ accessToken, ...shop }) => ({ ...shop, shopifyConnected: !!accessToken }));
+  res.json({ shops: safeShops });
 });
 
 // GET /shops/:id
