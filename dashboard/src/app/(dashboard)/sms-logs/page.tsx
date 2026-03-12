@@ -1,5 +1,8 @@
 'use client';
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import Navbar from '@/components/Navbar';
+import GeometricBackground from '@/components/GeometricBackground';
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://127.0.0.1:3001';
 
@@ -27,6 +30,7 @@ const STATUS_COLORS: Record<SMSStatus, { bg: string; color: string; label: strin
 };
 
 export default function SMSLogsPage() {
+  const router = useRouter();
   const [logs, setLogs] = useState<SMSLog[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -38,8 +42,9 @@ export default function SMSLogsPage() {
   const limit = 20;
 
   useEffect(() => {
-    setLoading(true);
     const token = getCookie('token');
+    if (!token) { router.push('/login'); return; }
+    setLoading(true);
     const qs = new URLSearchParams({ page: String(page), limit: String(limit) });
     if (status) qs.set('status', status);
     fetch(`${API}/orders/sms-logs?${qs}`, {
@@ -52,11 +57,13 @@ export default function SMSLogsPage() {
         setTotalPages(d.totalPages ?? 1);
       })
       .finally(() => setLoading(false));
-  }, [page, status]);
+  }, [page, status, router]);
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0a0a0f', padding: '32px 24px', fontFamily: 'system-ui, sans-serif' }}>
-      <div style={{ maxWidth: 900, margin: '0 auto' }}>
+    <div style={{ minHeight: '100vh', background: '#0a0a0f', fontFamily: 'system-ui, sans-serif' }}>
+      <GeometricBackground />
+      <Navbar />
+      <div style={{ maxWidth: 960, margin: '0 auto', padding: '32px 24px', position: 'relative', zIndex: 1 }}>
 
         {/* Header */}
         <div style={{ marginBottom: 28 }}>
@@ -66,14 +73,14 @@ export default function SMSLogsPage() {
 
         {/* Filtreler */}
         <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
-          {['', 'SENT', 'FAILED', 'PENDING'].map(s => (
+          {(['', 'SENT', 'FAILED', 'PENDING'] as const).map(s => (
             <button key={s} onClick={() => { setStatus(s); setPage(1); }} style={{
               padding: '7px 16px', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer',
               border: status === s ? 'none' : '1px solid rgba(255,255,255,0.1)',
               background: status === s ? 'linear-gradient(135deg,#7c3aed,#a855f7)' : 'rgba(255,255,255,0.04)',
               color: status === s ? '#fff' : '#9ca3af',
             }}>
-              {s === '' ? 'Tümü' : STATUS_COLORS[s as SMSStatus].label}
+              {s === '' ? 'Tümü' : STATUS_COLORS[s].label}
             </button>
           ))}
         </div>
@@ -92,7 +99,7 @@ export default function SMSLogsPage() {
               <thead>
                 <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
                   {['Tarih', 'Mağaza', 'Müşteri', 'Telefon', 'Durum', ''].map(h => (
-                    <th key={h} style={{ padding: '12px 16px', textAlign: 'left', color: '#6b7280', fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{h}</th>
+                    <th key={h} style={{ padding: '12px 16px', textAlign: 'left', color: '#6b7280', fontSize: 12, fontWeight: 600, textTransform: 'uppercase' as const, letterSpacing: '0.05em' }}>{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -118,11 +125,11 @@ export default function SMSLogsPage() {
                       {isOpen && (
                         <tr key={log.id + '-detail'} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
                           <td colSpan={6} style={{ padding: '12px 16px 16px', background: 'rgba(139,92,246,0.04)' }}>
-                            <p style={{ color: '#6b7280', fontSize: 12, margin: '0 0 4px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Mesaj İçeriği</p>
+                            <p style={{ color: '#6b7280', fontSize: 12, margin: '0 0 4px', fontWeight: 600, textTransform: 'uppercase' as const, letterSpacing: '0.05em' }}>Mesaj İçeriği</p>
                             <p style={{ color: '#d1d5db', fontSize: 13, margin: '0 0 8px', lineHeight: 1.6 }}>{log.message}</p>
                             {log.errorMessage && (
                               <>
-                                <p style={{ color: '#6b7280', fontSize: 12, margin: '8px 0 4px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Hata</p>
+                                <p style={{ color: '#6b7280', fontSize: 12, margin: '8px 0 4px', fontWeight: 600, textTransform: 'uppercase' as const, letterSpacing: '0.05em' }}>Hata</p>
                                 <p style={{ color: '#f87171', fontSize: 13, margin: 0 }}>{log.errorMessage}</p>
                               </>
                             )}
