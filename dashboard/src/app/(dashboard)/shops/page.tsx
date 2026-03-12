@@ -298,7 +298,6 @@ export default function ShopsPage() {
 
   const [prepaidSaving, setPrepaidSaving] = useState<Record<number, boolean>>({});
   const [connectingShopId, setConnectingShopId] = useState<number | null>(null);
-  const [connectingShopId, setConnectingShopId] = useState<number | null>(null);
 
   useEffect(() => {
     const token = getToken();
@@ -363,25 +362,6 @@ export default function ShopsPage() {
     }
   }
 
-  async function handleShopifyConnect(shop: Shop) {
-    if (!shop.shopDomain) {
-      showToast("Önce mağaza domain'i ekleyin (örn: magaza.myshopify.com)", 'error');
-      return;
-    }
-    setConnectingShopId(shop.id);
-    try {
-      const res = await fetch(
-        `${API}/shopify/install?shop=${encodeURIComponent(shop.shopDomain)}&shopId=${shop.id}`,
-        { headers: authHeaders() }
-      );
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Hata oluştu');
-      window.location.href = data.url;
-    } catch (err) {
-      showToast(err instanceof Error ? err.message : 'Hata oluştu', 'error');
-      setConnectingShopId(null);
-    }
-  }
 
   function loadShops() { fetchShops(); }
 
