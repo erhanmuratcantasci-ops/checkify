@@ -312,12 +312,7 @@ export default function ShopsPage() {
     fetch(`${API}/plans/current`, { headers: authHeaders() }).then(r => r.json()).then(d => setUserPlan(d.plan ?? 'FREE')).catch(() => {});
 
     // OAuth callback sonrasi basari mesaji
-    const urlParams = new URLSearchParams(window.location.search);
-    const connected = urlParams.get('connected');
-    if (connected) {
-      showToast(`${decodeURIComponent(connected)} Shopify'a başarıyla bağlandı! 🎉`, 'success');
-      window.history.replaceState({}, '', '/shops');
-    }
+
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
