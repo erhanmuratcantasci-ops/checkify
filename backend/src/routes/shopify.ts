@@ -40,7 +40,7 @@ router.get('/install', authenticate, async (req: AuthRequest, res: Response): Pr
   const shopDomain = shop.endsWith('.myshopify.com') ? shop : `${shop}.myshopify.com`;
   const state = Buffer.from(JSON.stringify({ userId: req.userId, shopId: shopId ?? null })).toString('base64url');
   const redirectUri = `${process.env['BASE_URL']}/shopify/callback`;
-  const scopes = 'read_orders,write_orders';
+  const scopes = 'read_orders,write_orders,read_fulfillments,write_fulfillments';
   const apiKey = process.env['SHOPIFY_API_KEY']!;
 
   const installUrl = `https://${shopDomain}/admin/oauth/authorize?client_id=${apiKey}&scope=${scopes}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}`;
