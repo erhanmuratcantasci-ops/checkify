@@ -33,7 +33,7 @@ async function registerWebhooks(shopDomain: string, accessToken: string, baseUrl
 }
 
 // GET /shopify/install?shop=mystore.myshopify.com&shopId=123
-router.get('/install', authenticate, async (req: AuthRequest, res: Response): Promise<void> => {
+router.get(`/install`, async (req: AuthRequest, res: Response): Promise<void> => {
   const { shop, shopId } = req.query as { shop?: string; shopId?: string };
   if (!shop) { res.status(400).json({ error: 'shop parametresi zorunlu' }); return; }
 
