@@ -29,7 +29,7 @@ router.post('/orders/create', async (req: Request, res: Response): Promise<void>
 
   if (!shop) { res.status(401).json({ error: 'Shop bulunamadı' }); return; }
 
-  const secret = shop.webhookSecret || process.env['SHOPIFY_WEBHOOK_SECRET'] || '';
+  const secret = process.env['SHOPIFY_API_SECRET'] || '';
   if (!secret || !verifyHmac(rawBody, hmacHeader, secret)) { res.status(401).json({ error: 'Geçersiz imza' }); return; }
 
   res.status(200).send('OK');
@@ -96,7 +96,7 @@ router.post('/orders/cancelled', async (req: Request, res: Response): Promise<vo
 
   if (!shop) { res.status(401).json({ error: 'Shop bulunamadı' }); return; }
 
-  const secret = shop.webhookSecret || process.env['SHOPIFY_WEBHOOK_SECRET'] || '';
+  const secret = process.env['SHOPIFY_API_SECRET'] || '';
   if (!secret || !verifyHmac(rawBody, hmacHeader, secret)) { res.status(401).json({ error: 'Geçersiz imza' }); return; }
 
   res.status(200).send('OK');
