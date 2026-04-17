@@ -8,7 +8,7 @@ import GeometricBackground from '@/components/GeometricBackground';
 import Logo from '@/components/Logo';
 import { useTranslation } from '@/lib/i18n';
 
-const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://127.0.0.1:3001';
+const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
 
 const inputStyle: React.CSSProperties = {
   width: '100%', padding: '12px 14px',

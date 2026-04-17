@@ -8,7 +8,7 @@ import { SkeletonShopCard } from '@/components/Skeleton';
 import { useToast } from '@/components/Toast';
 import { useTranslation } from '@/lib/i18n';
 
-const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://127.0.0.1:3001';
+const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
 
 const ALLOWED_VARS = ['{isim}', '{siparis_no}', '{link}', '{tutar}', '{status_link}', '{prepaid_link}'];
 const DEFAULT_TEMPLATE = 'Merhaba {isim}, {siparis_no} numaralı siparişinizi onaylamak için: {link}';

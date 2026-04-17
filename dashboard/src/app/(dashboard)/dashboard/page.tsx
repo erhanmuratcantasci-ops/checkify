@@ -9,7 +9,7 @@ import { SkeletonCard } from '@/components/Skeleton';
 import { useIsMobile } from '@/hooks/useIsMobile';
 import { useTranslation } from '@/lib/i18n';
 
-const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://127.0.0.1:3001';
+const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
 
 const ResponsiveContainer = dynamic(() => import('recharts').then(m => m.ResponsiveContainer), { ssr: false });
 const LineChart = dynamic(() => import('recharts').then(m => m.LineChart), { ssr: false });

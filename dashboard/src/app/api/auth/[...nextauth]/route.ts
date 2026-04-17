@@ -1,7 +1,7 @@
 import NextAuth, { NextAuthOptions } from 'next-auth';
 import GoogleProvider from 'next-auth/providers/google';
 
-const BACKEND = process.env.NEXT_PUBLIC_API_URL ?? 'http://127.0.0.1:3001';
+const BACKEND = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
 
 export const authOptions: NextAuthOptions = {
   providers: [

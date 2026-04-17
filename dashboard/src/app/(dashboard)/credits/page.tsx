@@ -8,7 +8,7 @@ import { useIsMobile } from '@/hooks/useIsMobile';
 import { useTranslation } from '@/lib/i18n';
 import { useToast } from '@/components/Toast';
 
-const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://127.0.0.1:3001';
+const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
 
 function getToken() {
   return document.cookie.split('; ').find(r => r.startsWith('token='))?.split('=')[1] ?? null;

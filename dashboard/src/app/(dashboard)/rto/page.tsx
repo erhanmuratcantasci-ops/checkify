@@ -8,7 +8,7 @@ import GeometricBackground from '@/components/GeometricBackground';
 import PlanUpgradeOverlay from '@/components/PlanUpgradeOverlay';
 import { useIsMobile } from '@/hooks/useIsMobile';
 
-const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://127.0.0.1:3001';
+const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
 
 const ResponsiveContainer = dynamic(() => import('recharts').then(m => m.ResponsiveContainer), { ssr: false });
 const LineChart = dynamic(() => import('recharts').then(m => m.LineChart), { ssr: false });

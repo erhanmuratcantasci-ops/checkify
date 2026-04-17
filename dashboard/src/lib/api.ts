@@ -1,4 +1,15 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:3001';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+
+export class ApiError extends Error {
+  status: number;
+  body: Record<string, unknown>;
+  constructor(message: string, status: number, body: Record<string, unknown>) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+    this.body = body;
+  }
+}
 
 let isRefreshing = false;
 let refreshQueue: Array<(token: string) => void> = [];
@@ -66,7 +77,11 @@ export async function apiRequest<T>(
               ...options,
             });
             const retryData = await retryRes.json();
-            if (!retryRes.ok) reject(new Error(retryData.error || 'Bir hata oluştu'));
+            if (!retryRes.ok) reject(new ApiError(
+              (retryData && typeof retryData.error === 'string' ? retryData.error : 'Bir hata oluştu'),
+              retryRes.status,
+              (retryData && typeof retryData === 'object' ? retryData : {}),
+            ));
             else resolve(retryData as T);
           } catch (err) {
             reject(err);
@@ -92,7 +107,11 @@ export async function apiRequest<T>(
         ...options,
       });
       const retryData = await retryRes.json();
-      if (!retryRes.ok) throw new Error(retryData.error || 'Bir hata oluştu');
+      if (!retryRes.ok) throw new ApiError(
+        (retryData && typeof retryData.error === 'string' ? retryData.error : 'Bir hata oluştu'),
+        retryRes.status,
+        (retryData && typeof retryData === 'object' ? retryData : {}),
+      );
       return retryData as T;
     }
 
@@ -103,7 +122,11 @@ export async function apiRequest<T>(
   const data = await res.json();
 
   if (!res.ok) {
-    throw new Error(data.error || 'Bir hata oluştu');
+    throw new ApiError(
+      (data && typeof data.error === 'string' ? data.error : 'Bir hata oluştu'),
+      res.status,
+      (data && typeof data === 'object' ? data : {}),
+    );
   }
 
   return data as T;
@@ -145,7 +168,7 @@ export const orders = {
   get: (id: number) => apiRequest<{ order: OrderDetail }>(`/orders/${id}`),
 };
 
-export type OrderStatus = 'PENDING' | 'CONFIRMED' | 'PREPARING' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED';
+export type OrderStatus = 'PENDING' | 'CONFIRMED' | 'PREPARING' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED' | 'BLOCKED';
 
 export interface Order {
   id: number;
@@ -182,3 +205,150 @@ export interface User {
   name: string | null;
   createdAt: string;
 }
+
+// --- Blocking Rules ---
+
+export type BlockingRuleType =
+  | 'IP_ADDRESS'
+  | 'IP_RANGE'
+  | 'PHONE_PATTERN'
+  | 'EMAIL_DOMAIN'
+  | 'CUSTOMER_NAME'
+  | 'MAX_ORDERS_PER_PHONE'
+  | 'MAX_ORDERS_PER_IP';
+
+export type BlockSource =
+  | 'LEGACY_PHONE'
+  | 'LEGACY_POSTAL_CODE'
+  | 'BLOCKING_RULE'
+  | 'RATE_LIMIT';
+
+export interface BlockingRule {
+  id: number;
+  shopId: number;
+  ruleType: BlockingRuleType;
+  value: string;
+  reason: string | null;
+  isActive: boolean;
+  matchCount: number;
+  lastMatched: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface BlockedOrder {
+  id: number;
+  shopId: number;
+  shopifyOrderId: string | null;
+  customerName: string | null;
+  phoneNumber: string | null;
+  ipAddress: string | null;
+  postalCode: string | null;
+  email: string | null;
+  blockSource: BlockSource;
+  ruleId: number | null;
+  ruleType: string;
+  blockedAt: string;
+}
+
+export interface BlockingSettings {
+  advancedBlockingEnabled: boolean;
+  maxOrdersPerPhone30d: number | null;
+  maxOrdersPerIp30d: number | null;
+}
+
+export interface BlockingStatsResponse {
+  totalBlocked: number;
+  bySource: Partial<Record<BlockSource, number>>;
+  byDay: { date: string; count: number }[];
+  topRules: {
+    ruleId: number;
+    ruleType: BlockingRuleType;
+    value: string;
+    matchCount: number;
+    lastMatched: string | null;
+  }[];
+}
+
+export interface BlockedOrdersResponse {
+  items: BlockedOrder[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export interface RuleCreateInput {
+  shopId: number;
+  ruleType: BlockingRuleType;
+  value: string;
+  reason?: string | null;
+  isActive?: boolean;
+}
+
+export interface RuleUpdateInput {
+  shopId: number;
+  ruleType?: BlockingRuleType;
+  value?: string;
+  reason?: string | null;
+  isActive?: boolean;
+}
+
+export const blockingRules = {
+  list: (shopId: number) =>
+    apiRequest<{ rules: BlockingRule[] }>(`/blocking/rules?shopId=${shopId}`),
+
+  create: (input: RuleCreateInput) =>
+    apiRequest<{ rule: BlockingRule }>('/blocking/rules', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    }),
+
+  update: (id: number, input: RuleUpdateInput) =>
+    apiRequest<{ rule: BlockingRule }>(`/blocking/rules/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(input),
+    }),
+
+  delete: (id: number, shopId: number) =>
+    apiRequest<{ success: true }>(`/blocking/rules/${id}?shopId=${shopId}`, {
+      method: 'DELETE',
+    }),
+
+  toggle: (id: number, shopId: number) =>
+    apiRequest<{ rule: BlockingRule }>(`/blocking/rules/${id}/toggle`, {
+      method: 'POST',
+      body: JSON.stringify({ shopId }),
+    }),
+};
+
+export const blockedOrders = {
+  list: (
+    shopId: number,
+    opts?: { from?: string; to?: string; page?: number; limit?: number },
+  ) => {
+    const qs = new URLSearchParams();
+    qs.set('shopId', String(shopId));
+    if (opts?.from) qs.set('from', opts.from);
+    if (opts?.to) qs.set('to', opts.to);
+    if (opts?.page) qs.set('page', String(opts.page));
+    if (opts?.limit) qs.set('limit', String(opts.limit));
+    return apiRequest<BlockedOrdersResponse>(`/blocking/blocked-orders?${qs.toString()}`);
+  },
+};
+
+export const blockingStats = {
+  get: (shopId: number, days = 30) =>
+    apiRequest<BlockingStatsResponse>(`/blocking/stats?shopId=${shopId}&days=${days}`),
+};
+
+export const blockingSettings = {
+  get: (shopId: number) =>
+    apiRequest<BlockingSettings>(`/blocking/settings?shopId=${shopId}`),
+
+  update: (data: Partial<BlockingSettings> & { shopId: number }) =>
+    apiRequest<{ settings: BlockingSettings }>('/blocking/settings', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+};

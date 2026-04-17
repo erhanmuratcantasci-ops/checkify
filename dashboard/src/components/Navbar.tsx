@@ -8,7 +8,7 @@ import { useIsMobile } from '@/hooks/useIsMobile';
 import { useTranslation } from '@/lib/i18n';
 import LanguageSwitcher from './LanguageSwitcher';
 
-const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://127.0.0.1:3001';
+const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
 
 const PLAN_BADGE: Record<string, { label: string; color: string; bg: string }> = {
   FREE:     { label: 'Ücretsiz', color: '#6b7280', bg: 'rgba(107,114,128,0.15)' },
@@ -64,7 +64,7 @@ export default function Navbar() {
       .catch(() => null);
   }, []);
 
-  const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://127.0.0.1:3001';
+  const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
 
   useEffect(() => {
     const token = getCookie('token');
@@ -114,6 +114,7 @@ export default function Navbar() {
     { href: '/pricing', label: 'Fiyatlandırma', icon: '⭐' },
     { href: '/sms-logs', label: 'SMS Geçmişi', icon: '📋' },
     { href: '/blocklist', label: 'Engel Listesi', icon: '🚫' },
+    { href: '/blocking-rules', label: 'Gelişmiş Engelleme', icon: '🛡️' },
     { href: '/profile', label: t('nav_profile'), icon: '👤' },
   ];
 

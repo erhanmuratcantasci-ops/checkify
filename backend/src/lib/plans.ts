@@ -23,7 +23,7 @@ export const PLANS: Record<PlanType, PlanConfig> = {
     yearlyPrice: 79,
     shops: 3,
     smsCreditsMonthly: 300,
-    features: ['basic_sms', 'otp', 'pdf_invoice'],
+    features: ['basic_sms', 'otp', 'pdf_invoice', 'rate_limit_blocking'],
     label: 'Starter',
   },
   PRO: {
@@ -31,7 +31,7 @@ export const PLANS: Record<PlanType, PlanConfig> = {
     yearlyPrice: 199,
     shops: 10,
     smsCreditsMonthly: 1000,
-    features: ['basic_sms', 'otp', 'pdf_invoice', 'whatsapp', 'rto', 'blocklist', 'postal_code'],
+    features: ['basic_sms', 'otp', 'pdf_invoice', 'whatsapp', 'rto', 'blocklist', 'postal_code', 'rate_limit_blocking', 'advanced_blocking'],
     label: 'Pro',
   },
   BUSINESS: {
@@ -39,7 +39,7 @@ export const PLANS: Record<PlanType, PlanConfig> = {
     yearlyPrice: 399,
     shops: -1,
     smsCreditsMonthly: 3000,
-    features: ['basic_sms', 'otp', 'pdf_invoice', 'whatsapp', 'rto', 'blocklist', 'postal_code', 'priority_support'],
+    features: ['basic_sms', 'otp', 'pdf_invoice', 'whatsapp', 'rto', 'blocklist', 'postal_code', 'rate_limit_blocking', 'advanced_blocking', 'priority_support'],
     label: 'Business',
   },
 };

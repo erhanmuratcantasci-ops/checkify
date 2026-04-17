@@ -172,7 +172,7 @@ router.get('/stats', authenticate, async (req: AuthRequest, res: Response): Prom
       _count: { _all: true },
     }),
     prisma.order.aggregate({
-      where: { shopId: { in: shopIds }, status: { notIn: ['CANCELLED'] } },
+      where: { shopId: { in: shopIds }, status: { notIn: ['CANCELLED', 'BLOCKED'] } },
       _sum: { total: true },
       _count: { _all: true },
     }),

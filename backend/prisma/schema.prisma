@@ -9,29 +9,29 @@ datasource db {
 }
 
 model User {
-  id           Int       @id @default(autoincrement())
-  email        String    @unique
-  name         String?
-  password     String
-  emailVerified    Boolean   @default(false)
-  emailVerifyToken String?
-  smsCredits       Int       @default(0)
-  whatsappCredits  Int       @default(0)
-  isAdmin      Boolean   @default(false)
+  id                  Int       @id @default(autoincrement())
+  email               String    @unique
+  name                String?
+  password            String
+  emailVerified       Boolean   @default(false)
+  emailVerifyToken    String?
+  smsCredits          Int       @default(0)
+  whatsappCredits     Int       @default(0)
+  isAdmin             Boolean   @default(false)
   lastLoginAt         DateTime?
   passwordResetToken  String?
   passwordResetExpiry DateTime?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-  plan             PlanType  @default(FREE)
-  planExpiresAt    DateTime?
-  billingCycle     String    @default("monthly")
-  twoFactorSecret  String?
-  twoFactorEnabled Boolean  @default(false)
-  referralCode     String?   @unique
-  referredByUserId Int?
-  referredBy       User?     @relation("referrals", fields: [referredByUserId], references: [id])
-  referredUsers    User[]    @relation("referrals")
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  plan                PlanType  @default(FREE)
+  planExpiresAt       DateTime?
+  billingCycle        String    @default("monthly")
+  twoFactorSecret     String?
+  twoFactorEnabled    Boolean   @default(false)
+  referralCode        String?   @unique
+  referredByUserId    Int?
+  referredBy          User?     @relation("referrals", fields: [referredByUserId], references: [id])
+  referredUsers       User[]    @relation("referrals")
 
   shops              Shop[]
   creditTransactions CreditTransaction[]
@@ -40,15 +40,15 @@ model User {
 }
 
 model CreditTransaction {
-  id          Int      @id @default(autoincrement())
+  id          Int        @id @default(autoincrement())
   userId      Int
   amount      Int
   type        CreditType
   description String
-  price       Float    @default(0)
-  createdAt   DateTime @default(now())
+  price       Float      @default(0)
+  createdAt   DateTime   @default(now())
 
-  user        User     @relation(fields: [userId], references: [id])
+  user User @relation(fields: [userId], references: [id])
 }
 
 enum PlanType {
@@ -66,26 +66,31 @@ enum CreditType {
 }
 
 model Shop {
-  id          Int      @id @default(autoincrement())
-  name        String
-  phone       String?
-  shopDomain     String?  @unique
-  accessToken    String?
-  webhookSecret  String?
-  smsTemplate         String?
-  notificationChannel String @default("sms")
-  smsStartHour   Int      @default(9)
-  smsEndHour     Int      @default(21)
-  userId      Int
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  prepaidEnabled   Boolean  @default(false)
-  prepaidDiscount  Int      @default(5)
+  id                      Int      @id @default(autoincrement())
+  name                    String
+  phone                   String?
+  shopDomain              String?  @unique
+  accessToken             String?
+  webhookSecret           String?
+  smsTemplate             String?
+  notificationChannel     String   @default("sms")
+  smsStartHour            Int      @default(9)
+  smsEndHour              Int      @default(21)
+  userId                  Int
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+  prepaidEnabled          Boolean  @default(false)
+  prepaidDiscount         Int      @default(5)
+  advancedBlockingEnabled Boolean  @default(true)
+  maxOrdersPerPhone30d    Int?     @default(3)
+  maxOrdersPerIp30d       Int?     @default(5)
 
-  user          User           @relation(fields: [userId], references: [id])
-  orders        Order[]
-  blockedPhones BlockedPhone[]
+  user               User                @relation(fields: [userId], references: [id])
+  orders             Order[]
+  blockedPhones      BlockedPhone[]
   blockedPostalCodes BlockedPostalCode[]
+  blockingRules      BlockingRule[]
+  blockedOrders      BlockedOrder[]
 }
 
 model BlockedPhone {
@@ -94,7 +99,7 @@ model BlockedPhone {
   shopId    Int
   createdAt DateTime @default(now())
 
-  shop      Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  shop Shop @relation(fields: [shopId], references: [id], onDelete: Cascade)
 
   @@unique([phone, shopId])
 }
@@ -105,30 +110,34 @@ model BlockedPostalCode {
   shopId     Int
   createdAt  DateTime @default(now())
 
-  shop       Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  shop Shop @relation(fields: [shopId], references: [id], onDelete: Cascade)
 
   @@unique([postalCode, shopId])
 }
 
 model Order {
-  id              Int         @id @default(autoincrement())
-  shopifyOrderId  BigInt?
-  customerName    String
-  customerPhone   String
-  total           Float
-  status          OrderStatus @default(PENDING)
-  shopId          Int
-  confirmToken    String?     @unique
-  statusToken     String?     @unique
-  tokenExpiresAt  DateTime?
+  id             Int         @id @default(autoincrement())
+  shopifyOrderId BigInt?
+  customerName   String
+  customerPhone  String
+  total          Float
+  status         OrderStatus @default(PENDING)
+  shopId         Int
+  confirmToken   String?     @unique
+  statusToken    String?     @unique
+  tokenExpiresAt DateTime?
   otpCode        String?
-  otpVerified    Boolean  @default(false)
-  otpAttempts    Int      @default(0)
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
+  otpVerified    Boolean     @default(false)
+  otpAttempts    Int         @default(0)
+  ipAddress      String?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
 
-  shop            Shop        @relation(fields: [shopId], references: [id])
-  smsLogs         SMSLog[]
+  shop    Shop     @relation(fields: [shopId], references: [id])
+  smsLogs SMSLog[]
+
+  @@index([shopId, customerPhone, createdAt])
+  @@index([shopId, ipAddress, createdAt])
 }
 
 model SMSLog {
@@ -140,7 +149,7 @@ model SMSLog {
   orderId      Int
   createdAt    DateTime  @default(now())
 
-  order        Order     @relation(fields: [orderId], references: [id])
+  order Order @relation(fields: [orderId], references: [id])
 }
 
 enum OrderStatus {
@@ -150,6 +159,7 @@ enum OrderStatus {
   SHIPPED
   DELIVERED
   CANCELLED
+  BLOCKED
 }
 
 enum SMSStatus {
@@ -165,7 +175,7 @@ model RefreshToken {
   expiresAt DateTime
   createdAt DateTime @default(now())
 
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model SecurityLog {
@@ -177,15 +187,69 @@ model SecurityLog {
 }
 
 model Subscription {
-  id           Int      @id @default(autoincrement())
+  id           Int       @id @default(autoincrement())
   userId       Int
   plan         PlanType
   billingCycle String
-  startedAt    DateTime @default(now())
+  startedAt    DateTime  @default(now())
   expiresAt    DateTime?
-  createdAt    DateTime @default(now())
+  createdAt    DateTime  @default(now())
 
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model BlockingRule {
+  id          Int              @id @default(autoincrement())
+  shopId      Int
+  shop        Shop             @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  ruleType    BlockingRuleType
+  value       String
+  reason      String?
+  isActive    Boolean          @default(true)
+  matchCount  Int              @default(0)
+  lastMatched DateTime?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@index([shopId, ruleType, isActive])
+  @@index([shopId, value])
+}
+
+enum BlockingRuleType {
+  IP_ADDRESS
+  IP_RANGE
+  PHONE_PATTERN
+  EMAIL_DOMAIN
+  CUSTOMER_NAME
+  MAX_ORDERS_PER_PHONE
+  MAX_ORDERS_PER_IP
+}
+
+model BlockedOrder {
+  id             Int         @id @default(autoincrement())
+  shopId         Int
+  shop           Shop        @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  shopifyOrderId String?
+  customerName   String?
+  phoneNumber    String?
+  ipAddress      String?
+  postalCode     String?
+  email          String?
+  blockSource    BlockSource
+  ruleId         Int?
+  ruleType       String
+  blockedAt      DateTime    @default(now())
+
+  @@index([shopId, blockedAt])
+  @@index([phoneNumber])
+  @@index([ipAddress])
+}
+
+enum BlockSource {
+  LEGACY_PHONE
+  LEGACY_POSTAL_CODE
+  BLOCKING_RULE
+  RATE_LIMIT
 }
 
 model AdminCredential {

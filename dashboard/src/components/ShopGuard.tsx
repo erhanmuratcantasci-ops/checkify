@@ -15,7 +15,7 @@ export default function ShopGuard() {
     const token = document.cookie.split('; ').find(r => r.startsWith('token='))?.split('=')[1];
     if (!token) return;
 
-    const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://127.0.0.1:3001';
+    const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
     fetch(`${API}/shops`, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.json())
       .then(data => {

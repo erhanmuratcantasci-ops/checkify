@@ -1,6 +1,16 @@
 import { Resend } from 'resend';
 
-const resend = new Resend(process.env['RESEND_API_KEY']);
+let resendInstance: Resend | null = null;
+
+function getResend(): Resend {
+  if (!resendInstance) {
+    const key = process.env['RESEND_API_KEY'];
+    if (!key) throw new Error('RESEND_API_KEY ortam değişkeni tanımlı değil');
+    resendInstance = new Resend(key);
+  }
+  return resendInstance;
+}
+
 const FROM = 'noreply@chekkify.com';
 
 // ── Shared layout ──────────────────────────────────────────────────────────────
@@ -96,7 +106,7 @@ export async function sendWelcomeEmail(to: string, name: string): Promise<void> 
     </div>
   `);
 
-  await resend.emails.send({ from: `Chekkify <${FROM}>`, to, subject: `Hoş geldin, ${name}! 🎉`, html });
+  await getResend().emails.send({ from: `Chekkify <${FROM}>`, to, subject: `Hoş geldin, ${name}! 🎉`, html });
   console.log(`[mailer] Welcome email → ${to}`);
 }
 
@@ -124,7 +134,7 @@ export async function sendOrderConfirmationEmail(
     ${para('Siparişiniz en kısa sürede hazırlanacak ve kargoya verilecektir.', true)}
   `);
 
-  await resend.emails.send({ from: `Chekkify <${FROM}>`, to, subject: `Siparişiniz onaylandı ✓ — #${orderId}`, html });
+  await getResend().emails.send({ from: `Chekkify <${FROM}>`, to, subject: `Siparişiniz onaylandı ✓ — #${orderId}`, html });
   console.log(`[mailer] Confirmation email → ${to}`);
 }
 
@@ -152,7 +162,7 @@ export async function sendOrderCancellationEmail(
     ${para('Yeni bir sipariş oluşturmak için mağazamızı ziyaret edebilirsiniz.', true)}
   `);
 
-  await resend.emails.send({ from: `Chekkify <${FROM}>`, to, subject: `Siparişiniz iptal edildi — #${orderId}`, html });
+  await getResend().emails.send({ from: `Chekkify <${FROM}>`, to, subject: `Siparişiniz iptal edildi — #${orderId}`, html });
   console.log(`[mailer] Cancellation email → ${to}`);
 }
 
@@ -181,7 +191,7 @@ export async function sendLowCreditEmail(
     </div>
   `);
 
-  await resend.emails.send({
+  await getResend().emails.send({
     from: `Chekkify <${FROM}>`, to,
     subject: isZero ? '🚫 SMS krediniz tükendi!' : `⚠️ Yalnızca ${credits} SMS krediniz kaldı`,
     html,
@@ -210,12 +220,12 @@ export async function sendPasswordResetEmail(
     </div>
   `);
 
-  await resend.emails.send({ from: `Chekkify <${FROM}>`, to, subject: 'Şifre Sıfırlama Talebi', html });
+  await getResend().emails.send({ from: `Chekkify <${FROM}>`, to, subject: 'Şifre Sıfırlama Talebi', html });
   console.log(`[mailer] Password reset email → ${to}`);
 }
 
 export async function sendVerificationEmail(to: string, name: string, verifyUrl: string): Promise<void> {
-  await resend.emails.send({
+  await getResend().emails.send({
     from: 'Chekkify <noreply@chekkify.com>',
     to,
     subject: 'Email adresinizi doğrulayın — Chekkify',

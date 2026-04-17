@@ -14,6 +14,7 @@ import adminRouter from './routes/admin';
 import adminAuthRouter from './routes/adminAuth';
 import statusRouter from './routes/status';
 import plansRouter from './routes/plans';
+import blockingRulesRouter from './routes/blockingRules';
 import { loginRateLimiter, webhookRateLimiter, generalRateLimiter, otpRateLimiter } from './middleware/rateLimiter';
 import { realIp } from './middleware/cloudflare';
 import './workers/smsWorker';
@@ -30,6 +31,9 @@ app.use(generalRateLimiter);
 app.use(cors({
   origin: [
     'http://localhost:3000',
+    'http://127.0.0.1:3000',
+    'http://localhost:3001',
+    'http://127.0.0.1:3001',
     'https://dashboard-two-indol-38.vercel.app',
     'https://chekkify.com',
     'https://www.chekkify.com',
@@ -58,6 +62,7 @@ app.use('/credits', creditsRouter);
 app.use('/admin', adminRouter);
 app.use('/admin-auth', adminAuthRouter);
 app.use('/plans', plansRouter);
+app.use('/blocking', blockingRulesRouter);
 
 app.use('/status', statusRouter);
 

@@ -12,6 +12,7 @@ const STATUS_LABELS: Record<OrderStatus, string> = {
   SHIPPED: 'Kargoya Verildi',
   DELIVERED: 'Teslim Edildi',
   CANCELLED: 'İptal Edildi',
+  BLOCKED: 'Bloklandı',
 };
 
 const STATUS_COLORS: Record<OrderStatus, { bg: string; color: string }> = {
@@ -21,6 +22,7 @@ const STATUS_COLORS: Record<OrderStatus, { bg: string; color: string }> = {
   SHIPPED:   { bg: 'rgba(168,85,247,0.12)',  color: 'var(--status-shipped)' },
   DELIVERED: { bg: 'rgba(6,214,160,0.12)',   color: 'var(--status-delivered)' },
   CANCELLED: { bg: 'rgba(239,68,68,0.12)',   color: 'var(--status-cancelled)' },
+  BLOCKED:   { bg: 'rgba(220,38,38,0.15)',   color: '#f87171' },
 };
 
 const SMS_COLORS: Record<string, { bg: string; color: string }> = {

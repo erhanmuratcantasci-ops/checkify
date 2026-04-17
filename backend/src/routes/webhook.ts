@@ -3,6 +3,7 @@ import crypto, { randomUUID } from 'crypto';
 import prisma from '../lib/prisma';
 import { smsQueue } from '../lib/queue';
 import { normalizePhone } from '../lib/phoneUtils';
+import { checkOrderForBlocks } from '../lib/blockingService';
 
 const router = Router();
 
@@ -37,22 +38,28 @@ router.post('/orders/create', async (req: Request, res: Response): Promise<void>
   try {
     const payload = JSON.parse(rawBody.toString()) as {
       id: number;
-      customer?: { first_name?: string; last_name?: string; phone?: string };
+      email?: string;
+      browser_ip?: string;
+      client_details?: { browser_ip?: string };
+      customer?: { first_name?: string; last_name?: string; phone?: string; email?: string };
       phone?: string;
       billing_address?: { phone?: string; zip?: string };
-      shipping_address?: { zip?: string };
+      shipping_address?: { phone?: string; zip?: string };
       total_price?: string;
     };
 
     const customerName = [payload.customer?.first_name, payload.customer?.last_name].filter(Boolean).join(' ') || 'Bilinmiyor';
-    const rawPhone = payload.customer?.phone || payload.phone || payload.billing_address?.phone || '';
+    const rawPhone = payload.customer?.phone || payload.phone || payload.billing_address?.phone || payload.shipping_address?.phone || '';
     const customerPhone = normalizePhone(rawPhone);
     const total = parseFloat(payload.total_price ?? '0');
+    const postalCode = payload.shipping_address?.zip || payload.billing_address?.zip;
+    const customerEmail = payload.customer?.email || payload.email;
+    const ipAddress = payload.browser_ip || payload.client_details?.browser_ip;
     const confirmToken = randomUUID();
     const tokenExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
     const order = await prisma.order.create({
-      data: { shopifyOrderId: BigInt(payload.id), customerName, customerPhone, total, status: 'PENDING', shopId: shop.id, confirmToken, tokenExpiresAt },
+      data: { shopifyOrderId: BigInt(payload.id), customerName, customerPhone, total, status: 'PENDING', shopId: shop.id, confirmToken, tokenExpiresAt, ipAddress: ipAddress ?? null },
     });
 
     console.log(`[webhook] Order oluşturuldu: #${order.id} — ${customerName} (${customerPhone}) — ${total}`);
@@ -60,13 +67,24 @@ router.post('/orders/create', async (req: Request, res: Response): Promise<void>
     const statusToken = randomUUID();
     await prisma.order.update({ where: { id: order.id }, data: { statusToken } });
 
-    const blocked = await prisma.blockedPhone.findFirst({ where: { shopId: shop.id, phone: customerPhone } });
-    if (blocked) { console.log(`[webhook] ${customerPhone} blocklist'te — SMS atlanıyor`); return; }
+    const blockResult = await checkOrderForBlocks(shop.id, {
+      customerName,
+      phoneNumber: customerPhone,
+      ipAddress: ipAddress ?? null,
+      postalCode: postalCode ?? null,
+      email: customerEmail ?? null,
+      shopifyOrderId: String(payload.id),
+    });
 
-    const postalCode = payload.shipping_address?.zip || payload.billing_address?.zip;
-    if (postalCode) {
-      const blockedPostal = await prisma.blockedPostalCode.findFirst({ where: { shopId: shop.id, postalCode: postalCode.trim() } });
-      if (blockedPostal) { console.log(`[webhook] Posta kodu ${postalCode} blocklist'te — SMS atlanıyor`); return; }
+    if (blockResult.blocked) {
+      await prisma.order.update({ where: { id: order.id }, data: { status: 'BLOCKED' } });
+      console.log('[webhook] Order bloklandı — SMS atlanıyor:', {
+        orderId: order.id,
+        source: blockResult.source,
+        ruleType: blockResult.ruleType,
+        ruleId: blockResult.ruleId,
+      });
+      return;
     }
 
     const baseUrl = process.env['BASE_URL'] || 'http://localhost:3001';

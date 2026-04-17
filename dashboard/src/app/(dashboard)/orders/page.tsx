@@ -9,7 +9,7 @@ import { useToast } from '@/components/Toast';
 import { useIsMobile } from '@/hooks/useIsMobile';
 import { useTranslation } from '@/lib/i18n';
 
-const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://127.0.0.1:3001';
+const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
 
 const STATUS_COLORS: Record<string, { bg: string; color: string }> = {
   PENDING:   { bg: 'rgba(217,119,6,0.15)',  color: '#fbbf24' },
