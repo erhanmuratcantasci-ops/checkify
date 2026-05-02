@@ -10,8 +10,8 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
   return (
     <>
       <BackgroundDecoration />
-      <main className="min-h-screen flex flex-col items-center px-6 pt-24 pb-16">
-        <motion.div variants={logoIn} initial="initial" animate="animate" className="mb-12">
+      <main className="relative z-10 min-h-screen flex flex-col items-center px-6 pt-8 pb-16">
+        <motion.div variants={logoIn} initial="initial" animate="animate" className="mb-10">
           <Link
             href="/"
             aria-label="Chekkify"

@@ -5,40 +5,43 @@ export default function BackgroundDecoration() {
       style={{
         position: "fixed",
         inset: 0,
-        zIndex: -1,
+        zIndex: 0,
         pointerEvents: "none",
         overflow: "hidden",
         background: "var(--color-bg)",
       }}
     >
+      {/* Primary coral glow — bottom-right */}
       <div
         style={{
           position: "absolute",
-          top: "-15%",
-          right: "-10%",
-          width: 540,
-          height: 540,
+          bottom: "-18%",
+          right: "-12%",
+          width: 620,
+          height: 620,
           borderRadius: "50%",
           background:
-            "radial-gradient(circle, rgba(251,113,133,0.32) 0%, rgba(251,113,133,0) 70%)",
+            "radial-gradient(circle, rgba(251,113,133,0.55) 0%, rgba(251,113,133,0) 70%)",
           filter: "blur(120px)",
-          opacity: 0.6,
+          opacity: 0.25,
         }}
       />
+      {/* Faint counter-glow — far top-left */}
       <div
         style={{
           position: "absolute",
-          bottom: "-20%",
-          left: "-15%",
-          width: 480,
-          height: 480,
+          top: "-25%",
+          left: "-20%",
+          width: 460,
+          height: 460,
           borderRadius: "50%",
           background:
-            "radial-gradient(circle, rgba(244,63,94,0.18) 0%, rgba(244,63,94,0) 70%)",
+            "radial-gradient(circle, rgba(244,63,94,0.35) 0%, rgba(244,63,94,0) 70%)",
           filter: "blur(140px)",
-          opacity: 0.55,
+          opacity: 0.12,
         }}
       />
+      {/* Subtle noise dots */}
       <div
         style={{
           position: "absolute",

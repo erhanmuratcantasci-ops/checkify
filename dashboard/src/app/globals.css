@@ -114,6 +114,17 @@ body {
   color: var(--color-fg);
 }
 
+/* Override Safari/Chrome autofill yellow tint to match dark surface */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-text-fill-color: var(--color-fg);
+  -webkit-box-shadow: 0 0 0px 1000px var(--color-bg-elevated) inset;
+  caret-color: var(--color-fg);
+  transition: background-color 5000s ease-in-out 0s;
+}
+
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: var(--color-bg-elevated); }
 ::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 3px; }

@@ -199,11 +199,11 @@ export default function RegisterPage() {
       </form>
 
       <div className="my-6 flex items-center gap-3">
-        <div className="h-px flex-1 bg-[var(--color-border)]" />
+        <div className="h-px flex-1 bg-[var(--color-border)] opacity-60" />
         <span className="text-[12px] uppercase tracking-[0.08em] text-[var(--color-fg-faint)]">
           {t("or")}
         </span>
-        <div className="h-px flex-1 bg-[var(--color-border)]" />
+        <div className="h-px flex-1 bg-[var(--color-border)] opacity-60" />
       </div>
 
       <Button
@@ -235,10 +235,10 @@ export default function RegisterPage() {
       </Button>
 
       <p className="mt-8 text-center text-[14px] text-[var(--color-fg-muted)]">
-        {t("register_have_account")}{" "}
+        {t("register_have_account")}
         <Link
           href="/login"
-          className="font-medium text-[var(--color-accent)] transition-colors hover:text-[var(--color-accent-hover)]"
+          className="ml-1.5 font-medium text-[var(--color-accent)] transition-colors hover:text-[var(--color-accent-hover)]"
         >
           {t("register_login_link")}
         </Link>
