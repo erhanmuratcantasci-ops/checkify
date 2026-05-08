@@ -1,15 +1,28 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import Navbar from '@/components/Navbar';
-import GeometricBackground from '@/components/GeometricBackground';
-import { SkeletonProfile } from '@/components/Skeleton';
-import { useToast } from '@/components/Toast';
-import { useIsMobile } from '@/hooks/useIsMobile';
-import { useTranslation } from '@/lib/i18n';
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  ArrowLeft,
+  Copy,
+  Check,
+  ShieldCheck,
+  ShieldAlert,
+  AlertTriangle,
+  X,
+} from "lucide-react";
+import { SkeletonProfile } from "@/components/Skeleton";
+import { useToast } from "@/components/Toast";
+import { useTranslation } from "@/lib/i18n";
+import { Card, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { easeOut } from "@/lib/motion";
 
-const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
+const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
 
 interface User {
   name: string;
@@ -24,94 +37,113 @@ interface User {
 }
 
 function getToken() {
-  if (typeof window === 'undefined') return null;
-  return document.cookie.split('; ').find(r => r.startsWith('token='))?.split('=')[1] ?? null;
+  if (typeof window === "undefined") return null;
+  return document.cookie.split("; ").find((r) => r.startsWith("token="))?.split("=")[1] ?? null;
 }
 
 function authHeaders(extra: Record<string, string> = {}) {
-  return { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}`, ...extra };
+  return {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${getToken()}`,
+    ...extra,
+  };
 }
 
 export default function ProfilePage() {
   const router = useRouter();
   const { showToast } = useToast();
-  const isMobile = useIsMobile();
   const { t } = useTranslation();
 
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
   const [savingInfo, setSavingInfo] = useState(false);
 
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [savingPassword, setSavingPassword] = useState(false);
 
   const [showDelete, setShowDelete] = useState(false);
-  const [deletePassword, setDeletePassword] = useState('');
+  const [deletePassword, setDeletePassword] = useState("");
   const [deleting, setDeleting] = useState(false);
 
   const [twoFAEnabled, setTwoFAEnabled] = useState(false);
   const [qrCode, setQrCode] = useState<string | null>(null);
-  const [twoFAStep, setTwoFAStep] = useState<'idle' | 'setup' | 'disable'>('idle');
-  const [twoFAToken, setTwoFAToken] = useState('');
+  const [twoFAStep, setTwoFAStep] = useState<"idle" | "setup" | "disable">("idle");
+  const [twoFAToken, setTwoFAToken] = useState("");
   const [twoFALoading, setTwoFALoading] = useState(false);
   const [twoFAMsg, setTwoFAMsg] = useState<string | null>(null);
 
+  const [referralCopied, setReferralCopied] = useState(false);
+
   useEffect(() => {
     const token = getToken();
-    if (!token) { router.push('/login'); return; }
+    if (!token) {
+      router.push("/login");
+      return;
+    }
     fetch(`${API}/auth/me`, { headers: authHeaders() })
-      .then(r => r.json())
-      .then(data => {
+      .then((r) => r.json())
+      .then((data) => {
         const u = data.user ?? data;
         setUser(u);
-        setName(u.name ?? '');
-        setEmail(u.email ?? '');
+        setName(u.name ?? "");
+        setEmail(u.email ?? "");
         setTwoFAEnabled(u.twoFactorEnabled ?? false);
         setLoading(false);
       })
-      .catch(() => router.push('/login'));
+      .catch(() => router.push("/login"));
   }, [router]);
 
   async function setup2FA() {
-    setTwoFALoading(true); setTwoFAMsg(null);
-    const token = document.cookie.split('; ').find(r => r.startsWith('token='))?.split('=')[1];
-    const res = await fetch(`${API}/auth/2fa/setup`, { headers: { Authorization: `Bearer ${token}` } });
+    setTwoFALoading(true);
+    setTwoFAMsg(null);
+    const res = await fetch(`${API}/auth/2fa/setup`, { headers: authHeaders() });
     const data = await res.json();
-    if (data.qrCode) { setQrCode(data.qrCode); setTwoFAStep('setup'); }
-    else setTwoFAMsg(data.error ?? 'Hata');
+    if (data.qrCode) {
+      setQrCode(data.qrCode);
+      setTwoFAStep("setup");
+    } else setTwoFAMsg(data.error ?? "Hata");
     setTwoFALoading(false);
   }
 
   async function enable2FA() {
-    setTwoFALoading(true); setTwoFAMsg(null);
-    const token = document.cookie.split('; ').find(r => r.startsWith('token='))?.split('=')[1];
+    setTwoFALoading(true);
+    setTwoFAMsg(null);
     const res = await fetch(`${API}/auth/2fa/enable`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      method: "POST",
+      headers: authHeaders(),
       body: JSON.stringify({ token: twoFAToken }),
     });
     const data = await res.json();
-    if (data.success) { setTwoFAEnabled(true); setTwoFAStep('idle'); setQrCode(null); setTwoFAToken(''); setTwoFAMsg('2FA aktif edildi'); }
-    else setTwoFAMsg(data.error ?? 'Hata');
+    if (data.success) {
+      setTwoFAEnabled(true);
+      setTwoFAStep("idle");
+      setQrCode(null);
+      setTwoFAToken("");
+      setTwoFAMsg("2FA aktif edildi");
+    } else setTwoFAMsg(data.error ?? "Hata");
     setTwoFALoading(false);
   }
 
   async function disable2FA() {
-    setTwoFALoading(true); setTwoFAMsg(null);
-    const token = document.cookie.split('; ').find(r => r.startsWith('token='))?.split('=')[1];
+    setTwoFALoading(true);
+    setTwoFAMsg(null);
     const res = await fetch(`${API}/auth/2fa/disable`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      method: "POST",
+      headers: authHeaders(),
       body: JSON.stringify({ token: twoFAToken }),
     });
     const data = await res.json();
-    if (data.success) { setTwoFAEnabled(false); setTwoFAStep('idle'); setTwoFAToken(''); setTwoFAMsg('2FA devre dışı bırakıldı'); }
-    else setTwoFAMsg(data.error ?? 'Hata');
+    if (data.success) {
+      setTwoFAEnabled(false);
+      setTwoFAStep("idle");
+      setTwoFAToken("");
+      setTwoFAMsg("2FA devre dışı bırakıldı");
+    } else setTwoFAMsg(data.error ?? "Hata");
     setTwoFALoading(false);
   }
 
@@ -122,13 +154,17 @@ export default function ProfilePage() {
       const body: Record<string, string> = {};
       if (name !== user?.name) body.name = name;
       if (email !== user?.email) body.email = email;
-      const res = await fetch(`${API}/auth/me`, { method: 'PATCH', headers: authHeaders(), body: JSON.stringify(body) });
+      const res = await fetch(`${API}/auth/me`, {
+        method: "PATCH",
+        headers: authHeaders(),
+        body: JSON.stringify(body),
+      });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || t('error_occurred'));
+      if (!res.ok) throw new Error(data.error || t("error_occurred"));
       setUser(data.user);
-      showToast(t('profile_toast_info_updated'), 'success');
+      showToast(t("profile_toast_info_updated"), "success");
     } catch (err) {
-      showToast(err instanceof Error ? err.message : t('error_occurred'), 'error');
+      showToast(err instanceof Error ? err.message : t("error_occurred"), "error");
     } finally {
       setSavingInfo(false);
     }
@@ -136,20 +172,29 @@ export default function ProfilePage() {
 
   async function handleSavePassword(e: React.FormEvent) {
     e.preventDefault();
-    if (newPassword !== confirmPassword) { showToast(t('profile_pw_mismatch'), 'error'); return; }
-    if (newPassword.length < 6) { showToast(t('profile_pw_too_short'), 'error'); return; }
+    if (newPassword !== confirmPassword) {
+      showToast(t("profile_pw_mismatch"), "error");
+      return;
+    }
+    if (newPassword.length < 6) {
+      showToast(t("profile_pw_too_short"), "error");
+      return;
+    }
     setSavingPassword(true);
     try {
       const res = await fetch(`${API}/auth/me`, {
-        method: 'PATCH', headers: authHeaders(),
+        method: "PATCH",
+        headers: authHeaders(),
         body: JSON.stringify({ currentPassword, newPassword }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || t('error_occurred'));
-      setCurrentPassword(''); setNewPassword(''); setConfirmPassword('');
-      showToast(t('profile_toast_pw_updated'), 'success');
+      if (!res.ok) throw new Error(data.error || t("error_occurred"));
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      showToast(t("profile_toast_pw_updated"), "success");
     } catch (err) {
-      showToast(err instanceof Error ? err.message : t('error_occurred'), 'error');
+      showToast(err instanceof Error ? err.message : t("error_occurred"), "error");
     } finally {
       setSavingPassword(false);
     }
@@ -160,354 +205,467 @@ export default function ProfilePage() {
     setDeleting(true);
     try {
       const res = await fetch(`${API}/auth/me`, {
-        method: 'DELETE', headers: authHeaders(),
+        method: "DELETE",
+        headers: authHeaders(),
         body: JSON.stringify({ password: deletePassword }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || t('error_occurred'));
-      document.cookie = 'token=; path=/; max-age=0';
-      router.push('/');
+      if (!res.ok) throw new Error(data.error || t("error_occurred"));
+      document.cookie = "token=; path=/; max-age=0";
+      document.cookie = "refreshToken=; path=/; max-age=0";
+      router.push("/");
     } catch (err) {
-      showToast(err instanceof Error ? err.message : t('error_occurred'), 'error');
+      showToast(err instanceof Error ? err.message : t("error_occurred"), "error");
       setDeleting(false);
     }
   }
 
-  const initials = user?.name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || '?';
-  const pad = isMobile ? '16px' : '40px 24px';
+  function copyReferral() {
+    if (!user?.referralCode) return;
+    navigator.clipboard.writeText(user.referralCode);
+    setReferralCopied(true);
+    setTimeout(() => setReferralCopied(false), 2000);
+  }
 
-  const inputStyle: React.CSSProperties = {
-    width: '100%', padding: '12px 14px',
-    background: 'rgba(255,255,255,0.05)',
-    border: '1px solid rgba(255,255,255,0.1)',
-    borderRadius: 10, color: '#fff', fontSize: 14,
-    outline: 'none', boxSizing: 'border-box',
-    fontFamily: "'Outfit', sans-serif", minHeight: 44,
-  };
-
-  const cardStyle: React.CSSProperties = {
-    background: 'rgba(255,255,255,0.03)',
-    border: '1px solid rgba(255,255,255,0.07)',
-    borderRadius: 16, padding: isMobile ? '18px 16px' : '24px 28px',
-    marginBottom: 14,
-  };
+  const initials =
+    user?.name?.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2) || "?";
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0a0a0f', fontFamily: "'Outfit', sans-serif", position: 'relative' }}>
-      <GeometricBackground />
-      <Navbar />
+    <div className="mx-auto w-full max-w-[640px] px-6 py-8 md:px-8 md:py-10">
+      <button
+        type="button"
+        onClick={() => router.push("/dashboard")}
+        className="mb-4 inline-flex items-center gap-1.5 text-[13px] text-[var(--color-fg-muted)] transition-colors hover:text-[var(--color-fg)]"
+      >
+        <ArrowLeft size={14} aria-hidden />
+        {t("back_dashboard")}
+      </button>
 
-      <main style={{ maxWidth: 600, margin: '0 auto', padding: pad }}>
-        <div style={{ marginBottom: isMobile ? 20 : 28 }}>
-          <button onClick={() => router.push('/dashboard')} style={{ background: 'none', border: 'none', color: '#6b7280', fontSize: 13, cursor: 'pointer', padding: 0, marginBottom: 10 }}>
-            {t('back_dashboard')}
-          </button>
-          <h1 style={{ fontSize: isMobile ? 22 : 24, fontWeight: 700, color: '#fff', margin: 0, letterSpacing: '-0.5px' }}>{t('profile_title')}</h1>
-        </div>
+      <header className="mb-6">
+        <h1
+          className="text-[var(--color-fg)]"
+          style={{
+            fontSize: 28,
+            fontWeight: 500,
+            letterSpacing: "var(--tracking-display)",
+            margin: 0,
+          }}
+        >
+          {t("profile_title")}
+        </h1>
+      </header>
 
-        {loading ? <SkeletonProfile /> : <>
-
-          {/* Avatar + meta */}
-          <div style={cardStyle}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 18 }}>
-              <div style={{
-                width: 52, height: 52, borderRadius: 12, flexShrink: 0,
-                background: 'linear-gradient(135deg, #7c3aed, #a855f7)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 18, fontWeight: 700, color: '#fff',
-              }}>{initials}</div>
-              <div>
-                <div style={{ color: '#fff', fontWeight: 600, fontSize: 16 }}>{user?.name || '—'}</div>
-                <div style={{ color: '#6b7280', fontSize: 13 }}>{user?.email}</div>
+      {loading ? (
+        <SkeletonProfile />
+      ) : (
+        <>
+          <Card className="mb-4">
+            <div className="mb-5 flex items-center gap-3">
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-[var(--color-accent-faded)] text-[15px] font-medium text-[var(--color-accent)]">
+                {initials}
+              </span>
+              <div className="min-w-0">
+                <p className="truncate text-[15px] font-medium text-[var(--color-fg)]">
+                  {user?.name || "—"}
+                </p>
+                <p className="truncate text-[13px] text-[var(--color-fg-muted)]">
+                  {user?.email}
+                </p>
               </div>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 10 }}>
+            <dl className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               {[
-                [t('profile_created_at'), user?.createdAt ? new Date(user.createdAt).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' }) : '—'],
-                [t('profile_last_login'), user?.lastLoginAt ? new Date(user.lastLoginAt).toLocaleString('tr-TR', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : t('profile_last_login_unknown')],
-                ['SMS Kredisi', String(user?.smsCredits ?? 0)],
-                ['WhatsApp Kredisi', String(user?.whatsappCredits ?? 0)],
+                [
+                  t("profile_created_at"),
+                  user?.createdAt
+                    ? new Date(user.createdAt).toLocaleDateString("tr-TR", {
+                        day: "numeric",
+                        month: "long",
+                        year: "numeric",
+                      })
+                    : "—",
+                ],
+                [
+                  t("profile_last_login"),
+                  user?.lastLoginAt
+                    ? new Date(user.lastLoginAt).toLocaleString("tr-TR", {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })
+                    : t("profile_last_login_unknown"),
+                ],
+                ["SMS kredisi", String(user?.smsCredits ?? 0)],
+                ["WhatsApp kredisi", String(user?.whatsappCredits ?? 0)],
               ].map(([label, value]) => (
-                <div key={label} style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 10, padding: '12px 14px' }}>
-                  <div style={{ color: '#4b5563', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: 4 }}>{label}</div>
-                  <div style={{ color: '#d1d5db', fontSize: 13 }}>{value}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Account info */}
-          <div style={cardStyle}>
-            <h2 style={{ color: '#9ca3af', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.8px', margin: '0 0 16px' }}>{t('profile_account_info')}</h2>
-            <form onSubmit={handleSaveInfo} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              <div>
-                <label style={{ display: 'block', color: '#9ca3af', fontSize: 13, marginBottom: 6 }}>{t('profile_name')}</label>
-                <input value={name} onChange={e => setName(e.target.value)} placeholder={t('profile_name_placeholder')}
-                  style={inputStyle}
-                  onFocus={e => e.target.style.borderColor = 'rgba(139,92,246,0.6)'}
-                  onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.1)'} />
-              </div>
-              <div>
-                <label style={{ display: 'block', color: '#9ca3af', fontSize: 13, marginBottom: 6 }}>{t('profile_email')}</label>
-                <input type="email" required value={email} onChange={e => setEmail(e.target.value)}
-                  style={inputStyle}
-                  onFocus={e => e.target.style.borderColor = 'rgba(139,92,246,0.6)'}
-                  onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.1)'} />
-              </div>
-              <button type="submit" disabled={savingInfo} style={{
-                padding: '13px', background: savingInfo ? 'rgba(139,92,246,0.4)' : 'linear-gradient(135deg, #7c3aed, #a855f7)',
-                border: 'none', borderRadius: 10, color: '#fff', fontSize: 14, fontWeight: 600,
-                cursor: savingInfo ? 'not-allowed' : 'pointer', minHeight: 44,
-              }}>
-                {savingInfo ? t('profile_saving_info') : t('profile_save_info')}
-              </button>
-            </form>
-          </div>
-
-          {/* Password */}
-          <div style={cardStyle}>
-            <h2 style={{ color: '#9ca3af', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.8px', margin: '0 0 16px' }}>{t('profile_change_password')}</h2>
-            <form onSubmit={handleSavePassword} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              {[
-                { label: t('profile_current_password'), value: currentPassword, onChange: setCurrentPassword },
-                { label: t('profile_new_password'), value: newPassword, onChange: setNewPassword },
-                { label: t('profile_confirm_password'), value: confirmPassword, onChange: setConfirmPassword },
-              ].map(f => (
-                <div key={f.label}>
-                  <label style={{ display: 'block', color: '#9ca3af', fontSize: 13, marginBottom: 6 }}>{f.label}</label>
-                  <input type="password" required value={f.value} onChange={e => f.onChange(e.target.value)} placeholder="••••••••"
-                    style={inputStyle}
-                    onFocus={e => e.target.style.borderColor = 'rgba(139,92,246,0.6)'}
-                    onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.1)'} />
-                </div>
-              ))}
-              <button type="submit" disabled={savingPassword} style={{
-                padding: '13px', background: savingPassword ? 'rgba(139,92,246,0.4)' : 'linear-gradient(135deg, #7c3aed, #a855f7)',
-                border: 'none', borderRadius: 10, color: '#fff', fontSize: 14, fontWeight: 600,
-                cursor: savingPassword ? 'not-allowed' : 'pointer', minHeight: 44,
-              }}>
-                {savingPassword ? t('profile_changing_pw') : t('profile_change_pw')}
-              </button>
-            </form>
-          </div>
-
-          {/* Referral */}
-          <div style={cardStyle}>
-            <h2 style={{ color: '#9ca3af', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.8px', margin: '0 0 16px' }}>
-              Referral Programı
-            </h2>
-            <p style={{ color: '#6b7280', fontSize: 13, margin: '0 0 14px', lineHeight: 1.6 }}>
-              Davet kodunu paylaş — her yeni üye için sen ve arkadaşın <strong style={{ color: '#a78bfa' }}>50&apos;şer SMS kredisi</strong> kazanırsın.
-            </p>
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 14 }}>
-              <div style={{
-                flex: 1, padding: '12px 14px',
-                background: 'rgba(139,92,246,0.08)', border: '1px solid rgba(139,92,246,0.25)',
-                borderRadius: 10, fontFamily: 'monospace', fontSize: 16, fontWeight: 700,
-                color: '#c4b5fd', letterSpacing: '3px', textAlign: 'center',
-              }}>
-                {user?.referralCode || '—'}
-              </div>
-              <button
-                onClick={() => {
-                  if (user?.referralCode) {
-                    navigator.clipboard.writeText(user.referralCode!);
-                    showToast('Referral kodu kopyalandı', 'success');
-                  }
-                }}
-                style={{
-                  padding: '12px 18px', background: 'rgba(139,92,246,0.15)',
-                  border: '1px solid rgba(139,92,246,0.3)', borderRadius: 10,
-                  color: '#a78bfa', fontSize: 13, fontWeight: 600, cursor: 'pointer',
-                  minHeight: 44, whiteSpace: 'nowrap',
-                }}
-              >
-                Kopyala
-              </button>
-            </div>
-            <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 10, padding: '12px 14px' }}>
-              <div style={{ color: '#4b5563', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: 4 }}>
-                Davet Ettiğin Kişi Sayısı
-              </div>
-              <div style={{ color: '#fff', fontSize: 22, fontWeight: 700 }}>
-                {user?.referredCount ?? 0}
-              </div>
-            </div>
-          </div>
-
-          {/* 2FA Card */}
-          <div style={{
-            background: 'rgba(255,255,255,0.03)',
-            border: '1px solid rgba(255,255,255,0.07)',
-            borderRadius: 16, padding: isMobile ? '16px' : '24px 28px',
-            marginTop: 16,
-          }}>
-            <h2 style={{ color: '#9ca3af', fontSize: 11, fontWeight: 600, letterSpacing: '1px', textTransform: 'uppercase', margin: '0 0 16px' }}>
-              İki Faktörlü Doğrulama (2FA)
-            </h2>
-
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-              <div>
-                <div style={{ color: '#d1d5db', fontSize: 14, fontWeight: 500 }}>
-                  {twoFAEnabled ? '🔒 2FA Aktif' : '🔓 2FA Devre Dışı'}
-                </div>
-                <div style={{ color: '#6b7280', fontSize: 12, marginTop: 2 }}>
-                  {twoFAEnabled ? 'Hesabınız iki faktörlü doğrulama ile korunuyor' : 'Google Authenticator ile hesabınızı güvende tutun'}
-                </div>
-              </div>
-              {twoFAStep === 'idle' && (
-                <button
-                  onClick={twoFAEnabled ? () => setTwoFAStep('disable') : setup2FA}
-                  disabled={twoFALoading}
-                  style={{
-                    padding: '8px 16px', borderRadius: 8, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 500,
-                    background: twoFAEnabled ? 'rgba(220,38,38,0.15)' : 'linear-gradient(135deg, #7c3aed, #a855f7)',
-                    color: twoFAEnabled ? '#f87171' : '#fff',
-                  }}
+                <div
+                  key={label}
+                  className="rounded-[var(--radius-md)] bg-[var(--color-surface)] px-3 py-2.5"
                 >
-                  {twoFALoading ? '...' : twoFAEnabled ? 'Devre Dışı Bırak' : '2FA Kur'}
-                </button>
+                  <dt className="text-[11px] uppercase tracking-[0.06em] text-[var(--color-fg-muted)]">
+                    {label}
+                  </dt>
+                  <dd className="mt-1 text-[13px] text-[var(--color-fg)]">{value}</dd>
+                </div>
+              ))}
+            </dl>
+          </Card>
+
+          <Card className="mb-4">
+            <CardHeader>
+              <CardTitle>{t("profile_account_info")}</CardTitle>
+            </CardHeader>
+            <form onSubmit={handleSaveInfo} className="flex flex-col gap-3">
+              <div>
+                <Label htmlFor="profile-name">{t("profile_name")}</Label>
+                <Input
+                  id="profile-name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder={t("profile_name_placeholder")}
+                />
+              </div>
+              <div>
+                <Label htmlFor="profile-email">{t("profile_email")}</Label>
+                <Input
+                  id="profile-email"
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+              </div>
+              <div className="mt-1">
+                <Button type="submit" loading={savingInfo}>
+                  {savingInfo ? t("profile_saving_info") : t("profile_save_info")}
+                </Button>
+              </div>
+            </form>
+          </Card>
+
+          <Card className="mb-4">
+            <CardHeader>
+              <CardTitle>{t("profile_change_password")}</CardTitle>
+            </CardHeader>
+            <form onSubmit={handleSavePassword} className="flex flex-col gap-3">
+              {[
+                {
+                  id: "pw-current",
+                  label: t("profile_current_password"),
+                  value: currentPassword,
+                  onChange: setCurrentPassword,
+                  autoComplete: "current-password",
+                },
+                {
+                  id: "pw-new",
+                  label: t("profile_new_password"),
+                  value: newPassword,
+                  onChange: setNewPassword,
+                  autoComplete: "new-password",
+                },
+                {
+                  id: "pw-confirm",
+                  label: t("profile_confirm_password"),
+                  value: confirmPassword,
+                  onChange: setConfirmPassword,
+                  autoComplete: "new-password",
+                },
+              ].map((f) => (
+                <div key={f.id}>
+                  <Label htmlFor={f.id}>{f.label}</Label>
+                  <Input
+                    id={f.id}
+                    type="password"
+                    required
+                    value={f.value}
+                    onChange={(e) => f.onChange(e.target.value)}
+                    placeholder="••••••••"
+                    autoComplete={f.autoComplete}
+                  />
+                </div>
+              ))}
+              <div className="mt-1">
+                <Button type="submit" loading={savingPassword}>
+                  {savingPassword ? t("profile_changing_pw") : t("profile_change_pw")}
+                </Button>
+              </div>
+            </form>
+          </Card>
+
+          <Card className="mb-4">
+            <CardHeader>
+              <CardTitle>Referral programı</CardTitle>
+            </CardHeader>
+            <p className="mb-4 text-[13px] leading-relaxed text-[var(--color-fg-muted)]">
+              Davet kodunu paylaş — her yeni üye için sen ve arkadaşın{" "}
+              <span className="font-medium text-[var(--color-accent)]">
+                50&apos;şer SMS kredisi
+              </span>{" "}
+              kazanırsın.
+            </p>
+            <div className="mb-4 flex items-center gap-2">
+              <div className="flex-1 rounded-[var(--radius-md)] border border-[var(--color-accent)]/20 bg-[var(--color-accent-faded)] px-4 py-3 text-center font-mono text-[16px] font-medium tracking-[3px] text-[var(--color-accent)]">
+                {user?.referralCode || "—"}
+              </div>
+              <Button size="md" variant="secondary" onClick={copyReferral}>
+                {referralCopied ? <Check size={14} aria-hidden /> : <Copy size={14} aria-hidden />}
+                {referralCopied ? "Kopyalandı" : "Kopyala"}
+              </Button>
+            </div>
+            <div className="rounded-[var(--radius-md)] bg-[var(--color-surface)] px-3 py-2.5">
+              <p className="text-[11px] uppercase tracking-[0.06em] text-[var(--color-fg-muted)]">
+                Davet ettiğin kişi
+              </p>
+              <p className="mt-1 text-[22px] font-medium text-[var(--color-fg)] tabular-nums">
+                {user?.referredCount ?? 0}
+              </p>
+            </div>
+          </Card>
+
+          <Card className="mb-4">
+            <CardHeader>
+              <CardTitle>İki faktörlü doğrulama</CardTitle>
+              {twoFAEnabled ? (
+                <Badge tone="success">
+                  <ShieldCheck size={11} aria-hidden /> Aktif
+                </Badge>
+              ) : (
+                <Badge tone="neutral">
+                  <ShieldAlert size={11} aria-hidden /> Devre dışı
+                </Badge>
+              )}
+            </CardHeader>
+
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <p className="text-[13px] text-[var(--color-fg-muted)]">
+                {twoFAEnabled
+                  ? "Hesabın iki faktörlü doğrulama ile korunuyor."
+                  : "Google Authenticator ile hesabını güvende tut."}
+              </p>
+              {twoFAStep === "idle" && (
+                <Button
+                  size="sm"
+                  variant={twoFAEnabled ? "ghost" : "primary"}
+                  loading={twoFALoading}
+                  onClick={twoFAEnabled ? () => setTwoFAStep("disable") : setup2FA}
+                  className={twoFAEnabled ? "text-[var(--color-danger)] hover:bg-[var(--color-danger)]/[0.08]" : ""}
+                >
+                  {twoFAEnabled ? "Devre dışı bırak" : "2FA kur"}
+                </Button>
               )}
             </div>
 
             {twoFAMsg && (
-              <div style={{
-                padding: '8px 12px', borderRadius: 8, marginBottom: 12,
-                background: twoFAMsg.includes('aktif') || twoFAMsg.includes('bırakıldı') ? 'rgba(5,150,105,0.1)' : 'rgba(239,68,68,0.1)',
-                border: `1px solid ${twoFAMsg.includes('aktif') || twoFAMsg.includes('bırakıldı') ? 'rgba(5,150,105,0.2)' : 'rgba(239,68,68,0.2)'}`,
-                color: twoFAMsg.includes('aktif') || twoFAMsg.includes('bırakıldı') ? '#6ee7b7' : '#f87171',
-                fontSize: 13,
-              }}>
+              <p
+                className={
+                  "mt-3 rounded-[var(--radius-md)] px-3 py-2 text-[13px] " +
+                  (twoFAMsg.includes("aktif") || twoFAMsg.includes("bırakıldı")
+                    ? "border border-[var(--color-success)]/20 bg-[var(--color-success)]/[0.08] text-[var(--color-success)]"
+                    : "border border-[var(--color-danger)]/20 bg-[var(--color-danger)]/[0.08] text-[var(--color-danger)]")
+                }
+              >
                 {twoFAMsg}
-              </div>
+              </p>
             )}
 
-            {twoFAStep === 'setup' && qrCode && (
-              <div>
-                <p style={{ color: '#9ca3af', fontSize: 13, margin: '0 0 12px' }}>
-                  Google Authenticator uygulamasıyla QR kodu okutun, ardından üretilen 6 haneli kodu girin:
+            {twoFAStep === "setup" && qrCode && (
+              <div className="mt-4">
+                <p className="mb-3 text-[13px] text-[var(--color-fg-muted)]">
+                  Google Authenticator uygulamasıyla QR kodu okut, ardından üretilen 6
+                  haneli kodu gir.
                 </p>
-                <img src={qrCode} alt="2FA QR Kod" style={{ width: 160, height: 160, borderRadius: 8, display: 'block', marginBottom: 12 }} />
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <input
-                    type="text" maxLength={6} value={twoFAToken}
-                    onChange={e => setTwoFAToken(e.target.value.replace(/\D/g, ''))}
+                <img
+                  src={qrCode}
+                  alt="2FA QR kod"
+                  className="mb-3 h-40 w-40 rounded-[var(--radius-md)] border border-[var(--color-border)]"
+                />
+                <div className="flex flex-wrap gap-2">
+                  <Input
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={6}
+                    value={twoFAToken}
+                    onChange={(e) => setTwoFAToken(e.target.value.replace(/\D/g, ""))}
                     placeholder="6 haneli kod"
-                    style={{
-                      flex: 1, padding: '10px 14px', borderRadius: 8, border: '1px solid rgba(139,92,246,0.3)',
-                      background: 'rgba(255,255,255,0.05)', color: '#fff', fontSize: 18, fontWeight: 700,
-                      letterSpacing: '4px', outline: 'none',
-                    }}
+                    className="flex-1 min-w-[160px] tracking-[6px] text-center text-[18px] font-medium"
                   />
-                  <button
-                    onClick={enable2FA} disabled={twoFAToken.length !== 6 || twoFALoading}
-                    style={{
-                      padding: '10px 20px', borderRadius: 8, border: 'none', cursor: 'pointer',
-                      background: 'linear-gradient(135deg, #7c3aed, #a855f7)', color: '#fff', fontSize: 14, fontWeight: 600,
+                  <Button
+                    onClick={enable2FA}
+                    disabled={twoFAToken.length !== 6}
+                    loading={twoFALoading}
+                  >
+                    Doğrula
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    onClick={() => {
+                      setTwoFAStep("idle");
+                      setQrCode(null);
+                      setTwoFAToken("");
                     }}
                   >
-                    {twoFALoading ? '...' : 'Doğrula'}
-                  </button>
-                  <button onClick={() => { setTwoFAStep('idle'); setQrCode(null); setTwoFAToken(''); }} style={{ padding: '10px 14px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.1)', background: 'transparent', color: '#9ca3af', cursor: 'pointer', fontSize: 14 }}>
                     İptal
-                  </button>
+                  </Button>
                 </div>
               </div>
             )}
 
-            {twoFAStep === 'disable' && (
-              <div>
-                <p style={{ color: '#9ca3af', fontSize: 13, margin: '0 0 12px' }}>
-                  2FA&apos;yı devre dışı bırakmak için authenticator uygulamasındaki kodu girin:
+            {twoFAStep === "disable" && (
+              <div className="mt-4">
+                <p className="mb-3 text-[13px] text-[var(--color-fg-muted)]">
+                  2FA&apos;yı devre dışı bırakmak için authenticator uygulamasındaki kodu gir.
                 </p>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <input
-                    type="text" maxLength={6} value={twoFAToken}
-                    onChange={e => setTwoFAToken(e.target.value.replace(/\D/g, ''))}
+                <div className="flex flex-wrap gap-2">
+                  <Input
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={6}
+                    value={twoFAToken}
+                    onChange={(e) => setTwoFAToken(e.target.value.replace(/\D/g, ""))}
                     placeholder="6 haneli kod"
-                    style={{
-                      flex: 1, padding: '10px 14px', borderRadius: 8, border: '1px solid rgba(239,68,68,0.3)',
-                      background: 'rgba(255,255,255,0.05)', color: '#fff', fontSize: 18, fontWeight: 700,
-                      letterSpacing: '4px', outline: 'none',
-                    }}
+                    invalid
+                    className="flex-1 min-w-[160px] tracking-[6px] text-center text-[18px] font-medium"
                   />
-                  <button
-                    onClick={disable2FA} disabled={twoFAToken.length !== 6 || twoFALoading}
-                    style={{ padding: '10px 20px', borderRadius: 8, border: 'none', cursor: 'pointer', background: 'rgba(220,38,38,0.8)', color: '#fff', fontSize: 14, fontWeight: 600 }}
+                  <Button
+                    onClick={disable2FA}
+                    disabled={twoFAToken.length !== 6}
+                    loading={twoFALoading}
+                    className="bg-[var(--color-danger)] hover:bg-[var(--color-danger)]/85 text-white"
                   >
-                    {twoFALoading ? '...' : 'Kapat'}
-                  </button>
-                  <button onClick={() => { setTwoFAStep('idle'); setTwoFAToken(''); }} style={{ padding: '10px 14px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.1)', background: 'transparent', color: '#9ca3af', cursor: 'pointer', fontSize: 14 }}>
+                    Kapat
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    onClick={() => {
+                      setTwoFAStep("idle");
+                      setTwoFAToken("");
+                    }}
+                  >
                     İptal
-                  </button>
+                  </Button>
                 </div>
               </div>
             )}
-          </div>
+          </Card>
 
-          {/* Danger zone */}
-          <div style={{ ...cardStyle, border: '1px solid rgba(239,68,68,0.15)', background: 'rgba(239,68,68,0.04)', marginBottom: 0 }}>
-            <h2 style={{ color: '#f87171', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.8px', margin: '0 0 8px' }}>{t('profile_danger_zone')}</h2>
-            <p style={{ color: '#6b7280', fontSize: 13, margin: '0 0 14px' }}>
-              {t('profile_danger_desc')}
-            </p>
-            <button onClick={() => setShowDelete(true)} style={{
-              background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)',
-              borderRadius: 10, padding: '11px 20px', color: '#f87171',
-              fontSize: 14, fontWeight: 600, cursor: 'pointer', minHeight: 44,
-              width: isMobile ? '100%' : 'auto',
-            }}>
-              {t('profile_delete_account')}
-            </button>
-          </div>
-
-        </>}
-      </main>
-
-      {/* Delete Confirm Modal */}
-      {showDelete && (
-        <div onClick={() => setShowDelete(false)} style={{
-          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)',
-          backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: 16,
-        }}>
-          <div onClick={e => e.stopPropagation()} style={{
-            background: '#0f0f18', border: '1px solid rgba(239,68,68,0.25)',
-            borderRadius: 20, padding: isMobile ? '24px 20px' : '36px 32px',
-            width: '100%', maxWidth: 420,
-          }}>
-            <h2 style={{ color: '#f87171', fontSize: 18, fontWeight: 700, margin: '0 0 8px' }}>{t('profile_delete_modal_title')}</h2>
-            <p style={{ color: '#6b7280', fontSize: 14, margin: '0 0 20px', lineHeight: 1.6 }}>
-              {t('profile_delete_modal_desc')}
-            </p>
-            <form onSubmit={handleDelete} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              <div>
-                <label style={{ display: 'block', color: '#9ca3af', fontSize: 13, marginBottom: 6 }}>{t('profile_delete_password_label')}</label>
-                <input type="password" required value={deletePassword} onChange={e => setDeletePassword(e.target.value)} placeholder="••••••••"
-                  style={{ ...inputStyle }}
-                  onFocus={e => e.target.style.borderColor = 'rgba(239,68,68,0.6)'}
-                  onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.1)'} />
+          <Card className="border-[var(--color-danger)]/20 bg-[var(--color-danger)]/[0.04]">
+            <div className="flex items-start gap-3">
+              <AlertTriangle
+                size={18}
+                aria-hidden
+                className="mt-0.5 shrink-0 text-[var(--color-danger)]"
+              />
+              <div className="flex-1">
+                <p
+                  className="text-[var(--color-danger)]"
+                  style={{
+                    fontSize: 14,
+                    fontWeight: 500,
+                    letterSpacing: "var(--tracking-heading)",
+                  }}
+                >
+                  {t("profile_danger_zone")}
+                </p>
+                <p className="mt-1 text-[13px] text-[var(--color-fg-muted)]">
+                  {t("profile_danger_desc")}
+                </p>
               </div>
-              <div style={{ display: 'flex', gap: 10 }}>
-                <button type="submit" disabled={deleting} style={{
-                  flex: 1, padding: '13px',
-                  background: deleting ? 'rgba(239,68,68,0.3)' : 'linear-gradient(135deg, #dc2626, #ef4444)',
-                  border: 'none', borderRadius: 10, color: '#fff', fontSize: 14, fontWeight: 600,
-                  cursor: deleting ? 'not-allowed' : 'pointer', minHeight: 44,
-                }}>
-                  {deleting ? t('profile_delete_deleting') : t('profile_delete_confirm')}
-                </button>
-                <button type="button" onClick={() => { setShowDelete(false); setDeletePassword(''); }} style={{
-                  flex: 1, padding: '13px', background: 'rgba(255,255,255,0.05)',
-                  border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10,
-                  color: '#9ca3af', fontSize: 14, cursor: 'pointer', minHeight: 44,
-                }}>
-                  {t('cancel')}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowDelete(true)}
+                className="text-[var(--color-danger)] hover:bg-[var(--color-danger)]/[0.08]"
+              >
+                {t("profile_delete_account")}
+              </Button>
+            </div>
+          </Card>
+        </>
       )}
+
+      <AnimatePresence>
+        {showDelete && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            onClick={() => setShowDelete(false)}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-md"
+          >
+            <motion.div
+              initial={{ opacity: 0, y: 12, scale: 0.97 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 12, scale: 0.97 }}
+              transition={{ duration: 0.25, ease: easeOut }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-md rounded-[var(--radius-xl)] border border-[var(--color-danger)]/30 bg-[var(--color-bg-overlay)] p-6 shadow-[var(--shadow-lg)]"
+            >
+              <div className="mb-4 flex items-start justify-between gap-4">
+                <h2
+                  className="text-[var(--color-danger)]"
+                  style={{
+                    fontSize: 18,
+                    fontWeight: 500,
+                    letterSpacing: "var(--tracking-heading)",
+                  }}
+                >
+                  {t("profile_delete_modal_title")}
+                </h2>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowDelete(false)}
+                  aria-label="Kapat"
+                  className="h-8 w-8 px-0"
+                >
+                  <X size={14} aria-hidden />
+                </Button>
+              </div>
+              <p className="mb-5 text-[13px] leading-relaxed text-[var(--color-fg-muted)]">
+                {t("profile_delete_modal_desc")}
+              </p>
+              <form onSubmit={handleDelete} className="flex flex-col gap-3">
+                <div>
+                  <Label htmlFor="delete-pw">{t("profile_delete_password_label")}</Label>
+                  <Input
+                    id="delete-pw"
+                    type="password"
+                    required
+                    value={deletePassword}
+                    onChange={(e) => setDeletePassword(e.target.value)}
+                    placeholder="••••••••"
+                    invalid
+                  />
+                </div>
+                <div className="mt-2 flex gap-2">
+                  <Button
+                    type="submit"
+                    block
+                    loading={deleting}
+                    className="bg-[var(--color-danger)] hover:bg-[var(--color-danger)]/85 text-white"
+                  >
+                    {deleting ? t("profile_delete_deleting") : t("profile_delete_confirm")}
+                  </Button>
+                  <Button
+                    type="button"
+                    block
+                    variant="secondary"
+                    onClick={() => {
+                      setShowDelete(false);
+                      setDeletePassword("");
+                    }}
+                  >
+                    {t("cancel")}
+                  </Button>
+                </div>
+              </form>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

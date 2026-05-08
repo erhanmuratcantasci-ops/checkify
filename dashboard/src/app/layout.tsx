@@ -1,12 +1,68 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
+import { GeistSans } from "geist/font/sans";
+import { GeistMono } from "geist/font/mono";
 import "./globals.css";
 import { ToastProvider } from "@/components/Toast";
 import NextAuthProvider from "@/components/NextAuthProvider";
 import { LanguageProvider } from "@/lib/i18n";
+import { SmoothScroll } from "@/components/SmoothScroll";
+
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://chekkify.com";
 
 export const metadata: Metadata = {
-  title: "Chekkify",
-  description: "Chekkify — Shopify COD doğrulama platformu",
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: "Chekkify — Kapıda ödeme. Akıllı onay.",
+    template: "%s · Chekkify",
+  },
+  description:
+    "Otomatik SMS doğrulamayla iptal oranını düşür. Müşterilerin hızlıca onaylar, sen işine odaklanırsın. Türkiye'nin Apple-pro Shopify COD asistanı.",
+  applicationName: "Chekkify",
+  keywords: [
+    "kapıda ödeme",
+    "COD doğrulama",
+    "Shopify COD",
+    "SMS doğrulama",
+    "iade oranı",
+    "OTP doğrulama",
+    "Türkiye Shopify uygulaması",
+  ],
+  authors: [{ name: "Chekkify" }],
+  creator: "Chekkify",
+  openGraph: {
+    type: "website",
+    locale: "tr_TR",
+    url: SITE_URL,
+    siteName: "Chekkify",
+    title: "Chekkify — Kapıda ödeme. Akıllı onay.",
+    description:
+      "Otomatik SMS doğrulamayla iptal oranını düşür. Türkiye'nin Apple-pro Shopify COD asistanı.",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Chekkify — Kapıda ödeme. Akıllı onay.",
+    description:
+      "Otomatik SMS doğrulamayla iptal oranını düşür. Türkiye'nin Apple-pro Shopify COD asistanı.",
+  },
+  alternates: {
+    canonical: "/",
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Chekkify",
+  },
+  formatDetection: {
+    telephone: false,
+  },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+  viewportFit: "cover",
+  themeColor: "#000000",
 };
 
 export default function RootLayout({
@@ -15,14 +71,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="tr">
-      <head>
-        <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Rajdhani:wght@600;700&display=swap" rel="stylesheet" />
-      </head>
-      <body className="antialiased">
+    <html lang="tr" className={`${GeistSans.variable} ${GeistMono.variable}`}>
+      <body className={GeistSans.className}>
+        <a href="#main-content" className="skip-link">
+          İçeriğe atla
+        </a>
         <NextAuthProvider>
           <LanguageProvider>
             <ToastProvider>
+              <SmoothScroll />
               {children}
             </ToastProvider>
           </LanguageProvider>

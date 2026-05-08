@@ -1,10 +1,18 @@
-'use client';
+"use client";
 
-import { useEffect, useRef, useState } from 'react';
-import { useParams } from 'next/navigation';
-import GeometricBackground from '@/components/GeometricBackground';
+import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
+import { CheckCircle2, Lock, Search } from "lucide-react";
+import { useTranslation } from "@/lib/i18n";
+import { useToast } from "@/components/Toast";
+import { MerchantBrandedLayout } from "@/components/ui/merchant-branded-layout";
+import { OTPInput } from "@/components/ui/otp-input";
+import { PrimaryActionButton } from "@/components/ui/primary-action-button";
+import { easeOut } from "@/lib/motion";
 
-const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
+const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
+const MAX_ATTEMPTS = 3;
 
 interface OrderInfo {
   maskedPhone: string;
@@ -13,251 +21,331 @@ interface OrderInfo {
   verified: boolean;
 }
 
+function fillTemplate(tpl: string, vars: Record<string, string>) {
+  return Object.entries(vars).reduce(
+    (acc, [k, v]) => acc.replace(new RegExp(`\\{${k}\\}`, "g"), v),
+    tpl
+  );
+}
+
 export default function VerifyPage() {
   const { orderId } = useParams<{ orderId: string }>();
+  const { t } = useTranslation();
+  const { showToast } = useToast();
+
   const [info, setInfo] = useState<OrderInfo | null>(null);
-  const [otp, setOtp] = useState(['', '', '', '', '', '']);
+  const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
-  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+  // Server-driven attempt count is opaque on the failure response; track
+  // it locally so we can render "n deneme hakkın kaldı" without an extra
+  // round-trip. Reset on success.
+  const [attemptCount, setAttemptCount] = useState(0);
+  const [shake, setShake] = useState(0);
 
   useEffect(() => {
     if (!orderId) return;
     fetch(`${API}/confirm/otp/info/${orderId}`)
-      .then(r => r.json())
-      .then(data => {
-        if (data.error) { setError(data.error); return; }
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.error) {
+          setErrorMessage(data.error);
+          return;
+        }
         setInfo(data);
         if (data.verified) setSuccess(true);
       })
-      .catch(() => setError('Sipariş bilgisi yüklenemedi'))
+      .catch(() => setErrorMessage(t("cod_status_lookup_failed")))
       .finally(() => setLoading(false));
-  }, [orderId]);
+  }, [orderId, t]);
 
-  function handleOtpChange(index: number, value: string) {
-    const digit = value.replace(/\D/g, '').slice(-1);
-    const next = [...otp];
-    next[index] = digit;
-    setOtp(next);
-    if (digit && index < 5) {
-      inputRefs.current[index + 1]?.focus();
-    }
-  }
-
-  function handleKeyDown(index: number, e: React.KeyboardEvent) {
-    if (e.key === 'Backspace' && !otp[index] && index > 0) {
-      inputRefs.current[index - 1]?.focus();
-    }
-  }
-
-  function handlePaste(e: React.ClipboardEvent) {
-    e.preventDefault();
-    const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
-    if (pasted.length === 6) {
-      setOtp(pasted.split(''));
-      inputRefs.current[5]?.focus();
-    }
-  }
-
-  async function handleSubmit() {
-    const code = otp.join('');
+  async function submitCode(code: string) {
     if (code.length !== 6) {
-      setError('6 haneli kodu eksiksiz girin');
+      setErrorMessage("6 haneli kodu eksiksiz gir.");
       return;
     }
-
     setSubmitting(true);
-    setError(null);
-
+    setErrorMessage(null);
     try {
       const res = await fetch(`${API}/confirm/otp`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ orderId: parseInt(orderId), otpCode: code }),
       });
       const data = await res.json();
-
       if (!res.ok) {
-        setError(data.error ?? 'Doğrulama başarısız');
-        if (data.error?.includes('kilitlendi')) {
-          setInfo(prev => prev ? { ...prev, locked: true } : null);
+        setAttemptCount((n) => n + 1);
+        setErrorMessage(data.error ?? t("cod_error_generic"));
+        setOtp("");
+        setShake((n) => n + 1);
+        if (data.error?.includes("kilitlendi") || res.status === 429) {
+          setInfo((prev) => (prev ? { ...prev, locked: true } : prev));
         }
-        setOtp(['', '', '', '', '', '']);
-        inputRefs.current[0]?.focus();
       } else {
         setSuccess(true);
+        setAttemptCount(0);
       }
     } catch {
-      setError('Bağlantı hatası');
+      setErrorMessage(t("cod_error_generic"));
+      setShake((n) => n + 1);
     } finally {
       setSubmitting(false);
     }
   }
 
-  const inputStyle: React.CSSProperties = {
-    width: 48,
-    height: 56,
-    borderRadius: 12,
-    border: '1px solid rgba(139,92,246,0.3)',
-    background: 'rgba(255,255,255,0.05)',
-    color: '#fff',
-    fontSize: 24,
-    fontWeight: 700,
-    textAlign: 'center',
-    outline: 'none',
-    fontFamily: "'DM Sans', sans-serif",
-  };
+  const remaining = Math.max(0, MAX_ATTEMPTS - attemptCount);
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      background: '#0a0a0f',
-      fontFamily: "'DM Sans', sans-serif",
-      position: 'relative',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: '20px',
-    }}>
-      <GeometricBackground />
+    <MerchantBrandedLayout
+      footer={
+        info && !success && !info.locked && !loading && !errorMessage?.includes("bulunamadı") ? (
+          <PrimaryActionButton
+            type="button"
+            disabled={otp.length !== 6}
+            loading={submitting}
+            onClick={() => submitCode(otp)}
+          >
+            {submitting ? t("cod_otp_verifying") : t("cod_otp_verify")}
+          </PrimaryActionButton>
+        ) : null
+      }
+    >
+      <AnimatePresence mode="wait">
+        {loading ? (
+          <Loading key="loading" />
+        ) : success ? (
+          <SuccessView
+            key="success"
+            title={t("cod_confirm_success_title")}
+            already={info?.verified ? t("cod_otp_already_verified") : undefined}
+          />
+        ) : info?.locked ? (
+          <LockedView
+            key="locked"
+            title={t("cod_otp_locked_title")}
+            desc={t("cod_otp_locked_desc")}
+          />
+        ) : errorMessage && !info ? (
+          <NotFoundView key="notfound" message={errorMessage} />
+        ) : (
+          <Form
+            key="form"
+            phone={info?.maskedPhone ?? ""}
+            otp={otp}
+            shake={shake}
+            errorMessage={errorMessage}
+            remaining={remaining}
+            attemptCount={attemptCount}
+            onChange={(v) => {
+              setOtp(v);
+              if (errorMessage) setErrorMessage(null);
+            }}
+            onComplete={(full) => submitCode(full)}
+            onPasteToast={() => showToast(t("cod_otp_paste_toast"), "success")}
+            disabled={submitting}
+            t={t}
+          />
+        )}
+      </AnimatePresence>
+    </MerchantBrandedLayout>
+  );
+}
 
-      <div style={{ position: 'relative', zIndex: 1, width: '100%', maxWidth: 420 }}>
-        {/* Logo */}
-        <div style={{ textAlign: 'center', marginBottom: 32 }}>
-          <div style={{
-            display: 'inline-flex', alignItems: 'center', gap: 10,
-            background: 'linear-gradient(135deg, rgba(124,58,237,0.2), rgba(168,85,247,0.1))',
-            border: '1px solid rgba(139,92,246,0.3)',
-            borderRadius: 12, padding: '10px 18px',
-          }}>
-            <div style={{
-              width: 28, height: 28, borderRadius: 7,
-              background: 'linear-gradient(135deg, #7c3aed, #a855f7)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 14, fontWeight: 700, color: '#fff',
-            }}>C</div>
-            <span style={{ fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: 18, color: '#fff' }}>
-              chekkify
-            </span>
-          </div>
-        </div>
-
-        <div style={{
-          background: 'rgba(255,255,255,0.03)',
-          border: '1px solid rgba(255,255,255,0.07)',
-          borderRadius: 20,
-          padding: '36px 28px',
-        }}>
-          {loading ? (
-            <div style={{ textAlign: 'center', color: '#6b7280', padding: '40px 0' }}>
-              Yükleniyor...
-            </div>
-          ) : success ? (
-            <div style={{ textAlign: 'center', padding: '20px 0' }}>
-              <div style={{ fontSize: 56, marginBottom: 16 }}>✅</div>
-              <h2 style={{
-                color: '#059669', fontSize: 22, fontWeight: 700,
-                fontFamily: "'Syne', sans-serif", margin: '0 0 8px',
-              }}>
-                Siparişiniz Onaylandı
-              </h2>
-              <p style={{ color: '#6b7280', fontSize: 14, margin: 0 }}>
-                Teşekkürler! Siparişiniz başarıyla doğrulandı.
-              </p>
-            </div>
-          ) : info?.locked ? (
-            <div style={{ textAlign: 'center', padding: '20px 0' }}>
-              <div style={{ fontSize: 56, marginBottom: 16 }}>🔒</div>
-              <h2 style={{
-                color: '#ef4444', fontSize: 20, fontWeight: 700,
-                fontFamily: "'Syne', sans-serif", margin: '0 0 8px',
-              }}>
-                Sipariş Kilitlendi
-              </h2>
-              <p style={{ color: '#6b7280', fontSize: 14, margin: 0 }}>
-                Çok fazla hatalı deneme yapıldı. Lütfen mağaza ile iletişime geçin.
-              </p>
-            </div>
-          ) : error && !info ? (
-            <div style={{ textAlign: 'center', padding: '40px 0' }}>
-              <div style={{ fontSize: 40, marginBottom: 16 }}>🔍</div>
-              <div style={{ color: '#ef4444', fontSize: 15 }}>{error}</div>
-            </div>
-          ) : (
-            <>
-              <h1 style={{
-                color: '#fff', fontSize: 22, fontWeight: 700, margin: '0 0 8px',
-                fontFamily: "'Syne', sans-serif", textAlign: 'center',
-              }}>
-                SMS Doğrulama
-              </h1>
-              {info && (
-                <p style={{ color: '#9ca3af', fontSize: 14, textAlign: 'center', margin: '0 0 28px' }}>
-                  <strong style={{ color: '#d1d5db' }}>{info.maskedPhone}</strong> numaralı telefona gönderilen 6 haneli kodu girin
-                </p>
-              )}
-
-              {/* OTP Input */}
-              <div style={{
-                display: 'flex', gap: 8, justifyContent: 'center', marginBottom: 24,
-              }} onPaste={handlePaste}>
-                {otp.map((digit, i) => (
-                  <input
-                    key={i}
-                    ref={el => { inputRefs.current[i] = el; }}
-                    type="text"
-                    inputMode="numeric"
-                    maxLength={1}
-                    value={digit}
-                    onChange={e => handleOtpChange(i, e.target.value)}
-                    onKeyDown={e => handleKeyDown(i, e)}
-                    style={{
-                      ...inputStyle,
-                      borderColor: digit ? 'rgba(139,92,246,0.6)' : 'rgba(255,255,255,0.1)',
-                    }}
-                    autoFocus={i === 0}
-                  />
-                ))}
-              </div>
-
-              {error && (
-                <div style={{
-                  background: 'rgba(239,68,68,0.1)',
-                  border: '1px solid rgba(239,68,68,0.2)',
-                  borderRadius: 10, padding: '10px 14px',
-                  color: '#f87171', fontSize: 13,
-                  textAlign: 'center', marginBottom: 16,
-                }}>
-                  {error}
-                </div>
-              )}
-
-              <button
-                onClick={handleSubmit}
-                disabled={submitting || otp.join('').length !== 6}
-                style={{
-                  width: '100%', padding: '14px',
-                  background: otp.join('').length === 6
-                    ? 'linear-gradient(135deg, #7c3aed, #a855f7)'
-                    : 'rgba(255,255,255,0.05)',
-                  border: 'none', borderRadius: 12,
-                  color: otp.join('').length === 6 ? '#fff' : '#4b5563',
-                  fontSize: 15, fontWeight: 600, cursor: otp.join('').length === 6 ? 'pointer' : 'not-allowed',
-                  transition: 'all 0.2s',
-                }}
-              >
-                {submitting ? 'Doğrulanıyor...' : 'Doğrula'}
-              </button>
-            </>
-          )}
-        </div>
-
-        <div style={{ textAlign: 'center', marginTop: 20, color: '#374151', fontSize: 12 }}>
-          Powered by chekkify
-        </div>
+function Loading() {
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2 }}
+      className="flex items-center justify-center pt-16"
+    >
+      <div className="relative h-12 w-12">
+        <span
+          aria-hidden
+          className="absolute inset-0 rounded-full border-2 border-[var(--color-border)]"
+        />
+        <span
+          aria-hidden
+          className="absolute inset-0 animate-spin rounded-full border-2 border-transparent border-t-[var(--color-accent)]"
+        />
       </div>
-    </div>
+    </motion.div>
+  );
+}
+
+function Form({
+  phone,
+  otp,
+  shake,
+  errorMessage,
+  remaining,
+  attemptCount,
+  onChange,
+  onComplete,
+  onPasteToast,
+  disabled,
+  t,
+}: {
+  phone: string;
+  otp: string;
+  shake: number;
+  errorMessage: string | null;
+  remaining: number;
+  attemptCount: number;
+  onChange: (v: string) => void;
+  onComplete: (v: string) => void;
+  onPasteToast: () => void;
+  disabled: boolean;
+  t: (k: never) => string;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -8 }}
+      transition={{ duration: 0.25, ease: easeOut }}
+      className="flex flex-col items-center pt-2 text-center"
+    >
+      <h1
+        className="text-[var(--color-fg)]"
+        style={{
+          fontSize: 26,
+          fontWeight: 500,
+          letterSpacing: "var(--tracking-display)",
+          margin: 0,
+        }}
+      >
+        {(t as (k: string) => string)("cod_otp_title")}
+      </h1>
+      {phone && (
+        <p className="mt-2 max-w-[32ch] text-[15px] text-[var(--color-fg-muted)]">
+          {fillTemplate((t as (k: string) => string)("cod_otp_subtitle"), {
+            phone: `‪${phone}‬`,
+          })}
+        </p>
+      )}
+
+      <motion.div
+        key={shake}
+        animate={
+          shake > 0
+            ? { x: [-6, 6, -6, 6, 0] }
+            : { x: 0 }
+        }
+        transition={{ duration: 0.35 }}
+        className="mt-8 w-full"
+      >
+        <OTPInput
+          length={6}
+          value={otp}
+          onChange={onChange}
+          onComplete={onComplete}
+          onPasteToast={onPasteToast}
+          disabled={disabled}
+          invalid={!!errorMessage}
+        />
+      </motion.div>
+
+      <div className="mt-4 min-h-[18px] text-[13px]">
+        {errorMessage ? (
+          <span className="text-[var(--color-danger)]">{errorMessage}</span>
+        ) : attemptCount > 0 ? (
+          <span
+            className={
+              remaining <= 1
+                ? "text-[var(--color-danger)]"
+                : "text-[var(--color-fg-faint)]"
+            }
+          >
+            {fillTemplate((t as (k: string) => string)("cod_otp_attempts_left"), {
+              n: String(remaining),
+            })}
+          </span>
+        ) : null}
+      </div>
+    </motion.div>
+  );
+}
+
+function SuccessView({ title, already }: { title: string; already?: string }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -8 }}
+      transition={{ duration: 0.3, ease: easeOut }}
+      className="flex flex-col items-center pt-4 text-center"
+    >
+      <motion.div
+        initial={{ scale: 0.6, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ type: "spring", stiffness: 380, damping: 18 }}
+        className="flex h-20 w-20 items-center justify-center rounded-full bg-[var(--color-accent-faded)]"
+      >
+        <CheckCircle2 size={42} strokeWidth={1.6} aria-hidden className="text-[var(--color-accent)]" />
+      </motion.div>
+      <h1
+        className="mt-6 text-[var(--color-fg)]"
+        style={{
+          fontSize: 26,
+          fontWeight: 500,
+          letterSpacing: "var(--tracking-display)",
+          margin: 0,
+        }}
+      >
+        {title}
+      </h1>
+      {already && (
+        <p className="mt-2 text-[14px] text-[var(--color-fg-faint)]">{already}</p>
+      )}
+    </motion.div>
+  );
+}
+
+function LockedView({ title, desc }: { title: string; desc: string }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -8 }}
+      transition={{ duration: 0.25, ease: easeOut }}
+      className="flex flex-col items-center pt-6 text-center"
+    >
+      <div className="flex h-20 w-20 items-center justify-center rounded-full border border-[var(--color-danger)]/30 bg-[var(--color-danger)]/[0.08]">
+        <Lock size={36} strokeWidth={1.6} aria-hidden className="text-[var(--color-danger)]" />
+      </div>
+      <h1
+        className="mt-6 text-[var(--color-fg)]"
+        style={{
+          fontSize: 24,
+          fontWeight: 500,
+          letterSpacing: "var(--tracking-display)",
+          margin: 0,
+        }}
+      >
+        {title}
+      </h1>
+      <p className="mt-2 max-w-[32ch] text-[15px] text-[var(--color-fg-muted)]">{desc}</p>
+    </motion.div>
+  );
+}
+
+function NotFoundView({ message }: { message: string }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -8 }}
+      transition={{ duration: 0.25, ease: easeOut }}
+      className="flex flex-col items-center pt-6 text-center"
+    >
+      <div className="flex h-20 w-20 items-center justify-center rounded-full border border-[var(--color-border-strong)] bg-[var(--color-surface)]">
+        <Search size={36} strokeWidth={1.6} aria-hidden className="text-[var(--color-fg-muted)]" />
+      </div>
+      <p className="mt-6 text-[15px] text-[var(--color-fg-muted)]">{message}</p>
+    </motion.div>
   );
 }

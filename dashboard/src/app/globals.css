@@ -1,65 +1,162 @@
 @import "tailwindcss";
 
-:root {
-  /* Background */
-  --bg-base:       #0e0e12;
-  --bg-surface:    #16161c;
-  --bg-elevated:   #1e1e27;
-  --bg-overlay:    #26262f;
-
-  /* Border */
-  --border:        #2a2a35;
-  --border-subtle: #222229;
-
-  /* Accent — mor */
-  --accent:        #8b5cf6;
-  --accent-hover:  #7c3aed;
-  --accent-muted:  #3b2a6e;
-  --accent-fg:     #ffffff;
+@theme {
+  /* Surfaces */
+  --color-bg: #000000;
+  --color-bg-elevated: #0a0a0a;
+  --color-bg-overlay: #141416;
+  --color-surface: rgba(255, 255, 255, 0.04);
+  --color-surface-hover: rgba(255, 255, 255, 0.06);
 
   /* Text */
-  --text-primary:   #f0f0f5;
-  --text-secondary: #9898a8;
-  --text-muted:     #5c5c6e;
+  --color-fg: #f5f5f7;
+  --color-fg-muted: #a1a1aa;
+  --color-fg-subtle: #71717a;
+  --color-fg-faint: #52525b;
 
-  /* Status */
-  --status-pending:   #f59e0b;
-  --status-confirmed: #10b981;
-  --status-preparing: #3b82f6;
-  --status-shipped:   #a855f7;
-  --status-delivered: #06d6a0;
-  --status-cancelled: #ef4444;
+  /* Borders */
+  --color-border: rgba(255, 255, 255, 0.08);
+  --color-border-strong: rgba(255, 255, 255, 0.14);
+  --color-border-focus: #FB7185;
+
+  /* Accent — Hot Coral */
+  --color-accent: #FB7185;
+  --color-accent-hover: #FDA4AF;
+  --color-accent-active: #F43F5E;
+  --color-accent-faded: rgba(251, 113, 133, 0.12);
+  --color-accent-fg: #0a0a0a;
+
+  /* Semantic */
+  --color-success: #34D399;
+  --color-warning: #FBBF24;
+  --color-danger: #F87171;
+
+  /* Typography */
+  --font-sans: "Geist", -apple-system, "SF Pro Display", system-ui, sans-serif;
+  --font-mono: "Geist Mono", "SF Mono", ui-monospace, monospace;
+
+  --tracking-display: -0.04em;
+  --tracking-heading: -0.02em;
+  --tracking-body: -0.011em;
+
+  /* Spacing (8px base) */
+  --spacing-1: 4px;
+  --spacing-2: 8px;
+  --spacing-3: 12px;
+  --spacing-4: 16px;
+  --spacing-6: 24px;
+  --spacing-8: 32px;
+  --spacing-12: 48px;
+  --spacing-16: 64px;
+  --spacing-24: 96px;
+
+  /* Radius */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+  --radius-full: 9999px;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 16px -2px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 12px 32px -4px rgba(0, 0, 0, 0.5);
+  --shadow-glow: 0 0 0 4px rgba(251, 113, 133, 0.2);
+
+  /* Motion */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --duration-fast: 150ms;
+  --duration-base: 250ms;
+  --duration-slow: 400ms;
 }
 
-@theme inline {
-  --color-background:  var(--bg-base);
-  --color-foreground:  var(--text-primary);
-  --font-sans:         var(--font-dm-sans);
-  --font-display:      var(--font-syne);
+:root {
+  color-scheme: dark;
 }
 
-*, *::before, *::after {
-  box-sizing: border-box;
-}
+*, *::before, *::after { box-sizing: border-box; }
 
 html {
+  background: var(--color-bg);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
 body {
-  background: var(--bg-base);
-  color: var(--text-primary);
-  font-family: var(--font-dm-sans), system-ui, sans-serif;
+  background: var(--color-bg);
+  color: var(--color-fg);
+  font-family: var(--font-sans);
+  font-feature-settings: "cv11", "ss01", "ss03";
+  letter-spacing: var(--tracking-body);
+  margin: 0;
+  /* Cuts the iOS Safari 300ms tap delay across the app */
+  touch-action: manipulation;
+}
+
+/*
+ * `.app-shell` is opt-in for app-like surfaces (auth, customer COD, etc.)
+ * that need iOS PWA polish — it disables pull-to-refresh and reserves the
+ * safe-area insets. The merchant dashboard keeps native scroll behaviour.
+ */
+.app-shell {
+  overscroll-behavior: none;
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
 ::selection {
-  background: var(--accent-muted);
-  color: var(--text-primary);
+  background: var(--color-accent-faded);
+  color: var(--color-fg);
 }
 
-/* Scrollbar */
-::-webkit-scrollbar        { width: 6px; height: 6px; }
-::-webkit-scrollbar-track  { background: var(--bg-surface); }
-::-webkit-scrollbar-thumb  { background: var(--border); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+/* Override Safari/Chrome autofill yellow tint to match dark surface */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-text-fill-color: var(--color-fg);
+  -webkit-box-shadow: 0 0 0px 1000px var(--color-bg-elevated) inset;
+  caret-color: var(--color-fg);
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--color-bg-elevated); }
+::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--color-border-strong); }
+
+/* Skip-to-content link — visually hidden until focused */
+.skip-link {
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  z-index: 100;
+  padding: 8px 14px;
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  color: var(--color-fg);
+  font-size: 13px;
+  font-weight: 500;
+  transform: translateY(-200%);
+  transition: transform 150ms var(--ease-out);
+}
+.skip-link:focus-visible {
+  transform: translateY(0);
+  outline: 2px solid var(--color-accent-faded);
+  outline-offset: 2px;
+}
+
+/*
+ * prefers-reduced-motion — clamp all CSS-driven animation/transition; Framer
+ * Motion auto-detects this media query and clamps its own springs/tweens.
+ * SmoothScroll bypasses Lenis entirely under reduced-motion.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

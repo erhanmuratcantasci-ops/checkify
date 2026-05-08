@@ -1,153 +1,165 @@
-'use client';
+"use client";
 
-import { useRouter } from 'next/navigation';
-import { useIsMobile } from '@/hooks/useIsMobile';
+import { useRouter } from "next/navigation";
+import { motion } from "framer-motion";
+import { Lock, Check, ArrowRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { easeOut } from "@/lib/motion";
 
 interface PlanCard {
   label: string;
   price: string;
   features: string[];
-  accent: string;
-  bg: string;
-  border: string;
+  emphasis?: boolean;
 }
 
 const UPGRADE_PLANS: Record<string, PlanCard> = {
   STARTER: {
-    label: 'Starter',
-    price: '99₺/ay',
-    features: ['300 SMS/ay', '3 mağaza', 'OTP doğrulama', 'PDF fatura'],
-    accent: '#3b82f6',
-    bg: 'rgba(59,130,246,0.08)',
-    border: 'rgba(59,130,246,0.3)',
+    label: "Starter",
+    price: "99 ₺/ay",
+    features: ["300 SMS/ay", "3 mağaza", "OTP doğrulama", "PDF fatura"],
   },
   PRO: {
-    label: 'Pro',
-    price: '249₺/ay',
-    features: ['1.000 SMS/ay', '10 mağaza', 'WhatsApp', 'RTO analizi', 'Blocklist · Posta kodu'],
-    accent: '#a855f7',
-    bg: 'rgba(168,85,247,0.08)',
-    border: 'rgba(168,85,247,0.3)',
+    label: "Pro",
+    price: "249 ₺/ay",
+    features: [
+      "1.000 SMS/ay",
+      "10 mağaza",
+      "WhatsApp",
+      "RTO analizi",
+      "Engel listesi",
+    ],
+    emphasis: true,
   },
   BUSINESS: {
-    label: 'Business',
-    price: '499₺/ay',
-    features: ['3.000 SMS/ay', 'Sınırsız mağaza', 'Tüm özellikler', 'Öncelikli destek'],
-    accent: '#f59e0b',
-    bg: 'rgba(245,158,11,0.08)',
-    border: 'rgba(245,158,11,0.3)',
+    label: "Business",
+    price: "499 ₺/ay",
+    features: [
+      "3.000 SMS/ay",
+      "Sınırsız mağaza",
+      "Tüm özellikler",
+      "Öncelikli destek",
+    ],
   },
 };
 
 interface Props {
   featureName?: string;
-  requiredPlan?: 'STARTER' | 'PRO' | 'BUSINESS';
+  requiredPlan?: "STARTER" | "PRO" | "BUSINESS";
 }
 
 export default function PlanUpgradeOverlay({ featureName, requiredPlan }: Props) {
   const router = useRouter();
-  const isMobile = useIsMobile();
 
-  // Show plans at and above requiredPlan; default to all 3
-  const planOrder = ['STARTER', 'PRO', 'BUSINESS'];
+  const planOrder = ["STARTER", "PRO", "BUSINESS"];
   const startIdx = requiredPlan ? planOrder.indexOf(requiredPlan) : 0;
   const visiblePlans = planOrder.slice(startIdx);
 
   return (
-    <div style={{
-      position: 'fixed', inset: 0, zIndex: 200,
-      background: 'rgba(10,10,15,0.93)',
-      backdropFilter: 'blur(14px)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      padding: '20px 16px',
-      fontFamily: "'Outfit', sans-serif",
-      overflowY: 'auto',
-    }}>
-      <div style={{ width: '100%', maxWidth: 660, textAlign: 'center' }}>
-
-        {/* Icon + title */}
-        <div style={{
-          width: 72, height: 72, borderRadius: '50%',
-          background: 'rgba(139,92,246,0.15)', border: '1px solid rgba(139,92,246,0.3)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 32, margin: '0 auto 20px',
-        }}>
-          🔒
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.25 }}
+      className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-[var(--color-bg)]/95 px-4 py-8 backdrop-blur-2xl"
+    >
+      <motion.div
+        initial={{ opacity: 0, y: 12, scale: 0.97 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.3, ease: easeOut }}
+        className="w-full max-w-2xl text-center"
+      >
+        <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-[var(--color-accent-faded)]">
+          <Lock size={26} aria-hidden className="text-[var(--color-accent)]" />
         </div>
-        <h2 style={{ color: '#fff', fontSize: isMobile ? 20 : 24, fontWeight: 800, margin: '0 0 10px', letterSpacing: '-0.5px' }}>
-          Bu özellik planınızda mevcut değil
+
+        <h2
+          className="text-[var(--color-fg)]"
+          style={{
+            fontSize: 26,
+            fontWeight: 500,
+            letterSpacing: "var(--tracking-display)",
+            margin: 0,
+          }}
+        >
+          Bu özellik planında mevcut değil
         </h2>
-        <p style={{ color: '#6b7280', fontSize: 14, margin: '0 0 28px', maxWidth: 400, marginInline: 'auto', lineHeight: 1.6 }}>
-          {featureName
-            ? <><strong style={{ color: '#9ca3af' }}>{featureName}</strong> özelliğini kullanmak için planınızı yükseltin.</>
-            : 'Bu özelliği kullanmak için planınızı yükseltin.'}
+        <p className="mx-auto mt-3 max-w-md text-[14px] leading-relaxed text-[var(--color-fg-muted)]">
+          {featureName ? (
+            <>
+              <strong className="text-[var(--color-fg)]">{featureName}</strong> özelliğini
+              kullanmak için planını yükselt.
+            </>
+          ) : (
+            "Bu özelliği kullanmak için planını yükselt."
+          )}
         </p>
 
-        {/* Plan cards */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: isMobile ? '1fr' : `repeat(${visiblePlans.length}, 1fr)`,
-          gap: isMobile ? 10 : 14,
-          marginBottom: 24,
-        }}>
-          {visiblePlans.map(key => {
+        <div
+          className="mt-7 grid gap-3"
+          style={{
+            gridTemplateColumns: `repeat(${visiblePlans.length}, minmax(0, 1fr))`,
+          }}
+        >
+          {visiblePlans.map((key) => {
             const plan = UPGRADE_PLANS[key];
+            const emphasis = plan.emphasis;
             return (
-              <div key={key} style={{
-                background: plan.bg, border: `1px solid ${plan.border}`,
-                borderRadius: 16, padding: isMobile ? '16px' : '20px 18px',
-                textAlign: 'left', display: 'flex', flexDirection: isMobile ? 'row' : 'column',
-                gap: isMobile ? 14 : 12, alignItems: isMobile ? 'center' : 'stretch',
-              }}>
-                <div style={{ flex: 1 }}>
-                  <div style={{ color: plan.accent, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 4 }}>
-                    {plan.label}
-                  </div>
-                  <div style={{ color: '#fff', fontSize: isMobile ? 18 : 22, fontWeight: 800, marginBottom: isMobile ? 0 : 10 }}>
-                    {plan.price}
-                  </div>
-                  {!isMobile && (
-                    <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 5 }}>
-                      {plan.features.map(f => (
-                        <li key={f} style={{ color: '#9ca3af', fontSize: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <span style={{ color: plan.accent, fontWeight: 700, fontSize: 10 }}>✓</span> {f}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-                <button
-                  onClick={() => router.push('/pricing')}
+              <div
+                key={key}
+                className={
+                  "flex flex-col rounded-[var(--radius-lg)] border p-5 text-left " +
+                  (emphasis
+                    ? "border-[var(--color-accent)]/30 bg-[var(--color-accent-faded)]"
+                    : "border-[var(--color-border)] bg-[var(--color-bg-elevated)]")
+                }
+              >
+                <p className="text-[11px] uppercase tracking-[0.06em] text-[var(--color-fg-muted)]">
+                  {plan.label}
+                </p>
+                <p
+                  className="mt-1 text-[var(--color-fg)]"
                   style={{
-                    padding: isMobile ? '8px 16px' : '10px 14px',
-                    borderRadius: 9, border: 'none', cursor: 'pointer',
-                    background: plan.accent, color: '#fff',
-                    fontSize: 12, fontWeight: 700,
-                    whiteSpace: 'nowrap',
-                    flexShrink: 0,
-                    width: isMobile ? 'auto' : '100%',
+                    fontSize: 22,
+                    fontWeight: 500,
+                    letterSpacing: "var(--tracking-heading)",
                   }}
                 >
-                  Bu Planı Seç →
-                </button>
+                  {plan.price}
+                </p>
+                <ul className="mt-3 space-y-2">
+                  {plan.features.map((f) => (
+                    <li
+                      key={f}
+                      className="flex items-center gap-2 text-[12px] text-[var(--color-fg-muted)]"
+                    >
+                      <Check
+                        size={12}
+                        aria-hidden
+                        className="shrink-0 text-[var(--color-accent)]"
+                      />
+                      {f}
+                    </li>
+                  ))}
+                </ul>
               </div>
             );
           })}
         </div>
 
-        {/* Close link */}
-        <button
-          onClick={() => router.push('/dashboard')}
-          style={{
-            background: 'none', border: 'none',
-            color: '#4b5563', fontSize: 13,
-            cursor: 'pointer', textDecoration: 'underline',
-            textUnderlineOffset: 3,
-          }}
-        >
-          Şimdilik kapat
-        </button>
-      </div>
-    </div>
+        <div className="mt-7 flex flex-col items-center gap-3">
+          <Button size="lg" onClick={() => router.push("/pricing")}>
+            Planı yükselt
+            <ArrowRight size={16} aria-hidden />
+          </Button>
+          <button
+            type="button"
+            onClick={() => router.push("/dashboard")}
+            className="text-[13px] text-[var(--color-fg-muted)] underline underline-offset-4 transition-colors hover:text-[var(--color-fg)]"
+          >
+            Şimdilik kapat
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
   );
 }

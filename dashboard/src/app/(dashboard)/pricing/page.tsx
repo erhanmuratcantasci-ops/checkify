@@ -1,14 +1,17 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import Navbar from '@/components/Navbar';
-import GeometricBackground from '@/components/GeometricBackground';
-import { useIsMobile } from '@/hooks/useIsMobile';
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { Check, X, Star } from "lucide-react";
+import { useToast } from "@/components/Toast";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
-const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
+const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
 
-type PlanType = 'FREE' | 'STARTER' | 'PRO' | 'BUSINESS';
+type PlanType = "FREE" | "STARTER" | "PRO" | "BUSINESS";
 
 interface PlanConfig {
   price: number;
@@ -20,220 +23,260 @@ interface PlanConfig {
 }
 
 const PLAN_FEATURES: Record<string, string> = {
-  basic_sms: 'SMS Doğrulama',
-  otp: 'OTP Kodu Doğrulama',
-  pdf_invoice: 'PDF Fatura',
-  whatsapp: 'WhatsApp Bildirimi',
-  rto: 'RTO Analizi',
-  blocklist: 'Telefon Kara Listesi',
-  postal_code: 'Posta Kodu Engeli',
-  priority_support: 'Öncelikli Destek',
+  basic_sms: "SMS doğrulama",
+  otp: "OTP kodu doğrulama",
+  pdf_invoice: "PDF fatura",
+  whatsapp: "WhatsApp bildirimi",
+  rto: "RTO analizi",
+  blocklist: "Telefon kara listesi",
+  postal_code: "Posta kodu engeli",
+  priority_support: "Öncelikli destek",
 };
 
-const PLAN_COLORS: Record<PlanType, { accent: string; badge: string; bg: string }> = {
-  FREE:     { accent: '#6b7280', badge: 'rgba(107,114,128,0.15)', bg: 'rgba(107,114,128,0.05)' },
-  STARTER:  { accent: '#3b82f6', badge: 'rgba(59,130,246,0.15)',  bg: 'rgba(59,130,246,0.05)' },
-  PRO:      { accent: '#a855f7', badge: 'rgba(168,85,247,0.15)',  bg: 'rgba(168,85,247,0.05)' },
-  BUSINESS: { accent: '#f59e0b', badge: 'rgba(245,158,11,0.15)',  bg: 'rgba(245,158,11,0.05)' },
-};
+const ALL_FEATURES = [
+  "basic_sms",
+  "otp",
+  "pdf_invoice",
+  "whatsapp",
+  "rto",
+  "blocklist",
+  "postal_code",
+  "priority_support",
+];
 
-const ALL_FEATURES = ['basic_sms', 'otp', 'pdf_invoice', 'whatsapp', 'rto', 'blocklist', 'postal_code', 'priority_support'];
+const PLAN_ORDER: PlanType[] = ["FREE", "STARTER", "PRO", "BUSINESS"];
+
+function formatCurrency(value: number) {
+  return new Intl.NumberFormat("tr-TR", {
+    style: "currency",
+    currency: "TRY",
+    maximumFractionDigits: 0,
+  }).format(value);
+}
 
 export default function PricingPage() {
   const router = useRouter();
-  const isMobile = useIsMobile();
-  const [billing, setBilling] = useState<'monthly' | 'yearly'>('monthly');
+  const { showToast } = useToast();
+  const [billing, setBilling] = useState<"monthly" | "yearly">("monthly");
   const [plans, setPlans] = useState<Record<PlanType, PlanConfig> | null>(null);
-  const [currentPlan, setCurrentPlan] = useState<PlanType>('FREE');
+  const [currentPlan, setCurrentPlan] = useState<PlanType>("FREE");
   const [upgrading, setUpgrading] = useState<PlanType | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = document.cookie.split('; ').find(r => r.startsWith('token='))?.split('=')[1];
-    if (!token) { router.push('/login'); return; }
-
+    const token = document.cookie.split("; ").find((r) => r.startsWith("token="))?.split("=")[1];
+    if (!token) {
+      router.push("/login");
+      return;
+    }
     const headers = { Authorization: `Bearer ${token}` };
     Promise.all([
-      fetch(`${API}/plans`, { headers }).then(r => r.json()),
-      fetch(`${API}/plans/current`, { headers }).then(r => r.json()),
-    ]).then(([plansData, currentData]) => {
-      setPlans(plansData.plans);
-      setCurrentPlan(currentData.plan ?? 'FREE');
-      setBilling(currentData.billingCycle ?? 'monthly');
-    }).catch(() => router.push('/login'))
+      fetch(`${API}/plans`, { headers }).then((r) => r.json()),
+      fetch(`${API}/plans/current`, { headers }).then((r) => r.json()),
+    ])
+      .then(([plansData, currentData]) => {
+        setPlans(plansData.plans);
+        setCurrentPlan(currentData.plan ?? "FREE");
+        setBilling(currentData.billingCycle ?? "monthly");
+      })
+      .catch(() => router.push("/login"))
       .finally(() => setLoading(false));
   }, [router]);
 
   async function handleUpgrade(plan: PlanType) {
     if (plan === currentPlan) return;
     setUpgrading(plan);
-    const token = document.cookie.split('; ').find(r => r.startsWith('token='))?.split('=')[1];
-    const res = await fetch(`${API}/plans/upgrade`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ plan, billingCycle: billing }),
-    });
-    const data = await res.json();
-    if (res.ok) {
-      setCurrentPlan(plan);
-      alert(`✅ ${data.message}`);
+    const token = document.cookie.split("; ").find((r) => r.startsWith("token="))?.split("=")[1];
+    try {
+      const res = await fetch(`${API}/plans/upgrade`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ plan, billingCycle: billing }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setCurrentPlan(plan);
+        showToast(data.message ?? "Plan güncellendi", "success");
+      } else {
+        showToast(data.error ?? "Plan güncellenemedi", "error");
+      }
+    } catch {
+      showToast("Bağlantı hatası", "error");
+    } finally {
+      setUpgrading(null);
     }
-    setUpgrading(null);
   }
 
-  const planOrder: PlanType[] = ['FREE', 'STARTER', 'PRO', 'BUSINESS'];
-  const pad = isMobile ? '20px 16px' : '40px 24px';
-
   return (
-    <div style={{ minHeight: '100vh', background: '#0a0a0f', fontFamily: "'DM Sans', sans-serif", position: 'relative' }}>
-      <GeometricBackground />
-      <Navbar />
-      <main style={{ maxWidth: 1200, margin: '0 auto', padding: pad }}>
-        {/* Header */}
-        <div style={{ textAlign: 'center', marginBottom: isMobile ? 24 : 40 }}>
-          <h1 style={{
-            fontSize: isMobile ? 26 : 36, fontWeight: 700, color: '#fff',
-            fontFamily: "'Syne', sans-serif", margin: '0 0 10px', letterSpacing: '-0.5px',
-          }}>Planlar & Fiyatlandırma</h1>
-          <p style={{ color: '#6b7280', fontSize: 15, margin: '0 0 24px' }}>
-            İşletmenize uygun planı seçin
-          </p>
+    <div className="mx-auto w-full max-w-[1200px] px-6 py-8 md:px-10 md:py-12">
+      <header className="mb-8 text-center">
+        <h1
+          className="text-[var(--color-fg)]"
+          style={{
+            fontSize: 32,
+            fontWeight: 500,
+            letterSpacing: "var(--tracking-display)",
+            margin: 0,
+          }}
+        >
+          Planlar ve fiyatlandırma
+        </h1>
+        <p className="mt-2 text-[15px] text-[var(--color-fg-muted)]">
+          İşletmene uygun planı seç.
+        </p>
 
-          {/* Monthly/Yearly Toggle */}
-          <div style={{
-            display: 'inline-flex', alignItems: 'center', gap: 12,
-            background: 'rgba(255,255,255,0.05)',
-            border: '1px solid rgba(255,255,255,0.08)',
-            borderRadius: 30, padding: '4px',
-          }}>
-            {(['monthly', 'yearly'] as const).map(cycle => (
+        <div className="mt-6 inline-flex gap-1 rounded-[var(--radius-full)] border border-[var(--color-border)] bg-[var(--color-bg-elevated)] p-1">
+          {(["monthly", "yearly"] as const).map((cycle) => {
+            const active = billing === cycle;
+            return (
               <button
                 key={cycle}
+                type="button"
                 onClick={() => setBilling(cycle)}
-                style={{
-                  padding: '8px 20px', borderRadius: 26, border: 'none', cursor: 'pointer',
-                  fontSize: 14, fontWeight: 500, transition: 'all 0.2s',
-                  background: billing === cycle ? 'rgba(139,92,246,0.3)' : 'transparent',
-                  color: billing === cycle ? '#c4b5fd' : '#6b7280',
-                }}
-              >
-                {cycle === 'monthly' ? 'Aylık' : 'Yıllık'}
-                {cycle === 'yearly' && (
-                  <span style={{
-                    marginLeft: 6, fontSize: 11, background: '#059669',
-                    color: '#fff', padding: '1px 7px', borderRadius: 10,
-                  }}>%20 indirim</span>
+                className={cn(
+                  "inline-flex h-9 items-center gap-2 rounded-[var(--radius-full)] px-4 text-[13px] font-medium transition-colors",
+                  active
+                    ? "bg-[var(--color-accent-faded)] text-[var(--color-accent)]"
+                    : "text-[var(--color-fg-muted)] hover:text-[var(--color-fg)]"
                 )}
+              >
+                {cycle === "monthly" ? "Aylık" : "Yıllık"}
+                {cycle === "yearly" && <Badge tone="success">%20 indirim</Badge>}
               </button>
-            ))}
-          </div>
+            );
+          })}
         </div>
+      </header>
 
-        {/* Plan Cards */}
-        {loading || !plans ? (
-          <div style={{ textAlign: 'center', color: '#6b7280', padding: '60px 0' }}>Yükleniyor...</div>
-        ) : (
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)',
-            gap: isMobile ? 12 : 16,
-          }}>
-            {planOrder.map(planKey => {
-              const config = plans[planKey];
-              const colors = PLAN_COLORS[planKey];
-              const isCurrent = currentPlan === planKey;
-              const isPro = planKey === 'PRO';
-              const price = billing === 'yearly' ? config.yearlyPrice : config.price;
+      {loading || !plans ? (
+        <Card>
+          <p className="text-center text-[14px] text-[var(--color-fg-faint)]">Yükleniyor…</p>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {PLAN_ORDER.map((planKey) => {
+            const config = plans[planKey];
+            const isCurrent = currentPlan === planKey;
+            const isPro = planKey === "PRO";
+            const price = billing === "yearly" ? config.yearlyPrice : config.price;
 
-              return (
-                <div key={planKey} style={{
-                  background: isPro ? `linear-gradient(135deg, rgba(124,58,237,0.1), rgba(168,85,247,0.05))` : 'rgba(255,255,255,0.03)',
-                  border: isCurrent ? `2px solid ${colors.accent}` : isPro ? '1px solid rgba(139,92,246,0.4)' : '1px solid rgba(255,255,255,0.07)',
-                  borderRadius: 20,
-                  padding: isMobile ? '20px 18px' : '28px 20px',
-                  position: 'relative',
-                  display: 'flex', flexDirection: 'column',
-                }}>
-                  {isPro && (
-                    <div style={{
-                      position: 'absolute', top: -12, left: '50%', transform: 'translateX(-50%)',
-                      background: 'linear-gradient(135deg, #7c3aed, #a855f7)',
-                      color: '#fff', fontSize: 11, fontWeight: 700, padding: '3px 14px',
-                      borderRadius: 20, whiteSpace: 'nowrap',
-                    }}>EN POPÜLER</div>
-                  )}
-                  {isCurrent && (
-                    <div style={{
-                      position: 'absolute', top: 12, right: 12,
-                      background: colors.badge, color: colors.accent,
-                      fontSize: 10, fontWeight: 700, padding: '2px 10px', borderRadius: 20,
-                    }}>Aktif</div>
-                  )}
+            return (
+              <div
+                key={planKey}
+                className={cn(
+                  "relative flex flex-col rounded-[var(--radius-lg)] border bg-[var(--color-bg-elevated)] p-6",
+                  isCurrent
+                    ? "border-[var(--color-accent)]"
+                    : isPro
+                      ? "border-[var(--color-accent)]/30 bg-[var(--color-accent-faded)]"
+                      : "border-[var(--color-border)]"
+                )}
+              >
+                {isPro && (
+                  <span
+                    aria-hidden
+                    className="absolute -top-3 left-1/2 inline-flex -translate-x-1/2 items-center gap-1 rounded-[var(--radius-full)] bg-[var(--color-accent)] px-3 py-1 text-[11px] font-medium text-[var(--color-accent-fg)]"
+                  >
+                    <Star size={11} aria-hidden /> En popüler
+                  </span>
+                )}
+                {isCurrent && (
+                  <span className="absolute right-3 top-3">
+                    <Badge tone="accent">Aktif</Badge>
+                  </span>
+                )}
 
-                  <div style={{ marginBottom: 16 }}>
-                    <div style={{ color: colors.accent, fontSize: 13, fontWeight: 600, marginBottom: 4 }}>
-                      {config.label}
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
-                      <span style={{ color: '#fff', fontSize: isMobile ? 28 : 32, fontWeight: 700, fontFamily: "'Syne', sans-serif" }}>
-                        {price === 0 ? 'Ücretsiz' : `${price}₺`}
+                <div className="mb-4">
+                  <p className="text-[11px] uppercase tracking-[0.06em] text-[var(--color-accent)]">
+                    {config.label}
+                  </p>
+                  <div className="mt-2 flex items-baseline gap-1">
+                    <span
+                      className="text-[var(--color-fg)] tabular-nums"
+                      style={{
+                        fontSize: 32,
+                        fontWeight: 500,
+                        letterSpacing: "var(--tracking-display)",
+                        lineHeight: 1.05,
+                      }}
+                    >
+                      {price === 0 ? "Ücretsiz" : formatCurrency(price)}
+                    </span>
+                    {price > 0 && (
+                      <span className="text-[13px] text-[var(--color-fg-muted)]">
+                        /{billing === "monthly" ? "ay" : "yıl"}
                       </span>
-                      {price > 0 && (
-                        <span style={{ color: '#6b7280', fontSize: 13 }}>/ {billing === 'monthly' ? 'ay' : 'yıl'}</span>
-                      )}
-                    </div>
-                    {billing === 'yearly' && price > 0 && (
-                      <div style={{ color: '#6b7280', fontSize: 12, marginTop: 2 }}>
-                        Normalde {config.price}₺/ay
-                      </div>
                     )}
                   </div>
-
-                  <div style={{ color: '#9ca3af', fontSize: 13, marginBottom: 16, paddingBottom: 16, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-                    <div>🏪 {config.shops === -1 ? 'Sınırsız' : config.shops} mağaza</div>
-                    <div style={{ marginTop: 4 }}>📱 {config.smsCreditsMonthly} SMS/ay</div>
-                  </div>
-
-                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20 }}>
-                    {ALL_FEATURES.map(feat => {
-                      const included = config.features.includes(feat);
-                      return (
-                        <div key={feat} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <span style={{ fontSize: 14, color: included ? '#059669' : '#374151' }}>
-                            {included ? '✓' : '✗'}
-                          </span>
-                          <span style={{ fontSize: 13, color: included ? '#d1d5db' : '#4b5563' }}>
-                            {PLAN_FEATURES[feat]}
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  <button
-                    onClick={() => handleUpgrade(planKey)}
-                    disabled={isCurrent || upgrading !== null}
-                    style={{
-                      width: '100%', padding: '12px',
-                      borderRadius: 12, border: 'none', cursor: isCurrent ? 'default' : 'pointer',
-                      fontWeight: 600, fontSize: 14, transition: 'all 0.2s',
-                      background: isCurrent
-                        ? 'rgba(255,255,255,0.05)'
-                        : isPro
-                          ? 'linear-gradient(135deg, #7c3aed, #a855f7)'
-                          : `${colors.bg}`,
-                      color: isCurrent ? '#4b5563' : isPro ? '#fff' : colors.accent,
-                      outline: !isCurrent && !isPro ? `1px solid ${colors.accent}40` : 'none',
-                    }}
-                  >
-                    {upgrading === planKey ? 'Geçiliyor...' : isCurrent ? 'Mevcut Plan' : planKey === 'FREE' ? 'Düşür' : 'Yükselt'}
-                  </button>
+                  {billing === "yearly" && price > 0 && (
+                    <p className="mt-1 text-[12px] text-[var(--color-fg-faint)]">
+                      Normalde {formatCurrency(config.price)}/ay
+                    </p>
+                  )}
                 </div>
-              );
-            })}
-          </div>
-        )}
-      </main>
+
+                <div className="mb-4 space-y-1.5 border-b border-[var(--color-border)] pb-4 text-[13px] text-[var(--color-fg-muted)]">
+                  <p>
+                    {config.shops === -1 ? "Sınırsız" : config.shops} mağaza
+                  </p>
+                  <p className="tabular-nums">
+                    {config.smsCreditsMonthly.toLocaleString("tr-TR")} SMS/ay
+                  </p>
+                </div>
+
+                <ul className="mb-6 flex flex-1 flex-col gap-2">
+                  {ALL_FEATURES.map((feat) => {
+                    const included = config.features.includes(feat);
+                    return (
+                      <li
+                        key={feat}
+                        className={cn(
+                          "flex items-center gap-2 text-[13px]",
+                          included
+                            ? "text-[var(--color-fg)]"
+                            : "text-[var(--color-fg-faint)]"
+                        )}
+                      >
+                        {included ? (
+                          <Check
+                            size={14}
+                            aria-hidden
+                            className="shrink-0 text-[var(--color-success)]"
+                          />
+                        ) : (
+                          <X
+                            size={14}
+                            aria-hidden
+                            className="shrink-0 text-[var(--color-fg-faint)]"
+                          />
+                        )}
+                        {PLAN_FEATURES[feat]}
+                      </li>
+                    );
+                  })}
+                </ul>
+
+                <Button
+                  block
+                  size="md"
+                  variant={isCurrent ? "secondary" : isPro ? "primary" : "secondary"}
+                  loading={upgrading === planKey}
+                  disabled={isCurrent || upgrading !== null}
+                  onClick={() => handleUpgrade(planKey)}
+                >
+                  {upgrading === planKey
+                    ? "Geçiliyor…"
+                    : isCurrent
+                      ? "Mevcut plan"
+                      : planKey === "FREE"
+                        ? "Düşür"
+                        : "Yükselt"}
+                </Button>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
