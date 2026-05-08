@@ -7,13 +7,20 @@ import Logo from "@/components/Logo";
 import BackgroundDecoration from "@/components/BackgroundDecoration";
 import { logoIn, pageSlide } from "@/lib/motion";
 
-export default function AuthLayout({ children }: { children: React.ReactNode }) {
+/**
+ * Admin auth shell — same pattern as /(auth) but with a small
+ * "Yönetici paneli" eyebrow under the wordmark so admins know they're in
+ * the right place. Sits at /admin/(auth)/ so /admin/login and
+ * /admin/reset-password share it; the /admin/(panel) route group has its
+ * own dashboard surface.
+ */
+export default function AdminAuthLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   return (
     <>
       <BackgroundDecoration />
       <main className="relative z-10 min-h-screen flex flex-col items-center px-6 pt-8 pb-16">
-        <motion.div variants={logoIn} initial="initial" animate="animate" className="mb-10">
+        <motion.div variants={logoIn} initial="initial" animate="animate" className="mb-10 flex flex-col items-center">
           <Link
             href="/"
             aria-label="Chekkify"
@@ -21,6 +28,9 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           >
             <Logo size="md" />
           </Link>
+          <span className="mt-2 inline-flex items-center rounded-[var(--radius-full)] border border-[var(--color-accent)]/20 bg-[var(--color-accent-faded)] px-2.5 py-0.5 text-[11px] font-medium uppercase tracking-[0.06em] text-[var(--color-accent)]">
+            Yönetici paneli
+          </span>
         </motion.div>
         <AnimatePresence mode="wait">
           <motion.div

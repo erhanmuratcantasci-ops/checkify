@@ -25,7 +25,7 @@ export function FeaturesGroup() {
         reverse
         eyebrow="Operasyonel kontrol"
         icon={Store}
-        title="Bütün siparişler tek panelde. Apple-pro netlik."
+        title="Bütün siparişler tek panelde. Net ve hızlı."
         body="Sipariş geldiği anda durumunu takip et, manuel onayla, SMS yeniden gönder, ön ödeme linki üret. Birden fazla Shopify mağazasını tek hesaptan yönet."
         bullets={[
           "Sınırsız mağaza yönetimi (Business plan)",

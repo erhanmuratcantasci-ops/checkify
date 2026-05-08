@@ -18,7 +18,7 @@ export function MarketingFAQ() {
       initial={{ opacity: 0, y: 24 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, amount: 0.2 }}
-      transition={{ duration: 0.6, ease: easeOut }}
+      transition={{ duration: 0.4, ease: easeOut }}
       className="py-24 md:py-32"
       aria-label="Sık sorulan sorular"
     >
@@ -40,7 +40,7 @@ export function MarketingFAQ() {
         </h2>
       </header>
 
-      <ul className="mx-auto max-w-[760px] divide-y divide-[var(--color-border)] border-y border-[var(--color-border)]">
+      <ul className="mx-auto max-w-[640px] divide-y divide-[var(--color-border)] border-y border-[var(--color-border)]">
         {FAQ_KEYS.map((i) => {
           const isOpen = open === i;
           // i18n keys are typed; build the key name dynamically and assert

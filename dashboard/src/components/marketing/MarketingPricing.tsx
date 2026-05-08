@@ -123,7 +123,7 @@ export function MarketingPricing() {
       initial={{ opacity: 0, y: 24 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, amount: 0.2 }}
-      transition={{ duration: 0.7, ease: easeOut }}
+      transition={{ duration: 0.45, ease: easeOut }}
       className="py-24 md:py-32"
       aria-label="Fiyatlandırma"
     >

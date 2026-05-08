@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Menu } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -9,7 +9,7 @@ import CreditWarning from "@/components/CreditWarning";
 import ShopGuard from "@/components/ShopGuard";
 import Logo from "@/components/Logo";
 import { Sidebar } from "@/components/ui/sidebar";
-import { easeOut } from "@/lib/motion";
+import { pageSlide } from "@/lib/motion";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -39,15 +39,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <CreditWarning />
         <ShopGuard />
 
-        <motion.main
-          key={pathname}
-          initial={{ opacity: 0, y: 6 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.25, ease: easeOut }}
-          className="min-w-0 flex-1"
-        >
-          {children}
-        </motion.main>
+        <AnimatePresence mode="wait">
+          <motion.main
+            key={pathname}
+            variants={pageSlide}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            className="min-w-0 flex-1"
+          >
+            {children}
+          </motion.main>
+        </AnimatePresence>
       </div>
     </div>
   );

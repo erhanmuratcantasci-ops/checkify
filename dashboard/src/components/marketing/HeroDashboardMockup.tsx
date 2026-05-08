@@ -18,7 +18,7 @@ export function HeroDashboardMockup() {
     <motion.div
       initial={{ opacity: 0, y: 32, rotateX: 8 }}
       animate={{ opacity: 1, y: 0, rotateX: 4 }}
-      transition={{ duration: 0.9, ease: easeOut, delay: 0.2 }}
+      transition={{ duration: 0.55, ease: easeOut, delay: 0.12 }}
       className="pointer-events-none mx-auto w-full max-w-[860px]"
       style={{
         perspective: 1600,

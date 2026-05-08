@@ -7,7 +7,7 @@ import { useIsMobile } from '@/hooks/useIsMobile';
 
 // Hardcoded Railway URL — admin panel bypasses NEXT_PUBLIC_API_URL
 // because that env var may point to api.chekkify.com (DNS not ready)
-const API = 'https://checkify-production.up.railway.app';
+const API = process.env["NEXT_PUBLIC_API_URL"] ?? "http://localhost:3001";
 
 function getAdminToken() {
   const entry = document.cookie.split('; ').find(r => r.startsWith('adminToken='));
@@ -132,7 +132,7 @@ const PLAN_COLORS: Record<string, { color: string; bg: string; border: string }>
   FREE:     { color: '#6b7280', bg: 'rgba(107,114,128,0.12)', border: 'rgba(107,114,128,0.3)' },
   STARTER:  { color: '#34d399', bg: 'rgba(52,211,153,0.12)',  border: 'rgba(52,211,153,0.3)'  },
   PRO:      { color: '#60a5fa', bg: 'rgba(96,165,250,0.12)',  border: 'rgba(96,165,250,0.3)'  },
-  BUSINESS: { color: '#a78bfa', bg: 'rgba(167,139,250,0.12)', border: 'rgba(167,139,250,0.3)' },
+  BUSINESS: { color: '#FB7185', bg: 'rgba(167,139,250,0.12)', border: 'rgba(167,139,250,0.3)' },
 };
 function PlanBadge({ plan }: { plan: string }) {
   const c = PLAN_COLORS[plan] || PLAN_COLORS['FREE'];
@@ -369,13 +369,13 @@ export default function AdminPage() {
   };
 
   if (loading) return (
-    <div style={{ minHeight: '100vh', background: '#0a0a0f', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+    <div style={{ minHeight: '100vh', background: "var(--color-bg)", display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <div style={{ color: '#6b7280', fontSize: 14 }}>Yükleniyor...</div>
     </div>
   );
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0a0a0f', fontFamily: "'Outfit', sans-serif" }}>
+    <div style={{ minHeight: '100vh', background: "var(--color-bg)", fontFamily: "inherit" }}>
       <style>{`::-webkit-scrollbar{width:4px} ::-webkit-scrollbar-track{background:transparent} ::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.1);border-radius:4px}`}</style>
 
       {isMobile ? (
@@ -483,7 +483,7 @@ export default function AdminPage() {
 
       {(detailUserLoading || detailUser) && (
         <div onClick={() => { setDetailUser(null); setDetailUserLoading(false); }} style={modalOverlay}>
-          <div onClick={e => e.stopPropagation()} style={modalBox('rgba(139,92,246,0.25)')}>
+          <div onClick={e => e.stopPropagation()} style={modalBox('rgba(251,113,133,0.25)')}>
             <ModalHeader title="Kullanıcı Detayı" onClose={() => { setDetailUser(null); setDetailUserLoading(false); }} />
             <div style={{ padding: '16px 20px 20px' }}>
               {detailUserLoading ? (
@@ -491,7 +491,7 @@ export default function AdminPage() {
               ) : detailUser && (
                 <>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-                    <div style={{ width: 40, height: 40, borderRadius: 10, background: 'linear-gradient(135deg, #7c3aed, #a855f7)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, color: '#fff', flexShrink: 0 }}>
+                    <div style={{ width: 40, height: 40, borderRadius: 10, background: 'var(--color-accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, color: '#fff', flexShrink: 0 }}>
                       {(detailUser.name || detailUser.email).slice(0, 2).toUpperCase()}
                     </div>
                     <div style={{ flex: 1 }}>
@@ -505,7 +505,7 @@ export default function AdminPage() {
                     { label: 'WP Kredisi', value: detailUser.whatsappCredits, color: detailUser.whatsappCredits === 0 ? '#f87171' : '#4ade80' },
                     { label: 'Mağaza', value: detailUser.shopCount },
                     { label: 'Sipariş', value: detailUser.orderCount },
-                    { label: 'Plan', value: detailUser.plan ?? 'FREE', color: '#a78bfa' },
+                    { label: 'Plan', value: detailUser.plan ?? 'FREE', color: '#FB7185' },
                     { label: 'Kayıt', value: new Date(detailUser.createdAt).toLocaleDateString('tr-TR'), color: '#9ca3af' },
                   ]} />
                   <div style={{ marginTop: 10, padding: '10px 12px', background: 'rgba(255,255,255,0.02)', borderRadius: 10, border: '1px solid rgba(255,255,255,0.06)' }}>
@@ -514,8 +514,8 @@ export default function AdminPage() {
                   </div>
 
                   {/* Plan Yönetimi */}
-                  <div style={{ marginTop: 14, background: 'rgba(139,92,246,0.06)', border: '1px solid rgba(139,92,246,0.2)', borderRadius: 12, padding: '14px' }}>
-                    <div style={{ color: '#a78bfa', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 12 }}>Plan Yönetimi</div>
+                  <div style={{ marginTop: 14, background: 'rgba(251,113,133,0.06)', border: '1px solid rgba(251,113,133,0.2)', borderRadius: 12, padding: '14px' }}>
+                    <div style={{ color: '#FB7185', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 12 }}>Plan Yönetimi</div>
                     {/* Plan kartları */}
                     {(() => {
                       const planCards = [
@@ -528,7 +528,7 @@ export default function AdminPage() {
                         FREE:     { border: 'rgba(107,114,128,0.5)', bg: 'rgba(107,114,128,0.12)', badge: '#6b7280', text: '#9ca3af' },
                         STARTER:  { border: 'rgba(52,211,153,0.5)',  bg: 'rgba(52,211,153,0.12)',  badge: '#34d399', text: '#34d399' },
                         PRO:      { border: 'rgba(96,165,250,0.5)',  bg: 'rgba(96,165,250,0.12)',  badge: '#60a5fa', text: '#60a5fa' },
-                        BUSINESS: { border: 'rgba(167,139,250,0.5)', bg: 'rgba(167,139,250,0.12)', badge: '#a78bfa', text: '#a78bfa' },
+                        BUSINESS: { border: 'rgba(167,139,250,0.5)', bg: 'rgba(167,139,250,0.12)', badge: '#FB7185', text: '#FB7185' },
                       };
                       function calcExpiry(cycle: string) {
                         const d = new Date(); d.setDate(d.getDate() + (cycle === 'yearly' ? 365 : 30));
@@ -569,7 +569,7 @@ export default function AdminPage() {
                                   {(['monthly', 'yearly'] as const).map(c => (
                                     <button key={c} type="button"
                                       onClick={() => { setDetailCycleValue(c); setDetailExpiresValue(calcExpiry(c)); }}
-                                      style={{ flex: 1, padding: '8px', borderRadius: 8, border: `1px solid ${detailCycleValue === c ? 'rgba(139,92,246,0.5)' : 'rgba(255,255,255,0.08)'}`, background: detailCycleValue === c ? 'rgba(139,92,246,0.15)' : 'transparent', color: detailCycleValue === c ? '#a78bfa' : '#6b7280', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
+                                      style={{ flex: 1, padding: '8px', borderRadius: 8, border: `1px solid ${detailCycleValue === c ? 'rgba(251,113,133,0.5)' : 'rgba(255,255,255,0.08)'}`, background: detailCycleValue === c ? 'rgba(251,113,133,0.15)' : 'transparent', color: detailCycleValue === c ? '#FB7185' : '#6b7280', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
                                     >
                                       {c === 'monthly' ? '📅 Aylık (30 gün)' : '🗓 Yıllık (365 gün)'}
                                     </button>
@@ -585,7 +585,7 @@ export default function AdminPage() {
                         </>
                       );
                     })()}
-                    <button onClick={handleUpdatePlan} disabled={detailPlanSaving} style={{ width: '100%', padding: '11px', background: detailPlanSaving ? 'rgba(139,92,246,0.3)' : 'linear-gradient(135deg, #7c3aed, #a855f7)', border: 'none', borderRadius: 9, color: '#fff', fontSize: 13, fontWeight: 700, cursor: detailPlanSaving ? 'not-allowed' : 'pointer', minHeight: 42 }}>
+                    <button onClick={handleUpdatePlan} disabled={detailPlanSaving} style={{ width: '100%', padding: '11px', background: detailPlanSaving ? 'rgba(251,113,133,0.3)' : 'var(--color-accent)', border: 'none', borderRadius: 9, color: '#fff', fontSize: 13, fontWeight: 700, cursor: detailPlanSaving ? 'not-allowed' : 'pointer', minHeight: 42 }}>
                       {detailPlanSaving ? 'Kaydediliyor...' : `Planı Güncelle → ${detailPlanValue}`}
                     </button>
                   </div>
@@ -609,7 +609,7 @@ export default function AdminPage() {
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, marginLeft: 8 }}>
                               {tx.price && tx.price > 0 && <span style={{ color: '#6b7280', fontSize: 11 }}>{tx.price}₺</span>}
-                              <span style={{ fontSize: 12, fontWeight: 700, color: tx.type === 'USAGE' ? '#a78bfa' : tx.type === 'WHATSAPP_PURCHASE' ? '#4ade80' : '#34d399' }}>
+                              <span style={{ fontSize: 12, fontWeight: 700, color: tx.type === 'USAGE' ? '#FB7185' : tx.type === 'WHATSAPP_PURCHASE' ? '#4ade80' : '#34d399' }}>
                                 {tx.type === 'USAGE' ? '' : '+'}{tx.amount} {tx.type === 'WHATSAPP_PURCHASE' ? 'WP' : 'SMS'}
                               </span>
                             </div>
@@ -797,7 +797,7 @@ export default function AdminPage() {
         {section === 'dashboard' && stats && (
           <div>
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 12, marginBottom: 20 }}>
-              <StatCard label="Toplam Kullanıcı" value={stats.totalUsers} icon="👤" color="#7c3aed" />
+              <StatCard label="Toplam Kullanıcı" value={stats.totalUsers} icon="👤" color="#FB7185" />
               <StatCard label="Toplam Sipariş" value={stats.totalOrders} icon="📦" color="#0891b2" />
               <StatCard label="SMS Gönderildi" value={stats.totalSMSSent} icon="📱" color="#059669" />
               <StatCard label="Sistemdeki Kredi" value={stats.totalCreditsInSystem} icon="💳" color="#d97706" />
@@ -829,7 +829,7 @@ export default function AdminPage() {
                 {filteredUsers.map(user => (
                   <div key={user.id} style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 12, padding: '14px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-                      <div style={{ width: 34, height: 34, borderRadius: 8, flexShrink: 0, background: 'linear-gradient(135deg, #7c3aed, #a855f7)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#fff' }}>
+                      <div style={{ width: 34, height: 34, borderRadius: 8, flexShrink: 0, background: 'var(--color-accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#fff' }}>
                         {(user.name || user.email).slice(0, 2).toUpperCase()}
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
@@ -865,7 +865,7 @@ export default function AdminPage() {
                       <tr key={user.id} style={{ borderBottom: i < filteredUsers.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
                         <td style={{ padding: '12px 16px' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }} onClick={() => openUserDetail(user)}>
-                            <div style={{ width: 30, height: 30, borderRadius: 7, flexShrink: 0, background: 'linear-gradient(135deg, #7c3aed, #a855f7)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: '#fff' }}>
+                            <div style={{ width: 30, height: 30, borderRadius: 7, flexShrink: 0, background: 'var(--color-accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: '#fff' }}>
                               {(user.name || user.email).slice(0, 2).toUpperCase()}
                             </div>
                             <div style={{ color: '#e5e7eb', fontSize: 13, fontWeight: 500, textDecoration: 'underline dotted', textUnderlineOffset: 3 }}>{user.name || '—'}</div>
@@ -959,7 +959,7 @@ export default function AdminPage() {
         {/* ── SECURITY LOGS ── */}
         {section === 'security' && (
           <div>
-            <h2 style={{ color: '#fff', fontSize: 18, fontWeight: 700, margin: '0 0 16px', fontFamily: "'Syne', sans-serif" }}>
+            <h2 style={{ color: '#fff', fontSize: 18, fontWeight: 700, margin: '0 0 16px', fontFamily: "inherit" }}>
               Güvenlik Logları
             </h2>
             {securityLogs.length === 0 ? (

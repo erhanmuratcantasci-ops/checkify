@@ -18,7 +18,7 @@ export function MarketingHero() {
       <motion.div
         initial={{ opacity: 0, y: -6 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, ease: easeOut }}
+        transition={{ duration: 0.35, ease: easeOut }}
         className="mb-12 flex items-center justify-between md:mb-20"
       >
         <Link
@@ -49,7 +49,7 @@ export function MarketingHero() {
         <motion.h1
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, ease: easeOut, delay: 0.05 }}
+          transition={{ duration: 0.45, ease: easeOut, delay: 0.04 }}
           className="mx-auto max-w-[860px] text-[var(--color-fg)]"
           style={{
             fontSize: "clamp(44px, 8vw, 88px)",
@@ -68,7 +68,7 @@ export function MarketingHero() {
         <motion.p
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, ease: easeOut, delay: 0.18 }}
+          transition={{ duration: 0.45, ease: easeOut, delay: 0.1 }}
           className="mx-auto mt-6 max-w-[640px] text-[var(--color-fg-muted)]"
           style={{
             fontSize: "clamp(16px, 1.6vw, 19px)",
@@ -82,7 +82,7 @@ export function MarketingHero() {
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, ease: easeOut, delay: 0.3 }}
+          transition={{ duration: 0.45, ease: easeOut, delay: 0.16 }}
           className="mx-auto mt-9 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center"
         >
           <Link

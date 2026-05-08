@@ -18,7 +18,7 @@ export function LogoWall() {
       initial={{ opacity: 0, y: 16 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, amount: 0.4 }}
-      transition={{ duration: 0.6, ease: easeOut }}
+      transition={{ duration: 0.4, ease: easeOut }}
       className="mt-24 md:mt-32"
       aria-label={t("landing_partners_heading")}
     >
