@@ -2,6 +2,7 @@ import { MarketingBackground } from "@/components/marketing/MarketingBackground"
 import { MarketingHero } from "@/components/marketing/MarketingHero";
 import { LogoWall } from "@/components/marketing/LogoWall";
 import { FeaturesGroup } from "@/components/marketing/FeaturesGroup";
+import { MarketingPricing } from "@/components/marketing/MarketingPricing";
 
 export default function LandingPage() {
   return (
@@ -11,7 +12,8 @@ export default function LandingPage() {
         <MarketingHero />
         <LogoWall />
         <FeaturesGroup />
-        {/* Sections coming next: Pricing · FAQ · CTA · Footer */}
+        <MarketingPricing />
+        {/* Sections coming next: FAQ · CTA · Footer */}
       </main>
     </>
   );
