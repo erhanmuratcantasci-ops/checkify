@@ -1,33 +1,107 @@
-'use client';
+"use client";
 
-import { useCallback, useEffect, useState } from 'react';
-import { blockingSettings, BlockingSettings } from '@/lib/api';
-
-const card: React.CSSProperties = {
-  background: 'rgba(255,255,255,0.03)',
-  border: '1px solid rgba(255,255,255,0.07)',
-  borderRadius: 16,
-  padding: '24px 28px',
-  marginBottom: 20,
-};
-const input: React.CSSProperties = {
-  background: 'rgba(255,255,255,0.05)',
-  border: '1px solid rgba(255,255,255,0.1)',
-  borderRadius: 8,
-  color: '#e5e7eb',
-  fontSize: 14,
-  padding: '10px 14px',
-  width: 120,
-};
+import { useCallback, useEffect, useState } from "react";
+import { blockingSettings, BlockingSettings } from "@/lib/api";
+import { Card, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
 
 const DEFAULT_PHONE_LIMIT = 3;
 const DEFAULT_IP_LIMIT = 5;
 
 function formEqualsSettings(a: BlockingSettings, b: BlockingSettings): boolean {
   return (
-    a.advancedBlockingEnabled === b.advancedBlockingEnabled
-    && a.maxOrdersPerPhone30d === b.maxOrdersPerPhone30d
-    && a.maxOrdersPerIp30d === b.maxOrdersPerIp30d
+    a.advancedBlockingEnabled === b.advancedBlockingEnabled &&
+    a.maxOrdersPerPhone30d === b.maxOrdersPerPhone30d &&
+    a.maxOrdersPerIp30d === b.maxOrdersPerIp30d
+  );
+}
+
+function Toggle({ value, onChange }: { value: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={value}
+      onClick={() => onChange(!value)}
+      className={cn(
+        "relative h-6 w-11 shrink-0 rounded-full transition-colors",
+        value ? "bg-[var(--color-accent)]" : "bg-[var(--color-border-strong)]"
+      )}
+    >
+      <span
+        aria-hidden
+        className={cn(
+          "absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white transition-transform",
+          value && "translate-x-5"
+        )}
+      />
+    </button>
+  );
+}
+
+function RateLimitRow({
+  title,
+  description,
+  value,
+  defaultOn,
+  onChange,
+}: {
+  title: string;
+  description: string;
+  value: number | null;
+  defaultOn: number;
+  onChange: (v: number | null) => void;
+}) {
+  const active = value !== null;
+  return (
+    <div>
+      <p className="mb-2 text-[14px] font-medium text-[var(--color-fg)]">{title}</p>
+      <div className="mb-2 flex flex-wrap items-center gap-2">
+        <Input
+          type="number"
+          min={1}
+          max={1000}
+          disabled={!active}
+          value={active ? String(value) : ""}
+          onChange={(e) => {
+            const n = parseInt(e.target.value, 10);
+            if (Number.isFinite(n) && n >= 1 && n <= 1000) onChange(n);
+            else if (e.target.value === "") onChange(null);
+          }}
+          placeholder={String(defaultOn)}
+          className={cn("w-32", !active && "opacity-50")}
+        />
+        <div className="inline-flex gap-1 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg-elevated)] p-1">
+          <button
+            type="button"
+            onClick={() => onChange(value ?? defaultOn)}
+            className={cn(
+              "h-8 rounded-[calc(var(--radius-md)-2px)] px-3 text-[12px] font-medium transition-colors",
+              active
+                ? "bg-[var(--color-success)]/[0.16] text-[var(--color-success)]"
+                : "text-[var(--color-fg-muted)] hover:bg-[var(--color-surface-hover)]"
+            )}
+          >
+            Aktif
+          </button>
+          <button
+            type="button"
+            onClick={() => onChange(null)}
+            className={cn(
+              "h-8 rounded-[calc(var(--radius-md)-2px)] px-3 text-[12px] font-medium transition-colors",
+              !active
+                ? "bg-[var(--color-surface)] text-[var(--color-fg)]"
+                : "text-[var(--color-fg-muted)] hover:bg-[var(--color-surface-hover)]"
+            )}
+          >
+            Kapalı
+          </button>
+        </div>
+      </div>
+      <p className="text-[12px] leading-relaxed text-[var(--color-fg-muted)]">{description}</p>
+    </div>
   );
 }
 
@@ -47,12 +121,14 @@ export default function SettingsTab({ shopId }: { shopId: number }) {
       setSettings(res);
       setForm(res);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Ayarlar yüklenemedi');
+      setError(err instanceof Error ? err.message : "Ayarlar yüklenemedi");
     }
     setLoading(false);
   }, [shopId]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   async function handleSave() {
     if (!form || !settings) return;
@@ -63,26 +139,28 @@ export default function SettingsTab({ shopId }: { shopId: number }) {
       const res = await blockingSettings.update({ shopId, ...form });
       setSettings(res.settings);
       setForm(res.settings);
-      setSuccess('Ayarlar kaydedildi.');
+      setSuccess("Ayarlar kaydedildi.");
       setTimeout(() => setSuccess(null), 3000);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Kaydedilemedi');
+      setError(err instanceof Error ? err.message : "Kaydedilemedi");
     }
     setSaving(false);
   }
 
   if (loading) {
     return (
-      <div style={{ ...card, textAlign: 'center', padding: '40px 20px' }}>
-        <p style={{ color: '#6b7280', fontSize: 14, margin: 0 }}>Yükleniyor…</p>
-      </div>
+      <Card>
+        <p className="text-[14px] text-[var(--color-fg-faint)]">Yükleniyor…</p>
+      </Card>
     );
   }
   if (!form || !settings) {
     return (
-      <div style={{ ...card, textAlign: 'center', padding: '40px 20px' }}>
-        <p style={{ color: '#f87171', fontSize: 14, margin: 0 }}>⚠ {error ?? 'Ayarlar yüklenemedi'}</p>
-      </div>
+      <Card>
+        <p className="text-[14px] text-[var(--color-danger)]">
+          {error ?? "Ayarlar yüklenemedi"}
+        </p>
+      </Card>
     );
   }
 
@@ -90,141 +168,75 @@ export default function SettingsTab({ shopId }: { shopId: number }) {
 
   return (
     <>
-      <div style={card}>
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 20, justifyContent: 'space-between' }}>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <h3 style={{ color: '#e5e7eb', fontSize: 15, fontWeight: 700, margin: '0 0 6px' }}>Gelişmiş Engelleme Aktif</h3>
-            <p style={{ color: '#9ca3af', margin: 0, fontSize: 13, lineHeight: 1.5 }}>
-              Kural bazlı (IP, regex, email, isim) ve sipariş limit engelleme sistemini aç/kapat. Kapatırsan
-              eski telefon/posta kodu engel listeleri yine çalışır.
+      <Card className="mb-4">
+        <div className="flex items-start justify-between gap-5">
+          <div className="min-w-0 flex-1">
+            <p
+              className="text-[var(--color-fg)]"
+              style={{
+                fontSize: 15,
+                fontWeight: 500,
+                letterSpacing: "var(--tracking-heading)",
+              }}
+            >
+              Gelişmiş engelleme aktif
+            </p>
+            <p className="mt-1 text-[13px] leading-relaxed text-[var(--color-fg-muted)]">
+              Kural bazlı (IP, regex, email, isim) ve sipariş limit engelleme sistemini
+              aç/kapat. Kapatırsan eski telefon/posta kodu engel listeleri yine çalışır.
             </p>
           </div>
           <Toggle
             value={form.advancedBlockingEnabled}
-            onChange={(v) => setForm((f) => f ? { ...f, advancedBlockingEnabled: v } : f)}
+            onChange={(v) => setForm((f) => (f ? { ...f, advancedBlockingEnabled: v } : f))}
           />
         </div>
-      </div>
+      </Card>
 
-      <div style={card}>
-        <h3 style={{ color: '#e5e7eb', fontSize: 15, fontWeight: 700, margin: '0 0 20px' }}>Sipariş Limitleri</h3>
-
+      <Card className="mb-4">
+        <CardHeader>
+          <CardTitle>Sipariş limitleri</CardTitle>
+        </CardHeader>
         <RateLimitRow
-          title="Telefon Başına 30 Günlük Limit"
+          title="Telefon başına 30 günlük limit"
           description="Aynı telefondan 30 gün içinde bu sayıyı aşan siparişler otomatik bloklanır."
           value={form.maxOrdersPerPhone30d}
           defaultOn={DEFAULT_PHONE_LIMIT}
-          onChange={(v) => setForm((f) => f ? { ...f, maxOrdersPerPhone30d: v } : f)}
+          onChange={(v) => setForm((f) => (f ? { ...f, maxOrdersPerPhone30d: v } : f))}
         />
-
-        <div style={{ height: 1, background: 'rgba(255,255,255,0.06)', margin: '20px 0' }} />
-
+        <div className="my-5 h-px bg-[var(--color-border)]" />
         <RateLimitRow
-          title="IP Başına 30 Günlük Limit"
+          title="IP başına 30 günlük limit"
           description="Aynı IP adresinden 30 gün içinde bu sayıyı aşan siparişler otomatik bloklanır."
           value={form.maxOrdersPerIp30d}
           defaultOn={DEFAULT_IP_LIMIT}
-          onChange={(v) => setForm((f) => f ? { ...f, maxOrdersPerIp30d: v } : f)}
+          onChange={(v) => setForm((f) => (f ? { ...f, maxOrdersPerIp30d: v } : f))}
         />
-      </div>
+      </Card>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-        <button onClick={handleSave} disabled={!hasChanges || saving}
-          style={{
-            background: (!hasChanges || saving) ? 'rgba(139,92,246,0.3)' : 'linear-gradient(135deg,#7c3aed,#a855f7)',
-            border: 'none', borderRadius: 8, color: '#fff', fontWeight: 700, fontSize: 14,
-            padding: '12px 28px',
-            cursor: (!hasChanges || saving) ? 'not-allowed' : 'pointer',
-          }}>
-          {saving ? 'Kaydediliyor…' : 'Kaydet'}
-        </button>
+      <div className="flex flex-wrap items-center gap-4">
+        <Button
+          size="md"
+          loading={saving}
+          disabled={!hasChanges || saving}
+          onClick={handleSave}
+        >
+          {saving ? "Kaydediliyor…" : "Kaydet"}
+        </Button>
         {hasChanges && !saving && (
-          <span style={{ color: '#fbbf24', fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#fbbf24', display: 'inline-block' }} />
+          <span className="inline-flex items-center gap-1.5 text-[13px] text-[var(--color-warning)]">
+            <span
+              aria-hidden
+              className="inline-block h-2 w-2 rounded-full bg-[var(--color-warning)]"
+            />
             Kaydedilmemiş değişiklik var
           </span>
         )}
-        {success && <span style={{ color: '#34d399', fontSize: 13 }}>✓ {success}</span>}
-        {error && <span style={{ color: '#f87171', fontSize: 13 }}>⚠ {error}</span>}
+        {success && (
+          <span className="text-[13px] text-[var(--color-success)]">{success}</span>
+        )}
+        {error && <span className="text-[13px] text-[var(--color-danger)]">{error}</span>}
       </div>
     </>
-  );
-}
-
-function Toggle({ value, onChange }: { value: boolean; onChange: (v: boolean) => void }) {
-  return (
-    <button type="button" onClick={() => onChange(!value)}
-      aria-pressed={value}
-      style={{
-        position: 'relative', width: 48, height: 24, borderRadius: 999,
-        background: value ? 'linear-gradient(135deg,#7c3aed,#a855f7)' : 'rgba(255,255,255,0.08)',
-        border: value ? 'none' : '1px solid rgba(255,255,255,0.12)',
-        cursor: 'pointer', padding: 0, flexShrink: 0,
-        transition: 'background 0.2s',
-      }}>
-      <span style={{
-        position: 'absolute', top: value ? 3 : 2, left: value ? 26 : 2,
-        width: 18, height: 18, borderRadius: '50%',
-        background: '#fff',
-        transition: 'left 0.2s, top 0.2s',
-      }} />
-    </button>
-  );
-}
-
-function RateLimitRow({
-  title, description, value, defaultOn, onChange,
-}: {
-  title: string;
-  description: string;
-  value: number | null;
-  defaultOn: number;
-  onChange: (v: number | null) => void;
-}) {
-  const active = value !== null;
-
-  return (
-    <div>
-      <div style={{ color: '#e5e7eb', fontSize: 14, fontWeight: 600, marginBottom: 8 }}>{title}</div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8, flexWrap: 'wrap' }}>
-        <input
-          type="number"
-          min={1}
-          max={1000}
-          disabled={!active}
-          value={active ? String(value) : ''}
-          onChange={(e) => {
-            const n = parseInt(e.target.value, 10);
-            if (Number.isFinite(n) && n >= 1 && n <= 1000) onChange(n);
-            else if (e.target.value === '') onChange(null);
-          }}
-          placeholder={String(defaultOn)}
-          style={{ ...input, opacity: active ? 1 : 0.5 }}
-        />
-        <div style={{ display: 'flex', gap: 4, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 10, padding: 4 }}>
-          <button type="button" onClick={() => onChange(value ?? defaultOn)}
-            style={{
-              padding: '6px 12px', borderRadius: 6, border: 'none',
-              background: active ? 'rgba(16,185,129,0.15)' : 'transparent',
-              color: active ? '#34d399' : '#6b7280',
-              fontWeight: active ? 700 : 500, fontSize: 12,
-              cursor: 'pointer',
-            }}>
-            ✓ Aktif
-          </button>
-          <button type="button" onClick={() => onChange(null)}
-            style={{
-              padding: '6px 12px', borderRadius: 6, border: 'none',
-              background: !active ? 'rgba(107,114,128,0.2)' : 'transparent',
-              color: !active ? '#9ca3af' : '#6b7280',
-              fontWeight: !active ? 700 : 500, fontSize: 12,
-              cursor: 'pointer',
-            }}>
-            ✗ Kapalı
-          </button>
-        </div>
-      </div>
-      <p style={{ color: '#9ca3af', margin: 0, fontSize: 12, lineHeight: 1.5 }}>{description}</p>
-    </div>
   );
 }
