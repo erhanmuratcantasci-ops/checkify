@@ -14,7 +14,7 @@ const ORGANIZATION = {
   url: SITE_URL,
   logo: `${SITE_URL}/opengraph-image`,
   description:
-    "Türkiye'nin Apple-pro Shopify kapıda ödeme doğrulama platformu.",
+    "Türkiye'nin akıllı Shopify kapıda ödeme doğrulama platformu.",
   areaServed: { "@type": "Country", name: "Türkiye" },
 };
 

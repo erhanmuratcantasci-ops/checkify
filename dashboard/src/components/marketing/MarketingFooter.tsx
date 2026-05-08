@@ -9,7 +9,7 @@ export function MarketingFooter() {
         <div className="max-w-sm">
           <Logo size="md" />
           <p className="mt-3 text-[13px] leading-relaxed text-[var(--color-fg-muted)]">
-            Kapıda ödeme siparişlerini SMS ile otomatik doğrulayan Apple-pro
+            Kapıda ödeme siparişlerini SMS ile otomatik doğrulayan akıllı
             COD asistanı.
           </p>
         </div>

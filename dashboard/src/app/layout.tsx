@@ -16,7 +16,7 @@ export const metadata: Metadata = {
     template: "%s · Chekkify",
   },
   description:
-    "Otomatik SMS doğrulamayla iptal oranını düşür. Müşterilerin hızlıca onaylar, sen işine odaklanırsın. Türkiye'nin Apple-pro Shopify COD asistanı.",
+    "Otomatik SMS doğrulamayla iptal oranını düşür. Müşterilerin hızlıca onaylar, sen işine odaklanırsın. Türkiye'nin akıllı Shopify COD asistanı.",
   applicationName: "Chekkify",
   keywords: [
     "kapıda ödeme",
@@ -36,13 +36,13 @@ export const metadata: Metadata = {
     siteName: "Chekkify",
     title: "Chekkify — Kapıda ödeme. Akıllı onay.",
     description:
-      "Otomatik SMS doğrulamayla iptal oranını düşür. Türkiye'nin Apple-pro Shopify COD asistanı.",
+      "Otomatik SMS doğrulamayla iptal oranını düşür. Türkiye'nin akıllı Shopify COD asistanı.",
   },
   twitter: {
     card: "summary_large_image",
     title: "Chekkify — Kapıda ödeme. Akıllı onay.",
     description:
-      "Otomatik SMS doğrulamayla iptal oranını düşür. Türkiye'nin Apple-pro Shopify COD asistanı.",
+      "Otomatik SMS doğrulamayla iptal oranını düşür. Türkiye'nin akıllı Shopify COD asistanı.",
   },
   alternates: {
     canonical: "/",
