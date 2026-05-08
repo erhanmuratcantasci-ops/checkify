@@ -1,20 +1,30 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import dynamic from 'next/dynamic';
-import GeometricBackground from '@/components/GeometricBackground';
-import PlanUpgradeOverlay from '@/components/PlanUpgradeOverlay';
-import { useIsMobile } from '@/hooks/useIsMobile';
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
+import { TrendingDown } from "lucide-react";
+import PlanUpgradeOverlay from "@/components/PlanUpgradeOverlay";
+import { Card, CardHeader, CardTitle } from "@/components/ui/card";
+import { MetricCard } from "@/components/ui/metric-card";
+import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/ui/empty-state";
 
-const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
+const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
 
-const ResponsiveContainer = dynamic(() => import('recharts').then(m => m.ResponsiveContainer), { ssr: false });
-const LineChart = dynamic(() => import('recharts').then(m => m.LineChart), { ssr: false });
-const Line = dynamic(() => import('recharts').then(m => m.Line), { ssr: false });
-const XAxis = dynamic(() => import('recharts').then(m => m.XAxis), { ssr: false });
-const YAxis = dynamic(() => import('recharts').then(m => m.YAxis), { ssr: false });
-const Tooltip = dynamic(() => import('recharts').then(m => m.Tooltip), { ssr: false });
+const ResponsiveContainer = dynamic(
+  () => import("recharts").then((m) => m.ResponsiveContainer),
+  { ssr: false }
+);
+const LineChart = dynamic(() => import("recharts").then((m) => m.LineChart), {
+  ssr: false,
+});
+const Line = dynamic(() => import("recharts").then((m) => m.Line), { ssr: false });
+const XAxis = dynamic(() => import("recharts").then((m) => m.XAxis), { ssr: false });
+const YAxis = dynamic(() => import("recharts").then((m) => m.YAxis), { ssr: false });
+const Tooltip = dynamic(() => import("recharts").then((m) => m.Tooltip), {
+  ssr: false,
+});
 
 interface RTOData {
   rtoRate: number;
@@ -26,154 +36,162 @@ interface RTOData {
 
 function formatDay(iso: string) {
   const d = new Date(iso);
-  return d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' });
+  return d.toLocaleDateString("tr-TR", { day: "numeric", month: "short" });
 }
 
 export default function RTOPage() {
   const router = useRouter();
-  const isMobile = useIsMobile();
   const [data, setData] = useState<RTOData | null>(null);
   const [loading, setLoading] = useState(true);
   const [planAllowed, setPlanAllowed] = useState<boolean | null>(null);
 
   useEffect(() => {
-    const token = document.cookie.split('; ').find(r => r.startsWith('token='))?.split('=')[1];
-    if (!token) { router.push('/login'); return; }
-
+    const token = document.cookie.split("; ").find((r) => r.startsWith("token="))?.split("=")[1];
+    if (!token) {
+      router.push("/login");
+      return;
+    }
     const headers = { Authorization: `Bearer ${token}` };
     fetch(`${API}/plans/current`, { headers })
-      .then(r => r.json())
-      .then(planData => {
-        const allowed = ['PRO', 'BUSINESS'].includes(planData.plan ?? '');
+      .then((r) => r.json())
+      .then((planData) => {
+        const allowed = ["PRO", "BUSINESS"].includes(planData.plan ?? "");
         setPlanAllowed(allowed);
         if (allowed) {
-          return fetch(`${API}/orders/stats/rto`, { headers }).then(r => r.json());
+          return fetch(`${API}/orders/stats/rto`, { headers }).then((r) => r.json());
         }
         return null;
       })
-      .then(rtoData => { if (rtoData) setData(rtoData); })
+      .then((rtoData) => {
+        if (rtoData) setData(rtoData);
+      })
       .catch((err) => {
-        // Only redirect to login on auth errors
-        if (err?.status === 401 || String(err).includes('401')) router.push('/login');
+        if (err?.status === 401 || String(err).includes("401")) router.push("/login");
       })
       .finally(() => setLoading(false));
   }, [router]);
 
-  const trendWithLabel = data?.trend.map(d => ({ ...d, date: formatDay(d.date) })) ?? [];
-  const pad = isMobile ? '20px 16px' : '40px 24px';
-  const card = {
-    background: 'rgba(255,255,255,0.03)',
-    border: '1px solid rgba(255,255,255,0.07)',
-    borderRadius: 16,
-    padding: isMobile ? '16px' : '24px 28px',
-    marginBottom: isMobile ? 16 : 24,
-  };
+  const trendWithLabel = data?.trend.map((d) => ({ ...d, date: formatDay(d.date) })) ?? [];
+  const high = (data?.rtoRate ?? 0) > 20;
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0a0a0f', fontFamily: "'DM Sans', sans-serif", position: 'relative' }}>
-      <GeometricBackground />      <main style={{ maxWidth: 1100, margin: '0 auto', padding: pad }}>
-        <div style={{ marginBottom: isMobile ? 20 : 36 }}>
-          <h1 style={{
-            fontSize: isMobile ? 22 : 28, fontWeight: 700, color: '#fff', margin: '0 0 6px',
-            fontFamily: "'Syne', sans-serif", letterSpacing: '-0.5px',
-          }}>
-            📉 RTO Analizi
-          </h1>
-          <p style={{ color: '#6b7280', fontSize: 14, margin: 0 }}>
-            Return to Origin — İptal edilen sipariş oranı ve trendleri
-          </p>
-        </div>
+    <div className="mx-auto w-full max-w-[1100px] px-6 py-8 md:px-10 md:py-10">
+      <header className="mb-8">
+        <h1
+          className="text-[var(--color-fg)]"
+          style={{
+            fontSize: 28,
+            fontWeight: 500,
+            letterSpacing: "var(--tracking-display)",
+            margin: 0,
+          }}
+        >
+          RTO analizi
+        </h1>
+        <p className="mt-1 text-[14px] text-[var(--color-fg-muted)]">
+          Return to Origin — iptal edilen sipariş oranı ve trendleri.
+        </p>
+      </header>
 
-        {planAllowed === false && (
-          <PlanUpgradeOverlay featureName="RTO Analizi" requiredPlan="PRO" />
-        )}
+      {planAllowed === false && (
+        <PlanUpgradeOverlay featureName="RTO Analizi" requiredPlan="PRO" />
+      )}
 
-        {planAllowed === true && (
+      {planAllowed === true && (
         <>
-        {/* Summary Cards */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)',
-          gap: isMobile ? 10 : 16,
-          marginBottom: isMobile ? 16 : 24,
-        }}>
-          {[
-            { label: 'RTO Oranı', value: loading ? '—' : `${data?.rtoRate ?? 0}%`, color: '#dc2626', icon: '📉' },
-            { label: 'İptal Edilen', value: loading ? '—' : String(data?.cancelled ?? 0), color: '#d97706', icon: '❌' },
-            { label: 'Toplam Sipariş', value: loading ? '—' : String(data?.total ?? 0), color: '#7c3aed', icon: '📦' },
-          ].map((card, i) => (
-            <div key={i} style={{
-              background: 'rgba(255,255,255,0.03)',
-              border: '1px solid rgba(255,255,255,0.07)',
-              borderRadius: 16, padding: isMobile ? '14px 16px' : '20px 22px',
-            }}>
-              <div style={{ fontSize: isMobile ? 18 : 22, marginBottom: 8 }}>{card.icon}</div>
-              <div style={{ fontSize: isMobile ? 24 : 30, fontWeight: 700, color: card.color, fontFamily: "'Syne', sans-serif", marginBottom: 4 }}>
-                {card.value}
+          <section className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <MetricCard
+              label="RTO oranı"
+              value={loading ? "—" : `%${data?.rtoRate ?? 0}`}
+              deltaTone={high ? "danger" : "neutral"}
+              delta={high ? "yüksek" : undefined}
+            />
+            <MetricCard
+              label="İptal edilen"
+              value={loading ? "—" : (data?.cancelled ?? 0).toLocaleString("tr-TR")}
+            />
+            <MetricCard
+              label="Toplam sipariş"
+              value={loading ? "—" : (data?.total ?? 0).toLocaleString("tr-TR")}
+            />
+          </section>
+
+          <Card className="mb-4">
+            <CardHeader>
+              <CardTitle>30 günlük iptal trendi</CardTitle>
+            </CardHeader>
+            {loading || !data ? (
+              <p className="text-[13px] text-[var(--color-fg-faint)]">Yükleniyor…</p>
+            ) : (
+              <div className="h-[200px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart
+                    data={trendWithLabel}
+                    margin={{ top: 4, right: 4, bottom: 0, left: -24 }}
+                  >
+                    <XAxis
+                      dataKey="date"
+                      tick={{ fill: "#52525b", fontSize: 11 }}
+                      axisLine={false}
+                      tickLine={false}
+                      interval={4}
+                    />
+                    <YAxis
+                      allowDecimals={false}
+                      tick={{ fill: "#52525b", fontSize: 11 }}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        background: "#141416",
+                        border: "1px solid rgba(255,255,255,0.14)",
+                        borderRadius: 10,
+                        color: "#f5f5f7",
+                        fontSize: 13,
+                      }}
+                      formatter={(v) => [v, "İptal"]}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="count"
+                      stroke="#FB7185"
+                      strokeWidth={2}
+                      dot={{ fill: "#FB7185", strokeWidth: 0, r: 3 }}
+                      activeDot={{ fill: "#FDA4AF", r: 5, strokeWidth: 0 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
               </div>
-              <div style={{ fontSize: 13, color: '#9ca3af' }}>{card.label}</div>
-            </div>
-          ))}
-        </div>
+            )}
+          </Card>
 
-        {/* 30-Day Trend */}
-        <div style={card}>
-          <h2 style={{ color: '#9ca3af', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.8px', margin: '0 0 16px' }}>
-            30 Günlük İptal Trendi
-          </h2>
-          {loading || !data ? (
-            <div style={{ height: 160, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <div style={{ color: '#374151', fontSize: 13 }}>Yükleniyor...</div>
-            </div>
-          ) : (
-            <div style={{ height: isMobile ? 150 : 200 }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={trendWithLabel} margin={{ top: 4, right: 4, bottom: 0, left: isMobile ? -28 : -24 }}>
-                  <XAxis dataKey="date" tick={{ fill: '#4b5563', fontSize: isMobile ? 9 : 11 }} axisLine={false} tickLine={false} interval={isMobile ? 6 : 4} />
-                  <YAxis allowDecimals={false} tick={{ fill: '#4b5563', fontSize: isMobile ? 10 : 11 }} axisLine={false} tickLine={false} />
-                  <Tooltip
-                    contentStyle={{ background: 'rgba(13,13,24,0.95)', border: '1px solid rgba(220,38,38,0.25)', borderRadius: 8, color: '#e5e7eb', fontSize: 13 }}
-                    formatter={(v) => [v, 'İptal']}
-                  />
-                  <Line type="monotone" dataKey="count" stroke="#dc2626" strokeWidth={2} dot={{ fill: '#dc2626', strokeWidth: 0, r: 3 }} activeDot={{ fill: '#f87171', r: 5, strokeWidth: 0 }} />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          )}
-        </div>
-
-        {/* Top Phones */}
-        <div style={card}>
-          <h2 style={{ color: '#9ca3af', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.8px', margin: '0 0 16px' }}>
-            En Çok İptal Yapan Numaralar
-          </h2>
-          {loading ? (
-            <div style={{ color: '#374151', fontSize: 13 }}>Yükleniyor...</div>
-          ) : !data?.topPhones.length ? (
-            <div style={{ color: '#4b5563', fontSize: 13, padding: '20px 0' }}>Henüz iptal verisi yok</div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {data.topPhones.map((p, i) => (
-                <div key={i} style={{
-                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                  padding: '10px 14px',
-                  background: 'rgba(220,38,38,0.05)',
-                  border: '1px solid rgba(220,38,38,0.1)',
-                  borderRadius: 10,
-                }}>
-                  <span style={{ color: '#9ca3af', fontSize: 14, fontFamily: 'monospace' }}>{p.phone}</span>
-                  <span style={{
-                    background: 'rgba(220,38,38,0.15)', color: '#f87171',
-                    padding: '2px 10px', borderRadius: 20, fontSize: 13, fontWeight: 600,
-                  }}>{p.count} iptal</span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+          <Card>
+            <CardHeader>
+              <CardTitle>En çok iptal yapan numaralar</CardTitle>
+            </CardHeader>
+            {loading ? (
+              <p className="text-[13px] text-[var(--color-fg-faint)]">Yükleniyor…</p>
+            ) : !data?.topPhones.length ? (
+              <EmptyState icon={TrendingDown} title="Henüz iptal verisi yok" />
+            ) : (
+              <ul className="flex flex-col gap-2">
+                {data.topPhones.map((p, i) => (
+                  <li
+                    key={i}
+                    className="flex items-center justify-between rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3"
+                  >
+                    <span className="font-mono text-[14px] text-[var(--color-fg)] tabular-nums">
+                      {p.phone}
+                    </span>
+                    <Badge tone="danger">{p.count} iptal</Badge>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Card>
         </>
-        )}
-      </main>
+      )}
     </div>
   );
 }
