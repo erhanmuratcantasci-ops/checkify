@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import Navbar from '@/components/Navbar';
 import GeometricBackground from '@/components/GeometricBackground';
 import { SkeletonTable } from '@/components/Skeleton';
 import { useToast } from '@/components/Toast';
@@ -374,9 +373,7 @@ export default function OrdersPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: '#0a0a0f', fontFamily: "'DM Sans', sans-serif", position: 'relative' }}>
-      <GeometricBackground />
-      <Navbar />
-      <main style={{ maxWidth: 1100, margin: '0 auto', padding: pad }}>
+      <GeometricBackground />      <main style={{ maxWidth: 1100, margin: '0 auto', padding: pad }}>
         <div style={{ marginBottom: isMobile ? 16 : 28 }}>
           <h1 style={{ fontSize: isMobile ? 22 : 26, fontWeight: 700, color: '#fff', margin: '0 0 4px', fontFamily: "'Syne', sans-serif" }}>{t('orders_title')}</h1>
           <p style={{ color: '#6b7280', fontSize: 14, margin: 0 }}>{t('orders_subtitle')} — {total}</p>

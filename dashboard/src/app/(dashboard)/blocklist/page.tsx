@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import Navbar from '@/components/Navbar';
 import GeometricBackground from '@/components/GeometricBackground';
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
@@ -115,8 +114,7 @@ export default function BlocklistPage() {
 
   if (loading) return (
     <div style={{ minHeight: '100vh', background: '#0a0a0f' }}>
-      <GeometricBackground /><Navbar />
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh' }}>
+      <GeometricBackground />      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh' }}>
         <div style={{ color: '#6b7280', fontSize: 15 }}>Yükleniyor…</div>
       </div>
     </div>
@@ -124,9 +122,7 @@ export default function BlocklistPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: '#0a0a0f' }}>
-      <GeometricBackground />
-      <Navbar />
-      <div style={{ maxWidth: 760, margin: '0 auto', padding: '32px 20px' }}>
+      <GeometricBackground />      <div style={{ maxWidth: 760, margin: '0 auto', padding: '32px 20px' }}>
 
         <div style={{ marginBottom: 28 }}>
           <h1 style={{ color: '#fff', fontSize: 24, fontWeight: 800, margin: '0 0 6px' }}>🚫 Engel Listesi</h1>

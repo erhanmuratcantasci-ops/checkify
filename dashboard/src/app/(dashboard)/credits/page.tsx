@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import Navbar from '@/components/Navbar';
 import GeometricBackground from '@/components/GeometricBackground';
 import { useIsMobile } from '@/hooks/useIsMobile';
 import { useTranslation } from '@/lib/i18n';
@@ -124,8 +123,6 @@ export default function CreditsPage() {
   return (
     <div style={{ minHeight: '100vh', background: '#0a0a0f', fontFamily: "'Outfit', sans-serif", position: 'relative' }}>
       <GeometricBackground />
-      <Navbar />
-
       <main style={{ maxWidth: 760, margin: '0 auto', padding: pad }}>
         <div style={{ marginBottom: isMobile ? 20 : 32 }}>
           <button

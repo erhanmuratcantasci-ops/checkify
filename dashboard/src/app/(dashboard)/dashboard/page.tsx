@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import Navbar from '@/components/Navbar';
 import GeometricBackground from '@/components/GeometricBackground';
 import { SkeletonCard } from '@/components/Skeleton';
 import { useIsMobile } from '@/hooks/useIsMobile';
@@ -104,9 +103,7 @@ export default function DashboardPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: '#0a0a0f', fontFamily: "'DM Sans', sans-serif", position: 'relative' }}>
-      <GeometricBackground />
-      <Navbar />
-      <main style={{ maxWidth: 1100, margin: '0 auto', padding: pad }}>
+      <GeometricBackground />      <main style={{ maxWidth: 1100, margin: '0 auto', padding: pad }}>
         {/* Header */}
         <div style={{ marginBottom: isMobile ? 20 : 36 }}>
           <h1 style={{

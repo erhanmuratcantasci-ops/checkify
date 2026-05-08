@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import Navbar from '@/components/Navbar';
 import GeometricBackground from '@/components/GeometricBackground';
 import PlanUpgradeOverlay from '@/components/PlanUpgradeOverlay';
 import { useIsMobile } from '@/hooks/useIsMobile';
@@ -72,9 +71,7 @@ export default function RTOPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: '#0a0a0f', fontFamily: "'DM Sans', sans-serif", position: 'relative' }}>
-      <GeometricBackground />
-      <Navbar />
-      <main style={{ maxWidth: 1100, margin: '0 auto', padding: pad }}>
+      <GeometricBackground />      <main style={{ maxWidth: 1100, margin: '0 auto', padding: pad }}>
         <div style={{ marginBottom: isMobile ? 20 : 36 }}>
           <h1 style={{
             fontSize: isMobile ? 22 : 28, fontWeight: 700, color: '#fff', margin: '0 0 6px',

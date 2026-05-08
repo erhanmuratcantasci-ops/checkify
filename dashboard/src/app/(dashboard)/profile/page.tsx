@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Navbar from '@/components/Navbar';
 import GeometricBackground from '@/components/GeometricBackground';
 import { SkeletonProfile } from '@/components/Skeleton';
 import { useToast } from '@/components/Toast';
@@ -195,8 +194,6 @@ export default function ProfilePage() {
   return (
     <div style={{ minHeight: '100vh', background: '#0a0a0f', fontFamily: "'Outfit', sans-serif", position: 'relative' }}>
       <GeometricBackground />
-      <Navbar />
-
       <main style={{ maxWidth: 600, margin: '0 auto', padding: pad }}>
         <div style={{ marginBottom: isMobile ? 20 : 28 }}>
           <button onClick={() => router.push('/dashboard')} style={{ background: 'none', border: 'none', color: '#6b7280', fontSize: 13, cursor: 'pointer', padding: 0, marginBottom: 10 }}>

@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { orders, OrderDetail, OrderStatus } from '@/lib/api';
-import Navbar from '@/components/Navbar';
 
 const STATUS_LABELS: Record<OrderStatus, string> = {
   PENDING: 'Bekliyor',
@@ -48,9 +47,7 @@ export default function OrderDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen" style={{ background: 'var(--bg-base)' }}>
-        <Navbar />
-        <div className="flex items-center justify-center py-40">
+      <div className="min-h-screen" style={{ background: 'var(--bg-base)' }}>        <div className="flex items-center justify-center py-40">
           <div className="w-6 h-6 rounded-full animate-spin" style={{ border: '2px solid var(--accent)', borderTopColor: 'transparent' }} />
         </div>
       </div>
@@ -61,8 +58,6 @@ export default function OrderDetailPage() {
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--bg-base)' }}>
-      <Navbar />
-
       <main className="max-w-3xl mx-auto px-6 py-10 space-y-6">
         {/* Başlık */}
         <div className="flex items-start justify-between">
