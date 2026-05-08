@@ -73,6 +73,9 @@ export default function RootLayout({
   return (
     <html lang="tr" className={`${GeistSans.variable} ${GeistMono.variable}`}>
       <body className={GeistSans.className}>
+        <a href="#main-content" className="skip-link">
+          İçeriğe atla
+        </a>
         <NextAuthProvider>
           <LanguageProvider>
             <ToastProvider>

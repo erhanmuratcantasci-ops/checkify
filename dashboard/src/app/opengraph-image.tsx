@@ -59,7 +59,7 @@ export default async function OpengraphImage() {
               display: "flex",
             }}
           >
-            Otomatik SMS doğrulamayla iptal oranını düşür. Türkiye'nin
+            Otomatik SMS doğrulamayla iptal oranını düşür. Türkiye&apos;nin
             Apple-pro Shopify COD asistanı.
           </div>
         </div>

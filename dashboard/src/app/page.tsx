@@ -13,7 +13,10 @@ export default function LandingPage() {
     <>
       <StructuredData />
       <MarketingBackground />
-      <main className="relative z-10 mx-auto w-full max-w-[1200px] px-5 pb-12 md:px-10">
+      <main
+        id="main-content"
+        className="relative z-10 mx-auto w-full max-w-[1200px] px-5 pb-12 md:px-10"
+      >
         <MarketingHero />
         <LogoWall />
         <FeaturesGroup />
