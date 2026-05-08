@@ -4,6 +4,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import authRouter from './routes/auth';
 import webhookRouter from './routes/webhook';
+import gdprRouter from './routes/gdpr';
 import confirmRouter from './routes/confirm';
 import shopifyRouter from './routes/shopify';
 import ordersRouter from './routes/orders';
@@ -51,6 +52,10 @@ app.use('/auth/register', loginRateLimiter);
 app.use('/auth/forgot-password', loginRateLimiter);
 app.use('/auth', authRouter);
 app.use('/webhook', webhookRateLimiter);
+// GDPR routes mounted before the generic webhook router so the more-specific
+// /webhook/gdpr/* paths bind first. Both share the express.raw() body parser
+// declared above; both verify HMAC before doing any work.
+app.use('/webhook/gdpr', gdprRouter);
 app.use('/webhook', webhookRouter);
 app.use('/confirm/otp', otpRateLimiter);
 app.use('/confirm', confirmRouter);
