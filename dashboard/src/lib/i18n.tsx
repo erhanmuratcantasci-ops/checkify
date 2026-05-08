@@ -253,11 +253,13 @@ const translations = {
 
     // Landing
     landing_badge: "Türkiye'nin COD doğrulama platformu",
-    landing_hero_line1: 'Sahte Siparişlere',
-    landing_hero_line2: 'Son Ver.',
-    landing_hero_subtitle: 'Kapıda ödeme siparişlerini SMS ile doğrula. İade oranını düşür, karlılığını artır.',
-    landing_start_free: 'Ücretsiz Başla →',
-    landing_how_it_works: 'Nasıl Çalışır?',
+    landing_hero_line1: 'Kapıda ödeme.',
+    landing_hero_line2: 'Akıllı onay.',
+    landing_hero_subtitle: 'Otomatik SMS doğrulamayla iptal oranını düşür. Müşterilerin hızlıca onaylar, sen işine odaklanırsın.',
+    landing_start_free: '14 gün ücretsiz dene',
+    landing_secondary_cta: 'Nasıl çalışıyor',
+    landing_partners_heading: 'Güvendiğimiz altyapı',
+    landing_how_it_works: 'Nasıl çalışır',
     landing_stat1_val: '%40',
     landing_stat1_label: 'daha az iade',
     landing_stat2_val: '5 dk',
@@ -550,6 +552,10 @@ const translations = {
     cod_status_step_shipped: 'Yolda',
     cod_status_step_delivered: 'Teslim',
     cod_status_lookup_failed: 'Sipariş bulunamadı',
+
+    // Landing — refined hero copy mirrored as TR for now (EN landing out of M4 scope)
+    landing_secondary_cta: 'Nasıl çalışıyor',
+    landing_partners_heading: 'Güvendiğimiz altyapı',
 
     landing_badge: "Turkey's COD verification platform",
     landing_hero_line1: 'End Fake Orders',
