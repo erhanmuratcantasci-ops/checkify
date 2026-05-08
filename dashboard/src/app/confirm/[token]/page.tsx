@@ -24,6 +24,7 @@ interface Order {
   customerName: string;
   total: number;
   status: string;
+  statusUrl?: string | null;
 }
 
 function fillTemplate(tpl: string, vars: Record<string, string>) {
@@ -71,7 +72,7 @@ export default function ConfirmPage() {
       footer={
         state.kind === "success" ? (
           <Link
-            href="/"
+            href={state.order.statusUrl ?? "/"}
             className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent-faded)] rounded-[var(--radius-md)]"
           >
             <PrimaryActionButton type="button">
