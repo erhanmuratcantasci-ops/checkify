@@ -5,6 +5,7 @@ import "./globals.css";
 import { ToastProvider } from "@/components/Toast";
 import NextAuthProvider from "@/components/NextAuthProvider";
 import { LanguageProvider } from "@/lib/i18n";
+import { SmoothScroll } from "@/components/SmoothScroll";
 
 export const metadata: Metadata = {
   title: "Chekkify",
@@ -38,6 +39,7 @@ export default function RootLayout({
         <NextAuthProvider>
           <LanguageProvider>
             <ToastProvider>
+              <SmoothScroll />
               {children}
             </ToastProvider>
           </LanguageProvider>
