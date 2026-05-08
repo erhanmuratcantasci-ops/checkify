@@ -12,7 +12,7 @@ export function MarketingCTA() {
       initial={{ opacity: 0, y: 24 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, amount: 0.3 }}
-      transition={{ duration: 0.7, ease: easeOut }}
+      transition={{ duration: 0.45, ease: easeOut }}
       className="relative my-12 overflow-hidden rounded-[var(--radius-xl)] border border-[var(--color-accent)]/30 px-6 py-16 text-center md:my-16 md:px-12 md:py-24"
       style={{
         background:
