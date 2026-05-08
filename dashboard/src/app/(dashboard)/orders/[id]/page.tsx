@@ -1,147 +1,275 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { useRouter, useParams } from 'next/navigation';
-import { orders, OrderDetail, OrderStatus } from '@/lib/api';
+import { useEffect, useState } from "react";
+import { useRouter, useParams } from "next/navigation";
+import { ArrowLeft, RefreshCcw } from "lucide-react";
+import { orders, OrderDetail, OrderStatus } from "@/lib/api";
+import { Card, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/components/Toast";
+import { cn } from "@/lib/utils";
+
+const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
 
 const STATUS_LABELS: Record<OrderStatus, string> = {
-  PENDING: 'Bekliyor',
-  CONFIRMED: 'Onaylandı',
-  PREPARING: 'Hazırlanıyor',
-  SHIPPED: 'Kargoya Verildi',
-  DELIVERED: 'Teslim Edildi',
-  CANCELLED: 'İptal Edildi',
-  BLOCKED: 'Bloklandı',
+  PENDING: "Bekliyor",
+  CONFIRMED: "Onaylandı",
+  PREPARING: "Hazırlanıyor",
+  SHIPPED: "Kargoya verildi",
+  DELIVERED: "Teslim edildi",
+  CANCELLED: "İptal edildi",
+  BLOCKED: "Bloklandı",
 };
 
-const STATUS_COLORS: Record<OrderStatus, { bg: string; color: string }> = {
-  PENDING:   { bg: 'rgba(245,158,11,0.12)',  color: 'var(--color-warning)' },
-  CONFIRMED: { bg: 'rgba(16,185,129,0.12)',  color: 'var(--color-success)' },
-  PREPARING: { bg: 'rgba(59,130,246,0.12)',  color: '#60a5fa' },
-  SHIPPED:   { bg: 'rgba(168,85,247,0.12)',  color: 'var(--color-accent)' },
-  DELIVERED: { bg: 'rgba(6,214,160,0.12)',   color: 'var(--color-success)' },
-  CANCELLED: { bg: 'rgba(239,68,68,0.12)',   color: 'var(--color-danger)' },
-  BLOCKED:   { bg: 'rgba(220,38,38,0.15)',   color: '#f87171' },
+const STATUS_TONE: Record<OrderStatus, "success" | "warning" | "danger" | "info" | "neutral" | "accent"> = {
+  PENDING: "warning",
+  CONFIRMED: "success",
+  PREPARING: "info",
+  SHIPPED: "info",
+  DELIVERED: "success",
+  CANCELLED: "danger",
+  BLOCKED: "danger",
 };
 
-const SMS_COLORS: Record<string, { bg: string; color: string }> = {
-  SENT:    { bg: 'rgba(16,185,129,0.12)', color: 'var(--color-success)' },
-  PENDING: { bg: 'rgba(245,158,11,0.12)', color: 'var(--color-warning)' },
-  FAILED:  { bg: 'rgba(239,68,68,0.12)',  color: 'var(--color-danger)' },
+const STATUS_ACTIONS: { label: string; status: OrderStatus }[] = [
+  { label: "Onaylandı olarak işaretle", status: "CONFIRMED" },
+  { label: "Hazırlanıyor", status: "PREPARING" },
+  { label: "Kargoya verildi", status: "SHIPPED" },
+  { label: "Teslim edildi", status: "DELIVERED" },
+  { label: "İptal et", status: "CANCELLED" },
+];
+
+const SMS_TONE: Record<string, "success" | "warning" | "danger" | "neutral"> = {
+  SENT: "success",
+  PENDING: "warning",
+  FAILED: "danger",
 };
+
+function formatCurrency(value: number) {
+  return new Intl.NumberFormat("tr-TR", {
+    style: "currency",
+    currency: "TRY",
+    maximumFractionDigits: 0,
+  }).format(value);
+}
+
+function formatDate(iso: string, withTime = true) {
+  return new Date(iso).toLocaleString(
+    "tr-TR",
+    withTime
+      ? { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }
+      : { day: "2-digit", month: "short", year: "numeric" }
+  );
+}
+
+function getToken() {
+  return document.cookie.split("; ").find((r) => r.startsWith("token="))?.split("=")[1] ?? null;
+}
 
 export default function OrderDetailPage() {
   const router = useRouter();
   const params = useParams();
+  const { showToast } = useToast();
   const [order, setOrder] = useState<OrderDetail | null>(null);
   const [loading, setLoading] = useState(true);
+  const [updatingStatus, setUpdatingStatus] = useState<OrderStatus | null>(null);
+  const [resending, setResending] = useState(false);
 
   useEffect(() => {
-    const id = parseInt(params['id'] as string);
-    if (isNaN(id)) { router.push('/orders'); return; }
-    orders.get(id)
+    const id = parseInt(params["id"] as string);
+    if (isNaN(id)) {
+      router.push("/orders");
+      return;
+    }
+    orders
+      .get(id)
       .then(({ order }) => setOrder(order))
-      .catch(() => router.push('/orders'))
+      .catch(() => router.push("/orders"))
       .finally(() => setLoading(false));
   }, [params, router]);
 
+  async function changeStatus(status: OrderStatus) {
+    if (!order) return;
+    setUpdatingStatus(status);
+    try {
+      const token = getToken();
+      const res = await fetch(`${API}/orders/${order.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ status }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Durum güncellenemedi");
+      setOrder(data.order);
+      showToast(`Durum: ${STATUS_LABELS[status]}`, "success");
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "Hata oluştu", "error");
+    } finally {
+      setUpdatingStatus(null);
+    }
+  }
+
+  async function resendSMS() {
+    if (!order) return;
+    setResending(true);
+    try {
+      const token = getToken();
+      const res = await fetch(`${API}/orders/${order.id}/resend-sms`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "SMS gönderilemedi");
+      showToast("SMS kuyruğa eklendi", "success");
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "Hata oluştu", "error");
+    } finally {
+      setResending(false);
+    }
+  }
+
   if (loading) {
     return (
-      <div className="min-h-screen" style={{ background: 'var(--color-bg)' }}>        <div className="flex items-center justify-center py-40">
-          <div className="w-6 h-6 rounded-full animate-spin" style={{ border: '2px solid var(--color-accent)', borderTopColor: 'transparent' }} />
-        </div>
+      <div className="mx-auto w-full max-w-[1100px] px-6 py-8 md:px-10 md:py-10">
+        <p className="text-[14px] text-[var(--color-fg-faint)]">Yükleniyor…</p>
       </div>
     );
   }
-
   if (!order) return null;
 
   return (
-    <div className="min-h-screen" style={{ background: 'var(--color-bg)' }}>
-      <main className="max-w-3xl mx-auto px-6 py-10 space-y-6">
-        {/* Başlık */}
-        <div className="flex items-start justify-between">
-          <div>
-            <button
-              onClick={() => router.push('/orders')}
-              className="text-sm mb-2 flex items-center gap-1 transition-colors"
-              style={{ color: 'var(--color-fg-subtle)' }}
-              onMouseEnter={(e) => e.currentTarget.style.color = 'var(--color-fg)'}
-              onMouseLeave={(e) => e.currentTarget.style.color = 'var(--color-fg-subtle)'}
-            >
-              ← Siparişler
-            </button>
-            <h2 className="text-2xl font-bold" style={{ color: 'var(--color-fg)', fontFamily: 'var(--font-sans)' }}>
-              Sipariş #{order.id}
-            </h2>
-            {order.shopifyOrderId && (
-              <p className="text-sm mt-0.5" style={{ color: 'var(--color-fg-subtle)' }}>Shopify #{order.shopifyOrderId}</p>
-            )}
-          </div>
-          <span className="px-3 py-1.5 rounded-lg text-sm font-semibold" style={STATUS_COLORS[order.status]}>
-            {STATUS_LABELS[order.status]}
-          </span>
-        </div>
+    <div className="mx-auto w-full max-w-[1100px] px-6 py-8 md:px-10 md:py-10">
+      <button
+        type="button"
+        onClick={() => router.push("/orders")}
+        className="mb-4 inline-flex items-center gap-1.5 text-[13px] text-[var(--color-fg-muted)] transition-colors hover:text-[var(--color-fg)]"
+      >
+        <ArrowLeft size={14} aria-hidden />
+        Siparişler
+      </button>
 
-        {/* Sipariş Bilgileri */}
-        <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid var(--color-border-strong)' }}>
-          {[
-            ['Müşteri', order.customerName],
-            ['Telefon', order.customerPhone],
-            ['Tutar', `${order.total.toFixed(2)} ₺`],
-            ['Mağaza', order.shop.name + (order.shop.shopDomain ? ` (${order.shop.shopDomain})` : '')],
-            ['Tarih', new Date(order.createdAt).toLocaleString('tr-TR')],
-          ].map(([label, value], i, arr) => (
-            <div
-              key={label}
-              className="flex items-center justify-between px-6 py-4"
-              style={{
-                background: 'var(--color-bg-elevated)',
-                borderBottom: i < arr.length - 1 ? '1px solid var(--color-border)' : 'none',
-              }}
-            >
-              <span className="text-sm" style={{ color: 'var(--color-fg-subtle)' }}>{label}</span>
-              <span className="text-sm font-medium" style={{ color: 'var(--color-fg)' }}>{value}</span>
-            </div>
-          ))}
-        </div>
-
-        {/* SMS Logları */}
+      <header className="mb-6 flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h3 className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: 'var(--color-fg-subtle)' }}>SMS Logları</h3>
-          {order.smsLogs.length === 0 ? (
-            <div className="rounded-2xl px-6 py-8 text-center text-sm" style={{ background: 'var(--color-bg-elevated)', border: '1px solid var(--color-border-strong)', color: 'var(--color-fg-subtle)' }}>
-              SMS gönderilmedi
-            </div>
-          ) : (
-            <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid var(--color-border-strong)' }}>
-              {order.smsLogs.map((log, i) => (
-                <div
-                  key={log.id}
-                  className="px-6 py-4"
-                  style={{
-                    background: 'var(--color-bg-elevated)',
-                    borderBottom: i < order.smsLogs.length - 1 ? '1px solid var(--color-border)' : 'none',
-                  }}
-                >
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-sm font-medium" style={{ color: 'var(--color-fg-muted)' }}>{log.phone}</span>
-                    <div className="flex items-center gap-3">
-                      <span className="text-xs" style={{ color: 'var(--color-fg-subtle)' }}>
-                        {new Date(log.createdAt).toLocaleString('tr-TR')}
-                      </span>
-                      <span className="px-2 py-0.5 rounded text-xs font-semibold" style={SMS_COLORS[log.status] ?? { bg: 'var(--color-bg-overlay)', color: 'var(--color-fg-subtle)' }}>
-                        {log.status}
-                      </span>
-                    </div>
-                  </div>
-                  <p className="text-sm break-all" style={{ color: 'var(--color-fg-subtle)' }}>{log.message}</p>
-                </div>
-              ))}
-            </div>
+          <h1
+            className="text-[var(--color-fg)]"
+            style={{
+              fontSize: 28,
+              fontWeight: 500,
+              letterSpacing: "var(--tracking-display)",
+              margin: 0,
+            }}
+          >
+            Sipariş #{order.id}
+          </h1>
+          {order.shopifyOrderId && (
+            <p className="mt-1 font-mono text-[13px] text-[var(--color-fg-muted)]">
+              Shopify #{order.shopifyOrderId}
+            </p>
           )}
         </div>
-      </main>
+        <Badge tone={STATUS_TONE[order.status]} className="text-[12px] px-3 py-1">
+          {STATUS_LABELS[order.status]}
+        </Badge>
+      </header>
+
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <div className="space-y-4 lg:col-span-2">
+          <Card>
+            <CardHeader>
+              <CardTitle>Sipariş bilgileri</CardTitle>
+            </CardHeader>
+            <dl className="divide-y divide-[var(--color-border)]">
+              {[
+                ["Müşteri", order.customerName],
+                ["Telefon", order.customerPhone],
+                ["Tutar", formatCurrency(order.total)],
+                [
+                  "Mağaza",
+                  order.shop.name +
+                    (order.shop.shopDomain ? ` · ${order.shop.shopDomain}` : ""),
+                ],
+                ["Tarih", formatDate(order.createdAt)],
+              ].map(([label, value]) => (
+                <div
+                  key={label}
+                  className="flex items-center justify-between py-3 first:pt-0 last:pb-0"
+                >
+                  <dt className="text-[13px] text-[var(--color-fg-muted)]">{label}</dt>
+                  <dd className="text-[14px] font-medium text-[var(--color-fg)] tabular-nums">
+                    {value}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>SMS logları</CardTitle>
+              {order.status === "PENDING" && (
+                <Button size="sm" variant="secondary" loading={resending} onClick={resendSMS}>
+                  <RefreshCcw size={14} aria-hidden />
+                  Yeniden gönder
+                </Button>
+              )}
+            </CardHeader>
+            {order.smsLogs.length === 0 ? (
+              <p className="text-[13px] text-[var(--color-fg-faint)]">SMS gönderilmedi.</p>
+            ) : (
+              <ul className="divide-y divide-[var(--color-border)]">
+                {order.smsLogs.map((log) => (
+                  <li
+                    key={log.id}
+                    className="flex flex-col gap-1 py-3 first:pt-0 last:pb-0"
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-[13px] font-medium text-[var(--color-fg)] tabular-nums">
+                        {log.phone}
+                      </span>
+                      <div className="flex items-center gap-2 text-[12px] text-[var(--color-fg-faint)]">
+                        <span className="tabular-nums">{formatDate(log.createdAt)}</span>
+                        <Badge tone={SMS_TONE[log.status] ?? "neutral"}>{log.status}</Badge>
+                      </div>
+                    </div>
+                    <p className="break-all text-[13px] text-[var(--color-fg-muted)]">
+                      {log.message}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Card>
+        </div>
+
+        <aside>
+          <Card>
+            <CardHeader>
+              <CardTitle>Durumu güncelle</CardTitle>
+            </CardHeader>
+            <div className="flex flex-col gap-2">
+              {STATUS_ACTIONS.filter((a) => a.status !== order.status).map((a) => {
+                const isCancel = a.status === "CANCELLED";
+                const isConfirm = a.status === "CONFIRMED";
+                return (
+                  <Button
+                    key={a.status}
+                    size="md"
+                    block
+                    variant={isConfirm ? "primary" : "secondary"}
+                    loading={updatingStatus === a.status}
+                    disabled={updatingStatus !== null}
+                    onClick={() => changeStatus(a.status)}
+                    className={cn(isCancel && "text-[var(--color-danger)]")}
+                  >
+                    {a.label}
+                  </Button>
+                );
+              })}
+            </div>
+          </Card>
+        </aside>
+      </div>
     </div>
   );
 }
