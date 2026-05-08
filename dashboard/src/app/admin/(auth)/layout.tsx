@@ -1,19 +1,21 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import Logo from "@/components/Logo";
 import BackgroundDecoration from "@/components/BackgroundDecoration";
-import { logoIn, pageTransition } from "@/lib/motion";
+import { logoIn, pageSlide } from "@/lib/motion";
 
 /**
- * Admin auth shell — same Apple-pro pattern as /(auth) but with a small
+ * Admin auth shell — same pattern as /(auth) but with a small
  * "Yönetici paneli" eyebrow under the wordmark so admins know they're in
  * the right place. Sits at /admin/(auth)/ so /admin/login and
  * /admin/reset-password share it; the /admin/(panel) route group has its
- * own (M2-style sidebar) layout.
+ * own dashboard surface.
  */
 export default function AdminAuthLayout({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
   return (
     <>
       <BackgroundDecoration />
@@ -30,15 +32,18 @@ export default function AdminAuthLayout({ children }: { children: React.ReactNod
             Yönetici paneli
           </span>
         </motion.div>
-        <motion.div
-          variants={pageTransition}
-          initial="initial"
-          animate="animate"
-          exit="exit"
-          className="w-full max-w-md"
-        >
-          {children}
-        </motion.div>
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={pathname}
+            variants={pageSlide}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            className="w-full max-w-md"
+          >
+            {children}
+          </motion.div>
+        </AnimatePresence>
       </main>
     </>
   );

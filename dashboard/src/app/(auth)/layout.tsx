@@ -1,12 +1,14 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import Logo from "@/components/Logo";
 import BackgroundDecoration from "@/components/BackgroundDecoration";
-import { logoIn, pageTransition } from "@/lib/motion";
+import { logoIn, pageSlide } from "@/lib/motion";
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
   return (
     <>
       <BackgroundDecoration />
@@ -20,15 +22,18 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
             <Logo size="md" />
           </Link>
         </motion.div>
-        <motion.div
-          variants={pageTransition}
-          initial="initial"
-          animate="animate"
-          exit="exit"
-          className="w-full max-w-md"
-        >
-          {children}
-        </motion.div>
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={pathname}
+            variants={pageSlide}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            className="w-full max-w-md"
+          >
+            {children}
+          </motion.div>
+        </AnimatePresence>
       </main>
     </>
   );
