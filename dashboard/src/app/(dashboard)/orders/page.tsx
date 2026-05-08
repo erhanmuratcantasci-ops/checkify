@@ -1,22 +1,33 @@
-'use client';
+"use client";
 
-import { useEffect, useState, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
-import GeometricBackground from '@/components/GeometricBackground';
-import { SkeletonTable } from '@/components/Skeleton';
-import { useToast } from '@/components/Toast';
-import { useIsMobile } from '@/hooks/useIsMobile';
-import { useTranslation } from '@/lib/i18n';
+import { useEffect, useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
+import { Search, X, Inbox, RefreshCcw, CreditCard } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { useToast } from "@/components/Toast";
+import { useIsMobile } from "@/hooks/useIsMobile";
+import { useTranslation } from "@/lib/i18n";
+import { Card, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
+import { EmptyState } from "@/components/ui/empty-state";
+import { easeOut } from "@/lib/motion";
+import { cn } from "@/lib/utils";
 
-const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
+const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
 
-const STATUS_COLORS: Record<string, { bg: string; color: string }> = {
-  PENDING:   { bg: 'rgba(217,119,6,0.15)',  color: '#fbbf24' },
-  CONFIRMED: { bg: 'rgba(5,150,105,0.15)',  color: '#34d399' },
-  PREPARING: { bg: 'rgba(59,130,246,0.15)', color: '#60a5fa' },
-  SHIPPED:   { bg: 'rgba(139,92,246,0.15)', color: '#a78bfa' },
-  DELIVERED: { bg: 'rgba(16,185,129,0.15)', color: '#6ee7b7' },
-  CANCELLED: { bg: 'rgba(239,68,68,0.12)',  color: '#f87171' },
+type StatusTone = "success" | "warning" | "danger" | "info" | "neutral" | "accent";
+
+const STATUS_TONE: Record<string, StatusTone> = {
+  PENDING: "warning",
+  CONFIRMED: "success",
+  PREPARING: "info",
+  SHIPPED: "info",
+  DELIVERED: "success",
+  CANCELLED: "danger",
+  BLOCKED: "danger",
 };
 
 interface Order {
@@ -44,26 +55,34 @@ interface OrderDetail extends Order {
 }
 
 function getToken() {
-  return document.cookie.split('; ').find(r => r.startsWith('token='))?.split('=')[1] ?? null;
-}
-function authHeaders() {
-  return { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` };
+  return document.cookie.split("; ").find((r) => r.startsWith("token="))?.split("=")[1] ?? null;
 }
 
-function StatusBadge({ status, label }: { status: string; label: string }) {
-  const sc = STATUS_COLORS[status] || { bg: 'rgba(255,255,255,0.05)', color: '#9ca3af' };
-  return (
-    <span style={{
-      padding: '5px 12px', borderRadius: 8, fontSize: 12, fontWeight: 600,
-      background: sc.bg, color: sc.color, display: 'inline-block',
-    }}>
-      {label}
-    </span>
-  );
+function authHeaders() {
+  return { "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` };
+}
+
+function formatCurrency(value: number) {
+  return new Intl.NumberFormat("tr-TR", {
+    style: "currency",
+    currency: "TRY",
+    maximumFractionDigits: 0,
+  }).format(value);
+}
+
+function formatDate(iso: string) {
+  return new Date(iso).toLocaleDateString("tr-TR", {
+    day: "2-digit",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 function OrderModal({
-  order, onClose, onUpdate,
+  order,
+  onClose,
+  onUpdate,
 }: {
   order: OrderDetail;
   onClose: () => void;
@@ -75,34 +94,36 @@ function OrderModal({
   const [resending, setResending] = useState(false);
 
   const STATUS_LABELS: Record<string, string> = {
-    PENDING: t('orders_status_pending'),
-    CONFIRMED: t('orders_status_confirmed'),
-    PREPARING: 'Hazırlanıyor',
-    SHIPPED: 'Kargoda',
-    DELIVERED: 'Teslim',
-    CANCELLED: t('orders_status_cancelled'),
+    PENDING: t("orders_status_pending"),
+    CONFIRMED: t("orders_status_confirmed"),
+    PREPARING: "Hazırlanıyor",
+    SHIPPED: "Kargoda",
+    DELIVERED: "Teslim edildi",
+    CANCELLED: t("orders_status_cancelled"),
   };
 
-  const STATUS_ACTIONS: { label: string; status: string; color: string }[] = [
-    { label: t('orders_confirm_action'), status: 'CONFIRMED', color: '#059669' },
-    { label: 'Hazırlanıyor',   status: 'PREPARING', color: '#3b82f6' },
-    { label: 'Kargoya Verildi', status: 'SHIPPED',   color: '#7c3aed' },
-    { label: 'Teslim Edildi',  status: 'DELIVERED', color: '#10b981' },
-    { label: t('orders_cancel_action'), status: 'CANCELLED', color: '#dc2626' },
+  const STATUS_ACTIONS: { label: string; status: string; tone: StatusTone }[] = [
+    { label: t("orders_confirm_action"), status: "CONFIRMED", tone: "success" },
+    { label: "Hazırlanıyor", status: "PREPARING", tone: "info" },
+    { label: "Kargoya verildi", status: "SHIPPED", tone: "info" },
+    { label: "Teslim edildi", status: "DELIVERED", tone: "success" },
+    { label: t("orders_cancel_action"), status: "CANCELLED", tone: "danger" },
   ];
 
   async function handleStatusChange(status: string) {
     setUpdatingStatus(status);
     try {
       const res = await fetch(`${API}/orders/${order.id}`, {
-        method: 'PATCH', headers: authHeaders(), body: JSON.stringify({ status }),
+        method: "PATCH",
+        headers: authHeaders(),
+        body: JSON.stringify({ status }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || t('error_occurred'));
+      if (!res.ok) throw new Error(data.error || t("error_occurred"));
       onUpdate(data.order);
-      showToast(`${t('orders_col_status')}: ${STATUS_LABELS[status]}`, 'success');
+      showToast(`${t("orders_col_status")}: ${STATUS_LABELS[status]}`, "success");
     } catch (err) {
-      showToast(err instanceof Error ? err.message : t('error_occurred'), 'error');
+      showToast(err instanceof Error ? err.message : t("error_occurred"), "error");
     } finally {
       setUpdatingStatus(null);
     }
@@ -112,173 +133,202 @@ function OrderModal({
     setResending(true);
     try {
       const res = await fetch(`${API}/orders/${order.id}/resend-sms`, {
-        method: 'POST', headers: authHeaders(),
+        method: "POST",
+        headers: authHeaders(),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || t('error_occurred'));
-      showToast('SMS kuyruğa eklendi', 'success');
+      if (!res.ok) throw new Error(data.error || t("error_occurred"));
+      showToast("SMS kuyruğa eklendi", "success");
     } catch (err) {
-      showToast(err instanceof Error ? err.message : t('error_occurred'), 'error');
+      showToast(err instanceof Error ? err.message : t("error_occurred"), "error");
     } finally {
       setResending(false);
     }
   }
 
   return (
-    <div
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2 }}
       onClick={onClose}
-      style={{
-        position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)',
-        backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center',
-        justifyContent: 'center', zIndex: 100, padding: '16px',
-      }}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-md"
     >
-      <div
-        onClick={e => e.stopPropagation()}
-        style={{
-          background: 'rgba(15,15,28,0.98)',
-          border: '1px solid rgba(139,92,246,0.2)',
-          borderRadius: 20, width: '100%', maxWidth: 560,
-          maxHeight: '90vh', overflowY: 'auto',
-          boxShadow: '0 30px 60px rgba(0,0,0,0.6)',
-        }}
+      <motion.div
+        initial={{ opacity: 0, y: 12, scale: 0.97 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: 12, scale: 0.97 }}
+        transition={{ duration: 0.25, ease: easeOut }}
+        onClick={(e) => e.stopPropagation()}
+        className="flex max-h-[90vh] w-full max-w-xl flex-col overflow-hidden rounded-[var(--radius-xl)] border border-[var(--color-border-strong)] bg-[var(--color-bg-overlay)] shadow-[var(--shadow-lg)]"
       >
-        {/* Header */}
-        <div style={{
-          padding: '20px 20px 16px',
-          borderBottom: '1px solid rgba(255,255,255,0.06)',
-          display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
-          position: 'sticky', top: 0, background: 'rgba(15,15,28,0.98)',
-          borderRadius: '20px 20px 0 0', zIndex: 1,
-        }}>
+        <header className="flex items-start justify-between gap-4 border-b border-[var(--color-border)] px-6 py-4">
           <div>
-            <div style={{ color: '#6b7280', fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 4 }}>{t('orders_detail_title')}</div>
-            <div style={{ color: '#fff', fontSize: 18, fontWeight: 700 }}>#{order.id}</div>
+            <p className="text-[11px] uppercase tracking-[0.06em] text-[var(--color-fg-muted)]">
+              {t("orders_detail_title")}
+            </p>
+            <p
+              className="mt-1 text-[var(--color-fg)]"
+              style={{ fontSize: 18, fontWeight: 500, letterSpacing: "var(--tracking-heading)" }}
+            >
+              #{order.id}
+            </p>
           </div>
-          <button
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={onClose}
-            style={{
-              background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
-              borderRadius: 8, width: 36, height: 36, color: '#9ca3af', fontSize: 16,
-              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-            }}
-          >✕</button>
-        </div>
+            aria-label="Kapat"
+            className="h-9 w-9 px-0"
+          >
+            <X size={16} aria-hidden />
+          </Button>
+        </header>
 
-        <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: 16 }}>
-          {/* Customer info */}
-          <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14, padding: '14px 16px' }}>
-            <div style={{ color: '#6b7280', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 12 }}>{t('orders_detail_customer')}</div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+        <div className="flex flex-col gap-4 overflow-y-auto p-6">
+          <section>
+            <p className="mb-3 text-[11px] uppercase tracking-[0.06em] text-[var(--color-fg-muted)]">
+              {t("orders_detail_customer")}
+            </p>
+            <dl className="grid grid-cols-2 gap-3">
               {[
-                ['Ad Soyad', order.customerName],
-                [t('orders_detail_phone'), order.customerPhone],
-                [t('orders_detail_total'), `${order.total.toFixed(2)} ₺`],
-                ['Mağaza', order.shop?.name || '—'],
+                ["Ad soyad", order.customerName],
+                [t("orders_detail_phone"), order.customerPhone],
+                [t("orders_detail_total"), formatCurrency(order.total)],
+                ["Mağaza", order.shop?.name || "—"],
               ].map(([label, value]) => (
                 <div key={label}>
-                  <div style={{ color: '#4b5563', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 3 }}>{label}</div>
-                  <div style={{ color: '#e5e7eb', fontSize: 14, fontWeight: 500 }}>{value}</div>
+                  <dt className="text-[12px] text-[var(--color-fg-muted)]">{label}</dt>
+                  <dd className="mt-0.5 text-[14px] font-medium text-[var(--color-fg)]">
+                    {value}
+                  </dd>
                 </div>
               ))}
-            </div>
-          </div>
+            </dl>
+          </section>
 
-          {/* Order info */}
-          <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14, padding: '14px 16px' }}>
-            <div style={{ color: '#6b7280', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 12 }}>Sipariş Bilgileri</div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          <section>
+            <p className="mb-3 text-[11px] uppercase tracking-[0.06em] text-[var(--color-fg-muted)]">
+              Sipariş bilgileri
+            </p>
+            <div className="grid grid-cols-2 gap-3">
               <div>
-                <div style={{ color: '#4b5563', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6 }}>{t('orders_detail_status')}</div>
-                <StatusBadge status={order.status} label={STATUS_LABELS[order.status] || order.status} />
+                <p className="mb-1.5 text-[12px] text-[var(--color-fg-muted)]">
+                  {t("orders_detail_status")}
+                </p>
+                <Badge tone={STATUS_TONE[order.status] ?? "neutral"}>
+                  {STATUS_LABELS[order.status] || order.status}
+                </Badge>
               </div>
               <div>
-                <div style={{ color: '#4b5563', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 3 }}>{t('orders_detail_date')}</div>
-                <div style={{ color: '#e5e7eb', fontSize: 13 }}>
-                  {new Date(order.createdAt).toLocaleString('tr-TR', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                </div>
+                <p className="text-[12px] text-[var(--color-fg-muted)]">
+                  {t("orders_detail_date")}
+                </p>
+                <p className="mt-0.5 text-[13px] text-[var(--color-fg)] tabular-nums">
+                  {formatDate(order.createdAt)}
+                </p>
               </div>
               {order.shopifyOrderId && (
-                <div style={{ gridColumn: '1 / -1' }}>
-                  <div style={{ color: '#4b5563', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 3 }}>Shopify Sipariş ID</div>
-                  <div style={{ color: '#a78bfa', fontSize: 13, fontFamily: 'monospace' }}>#{order.shopifyOrderId}</div>
+                <div className="col-span-2">
+                  <p className="text-[12px] text-[var(--color-fg-muted)]">Shopify sipariş ID</p>
+                  <p className="mt-0.5 font-mono text-[13px] text-[var(--color-accent)]">
+                    #{order.shopifyOrderId}
+                  </p>
                 </div>
               )}
             </div>
-          </div>
+          </section>
 
-          {/* Status actions */}
-          <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14, padding: '14px 16px' }}>
-            <div style={{ color: '#6b7280', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 12 }}>Durumu Güncelle</div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-              {STATUS_ACTIONS.filter(a => a.status !== order.status).map(a => (
-                <button
+          <section>
+            <p className="mb-3 text-[11px] uppercase tracking-[0.06em] text-[var(--color-fg-muted)]">
+              Durumu güncelle
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {STATUS_ACTIONS.filter((a) => a.status !== order.status).map((a) => (
+                <Button
                   key={a.status}
-                  onClick={() => handleStatusChange(a.status)}
+                  size="sm"
+                  variant="secondary"
+                  loading={updatingStatus === a.status}
                   disabled={updatingStatus !== null}
-                  style={{
-                    padding: '10px 14px', borderRadius: 8, fontSize: 13, fontWeight: 600,
-                    minHeight: 44,
-                    background: updatingStatus === a.status ? 'rgba(255,255,255,0.05)' : `${a.color}22`,
-                    border: `1px solid ${a.color}44`,
-                    color: updatingStatus === a.status ? '#6b7280' : a.color,
-                    cursor: updatingStatus !== null ? 'not-allowed' : 'pointer',
-                  }}
+                  onClick={() => handleStatusChange(a.status)}
                 >
-                  {updatingStatus === a.status ? '...' : a.label}
-                </button>
+                  {a.label}
+                </Button>
               ))}
             </div>
-          </div>
+          </section>
 
-          {order.status === 'PENDING' && (
-            <button
+          {order.status === "PENDING" && (
+            <Button
+              type="button"
+              size="lg"
+              block
+              loading={resending}
               onClick={handleResendSMS}
-              disabled={resending}
-              style={{
-                padding: '14px', borderRadius: 10, fontSize: 14, fontWeight: 600, minHeight: 44,
-                background: resending ? 'rgba(139,92,246,0.2)' : 'linear-gradient(135deg, #7c3aed, #a855f7)',
-                border: 'none', color: '#fff', cursor: resending ? 'not-allowed' : 'pointer',
-              }}
             >
-              {resending ? t('loading') : '📱 SMS Yeniden Gönder'}
-            </button>
+              <RefreshCcw size={16} aria-hidden />
+              SMS yeniden gönder
+            </Button>
           )}
 
-          {/* SMS Logs */}
-          <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14, padding: '14px 16px' }}>
-            <div style={{ color: '#6b7280', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 12 }}>SMS Logları</div>
+          <section>
+            <p className="mb-3 text-[11px] uppercase tracking-[0.06em] text-[var(--color-fg-muted)]">
+              SMS logları
+            </p>
             {order.smsLogs.length === 0 ? (
-              <div style={{ color: '#4b5563', fontSize: 13 }}>Henüz SMS gönderilmedi</div>
+              <p className="text-[13px] text-[var(--color-fg-faint)]">
+                Henüz SMS gönderilmedi.
+              </p>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {order.smsLogs.map(log => (
-                  <div
-                    key={log.id}
-                    style={{
-                      background: log.status === 'SENT' ? 'rgba(5,150,105,0.06)' : 'rgba(239,68,68,0.06)',
-                      border: `1px solid ${log.status === 'SENT' ? 'rgba(5,150,105,0.2)' : 'rgba(239,68,68,0.2)'}`,
-                      borderRadius: 10, padding: '10px 12px',
-                    }}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                      <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: log.status === 'SENT' ? '#34d399' : '#f87171' }}>
-                        {log.status === 'SENT' ? '✓ Gönderildi' : '✗ Başarısız'}
-                      </span>
-                      <span style={{ color: '#4b5563', fontSize: 11 }}>
-                        {new Date(log.createdAt).toLocaleString('tr-TR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
-                      </span>
-                    </div>
-                    {log.status === 'SENT' && <div style={{ color: '#6b7280', fontSize: 12, lineHeight: 1.5 }}>{log.message}</div>}
-                    {log.errorMessage && <div style={{ color: '#f87171', fontSize: 12 }}>{log.errorMessage}</div>}
-                  </div>
-                ))}
-              </div>
+              <ul className="flex flex-col gap-2">
+                {order.smsLogs.map((log) => {
+                  const sent = log.status === "SENT";
+                  return (
+                    <li
+                      key={log.id}
+                      className={cn(
+                        "rounded-[var(--radius-md)] border p-3",
+                        sent
+                          ? "border-[var(--color-success)]/20 bg-[var(--color-success)]/[0.06]"
+                          : "border-[var(--color-danger)]/20 bg-[var(--color-danger)]/[0.06]"
+                      )}
+                    >
+                      <div className="mb-1 flex items-center justify-between text-[11px] uppercase tracking-[0.06em]">
+                        <span
+                          className={cn(
+                            "font-medium",
+                            sent
+                              ? "text-[var(--color-success)]"
+                              : "text-[var(--color-danger)]"
+                          )}
+                        >
+                          {sent ? "Gönderildi" : "Başarısız"}
+                        </span>
+                        <span className="text-[var(--color-fg-faint)]">
+                          {formatDate(log.createdAt)}
+                        </span>
+                      </div>
+                      {sent && (
+                        <p className="text-[12px] leading-snug text-[var(--color-fg-muted)]">
+                          {log.message}
+                        </p>
+                      )}
+                      {log.errorMessage && (
+                        <p className="text-[12px] text-[var(--color-danger)]">
+                          {log.errorMessage}
+                        </p>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
             )}
-          </div>
+          </section>
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }
 
@@ -288,291 +338,315 @@ export default function OrdersPage() {
   const isMobile = useIsMobile();
   const { t } = useTranslation();
 
-  const FILTERS_CONFIG = [
-    { key: 'all', label: t('orders_all'), status: null },
-    { key: 'pending', label: t('orders_pending'), status: 'PENDING' },
-    { key: 'confirmed', label: t('orders_confirmed'), status: 'CONFIRMED' },
-    { key: 'cancelled', label: t('orders_cancelled'), status: 'CANCELLED' },
+  const FILTERS = [
+    { key: "all", label: t("orders_all"), status: null },
+    { key: "pending", label: t("orders_pending"), status: "PENDING" },
+    { key: "confirmed", label: t("orders_confirmed"), status: "CONFIRMED" },
+    { key: "cancelled", label: t("orders_cancelled"), status: "CANCELLED" },
   ];
 
   const [orders, setOrders] = useState<Order[]>([]);
   const [total, setTotal] = useState(0);
-  const [filterKey, setFilterKey] = useState('all');
+  const [filterKey, setFilterKey] = useState("all");
   const [loading, setLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState<OrderDetail | null>(null);
   const [loadingDetail, setLoadingDetail] = useState<number | null>(null);
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState("");
   const [prepaidLoading, setPrepaidLoading] = useState<Record<number, boolean>>({});
   const [prepaidUrls, setPrepaidUrls] = useState<Record<number, string>>({});
 
   const STATUS_LABELS: Record<string, string> = {
-    PENDING: t('orders_status_pending'),
-    CONFIRMED: t('orders_status_confirmed'),
-    PREPARING: 'Hazırlanıyor',
-    SHIPPED: 'Kargoda',
-    DELIVERED: 'Teslim',
-    CANCELLED: t('orders_status_cancelled'),
+    PENDING: t("orders_status_pending"),
+    CONFIRMED: t("orders_status_confirmed"),
+    PREPARING: "Hazırlanıyor",
+    SHIPPED: "Kargoda",
+    DELIVERED: "Teslim edildi",
+    CANCELLED: t("orders_status_cancelled"),
   };
 
   const fetchOrders = useCallback(() => {
     const token = getToken();
-    if (!token) { router.push('/login'); return; }
+    if (!token) {
+      router.push("/login");
+      return;
+    }
     setLoading(true);
-    const activeFilter = FILTERS_CONFIG.find(f => f.key === filterKey);
+    const activeFilter = FILTERS.find((f) => f.key === filterKey);
     const status = activeFilter?.status ?? null;
-    const url = `${API}/orders${status ? `?status=${status}` : ''}`;
+    const url = `${API}/orders${status ? `?status=${status}` : ""}`;
     fetch(url, { headers: { Authorization: `Bearer ${token}` } })
-      .then(r => r.json())
-      .then(data => { setOrders(data.orders || []); setTotal(data.total || 0); })
-      .catch(() => router.push('/login'))
+      .then((r) => r.json())
+      .then((data) => {
+        setOrders(data.orders || []);
+        setTotal(data.total || 0);
+      })
+      .catch(() => router.push("/login"))
       .finally(() => setLoading(false));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filterKey, router]);
 
-  useEffect(() => { fetchOrders(); }, [fetchOrders]);
+  useEffect(() => {
+    fetchOrders();
+  }, [fetchOrders]);
 
   async function openDetail(orderId: number) {
     setLoadingDetail(orderId);
     try {
       const res = await fetch(`${API}/orders/${orderId}`, { headers: authHeaders() });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || t('error_occurred'));
+      if (!res.ok) throw new Error(data.error || t("error_occurred"));
       setSelectedOrder(data.order);
     } catch (err) {
-      showToast(err instanceof Error ? err.message : t('error_occurred'), 'error');
+      showToast(err instanceof Error ? err.message : t("error_occurred"), "error");
     } finally {
       setLoadingDetail(null);
     }
   }
 
   async function getPrepaidLink(orderId: number) {
-    setPrepaidLoading(prev => ({ ...prev, [orderId]: true }));
-    const token = document.cookie.split('; ').find(r => r.startsWith('token='))?.split('=')[1];
+    setPrepaidLoading((prev) => ({ ...prev, [orderId]: true }));
+    const token = getToken();
     const res = await fetch(`${API}/orders/${orderId}/prepaid-link`, {
-      method: 'POST',
+      method: "POST",
       headers: { Authorization: `Bearer ${token}` },
     });
     const data = await res.json();
     if (data.prepaidUrl) {
-      setPrepaidUrls(prev => ({ ...prev, [orderId]: data.prepaidUrl }));
+      setPrepaidUrls((prev) => ({ ...prev, [orderId]: data.prepaidUrl }));
     }
-    setPrepaidLoading(prev => ({ ...prev, [orderId]: false }));
+    setPrepaidLoading((prev) => ({ ...prev, [orderId]: false }));
   }
 
   function handleOrderUpdate(updated: OrderDetail) {
     setSelectedOrder(updated);
-    setOrders(prev => prev.map(o => o.id === updated.id ? { ...o, status: updated.status } : o));
+    setOrders((prev) =>
+      prev.map((o) => (o.id === updated.id ? { ...o, status: updated.status } : o))
+    );
   }
 
   const q = search.toLowerCase().trim();
   const filtered = q
-    ? orders.filter(o => o.customerName.toLowerCase().includes(q) || o.customerPhone.toLowerCase().includes(q))
+    ? orders.filter(
+        (o) =>
+          o.customerName.toLowerCase().includes(q) ||
+          o.customerPhone.toLowerCase().includes(q)
+      )
     : orders;
 
-  const pad = isMobile ? '16px' : '40px 24px';
-
   return (
-    <div style={{ minHeight: '100vh', background: '#0a0a0f', fontFamily: "'DM Sans', sans-serif", position: 'relative' }}>
-      <GeometricBackground />      <main style={{ maxWidth: 1100, margin: '0 auto', padding: pad }}>
-        <div style={{ marginBottom: isMobile ? 16 : 28 }}>
-          <h1 style={{ fontSize: isMobile ? 22 : 26, fontWeight: 700, color: '#fff', margin: '0 0 4px', fontFamily: "'Syne', sans-serif" }}>{t('orders_title')}</h1>
-          <p style={{ color: '#6b7280', fontSize: 14, margin: 0 }}>{t('orders_subtitle')} — {total}</p>
+    <div className="mx-auto w-full max-w-[1100px] px-6 py-8 md:px-10 md:py-10">
+      <header className="mb-6 flex items-end justify-between gap-3">
+        <div>
+          <h1
+            className="text-[var(--color-fg)]"
+            style={{ fontSize: 28, fontWeight: 500, letterSpacing: "var(--tracking-display)", margin: 0 }}
+          >
+            {t("orders_title")}
+          </h1>
+          <p className="mt-1 text-[14px] text-[var(--color-fg-muted)]">
+            {t("orders_subtitle")} · <span className="tabular-nums">{total}</span>
+          </p>
         </div>
+      </header>
 
-        {/* Search */}
-        <div style={{ display: 'flex', gap: 8, marginBottom: 12, alignItems: 'center' }}>
-          <input
+      <div className="mb-3 flex items-center gap-2">
+        <div className="relative flex-1">
+          <Search
+            size={16}
+            aria-hidden
+            className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[var(--color-fg-faint)]"
+          />
+          <Input
             type="text"
             value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder={t('orders_search')}
-            style={{
-              flex: 1, padding: '10px 14px', borderRadius: 8, fontSize: 14,
-              background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
-              color: '#e5e7eb', outline: 'none', fontFamily: 'inherit', minHeight: 44,
-            }}
-            onFocus={e => e.target.style.borderColor = 'rgba(139,92,246,0.5)'}
-            onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.08)'}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder={t("orders_search")}
+            className="pl-10"
           />
           {search && (
             <button
-              onClick={() => setSearch('')}
-              style={{ background: 'none', border: 'none', color: '#6b7280', fontSize: 13, cursor: 'pointer', padding: '0 4px', minHeight: 44 }}
+              type="button"
+              onClick={() => setSearch("")}
+              aria-label="Temizle"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-fg-muted)] hover:text-[var(--color-fg)]"
             >
-              ✕
+              <X size={14} aria-hidden />
             </button>
           )}
         </div>
+      </div>
 
-        {/* Filter tabs */}
-        <div style={{ display: 'flex', gap: 6, marginBottom: 20, overflowX: 'auto', paddingBottom: 4 }}>
-          {FILTERS_CONFIG.map(f => (
-            <button key={f.key} onClick={() => setFilterKey(f.key)} style={{
-              padding: '8px 14px', borderRadius: 8, fontSize: 13, fontWeight: 500, cursor: 'pointer',
-              minHeight: 44, whiteSpace: 'nowrap', flexShrink: 0,
-              border: filterKey === f.key ? '1px solid rgba(139,92,246,0.4)' : '1px solid rgba(255,255,255,0.07)',
-              background: filterKey === f.key ? 'rgba(139,92,246,0.15)' : 'rgba(255,255,255,0.03)',
-              color: filterKey === f.key ? '#c4b5fd' : '#6b7280',
-            }}>{f.label}</button>
-          ))}
-        </div>
+      <div className="mb-6 flex gap-1.5 overflow-x-auto pb-1">
+        {FILTERS.map((f) => {
+          const active = filterKey === f.key;
+          return (
+            <button
+              key={f.key}
+              type="button"
+              onClick={() => setFilterKey(f.key)}
+              className={cn(
+                "h-9 whitespace-nowrap rounded-[var(--radius-md)] border px-3 text-[13px] font-medium transition-colors",
+                active
+                  ? "border-[var(--color-accent)]/30 bg-[var(--color-accent-faded)] text-[var(--color-accent)]"
+                  : "border-transparent text-[var(--color-fg-muted)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-fg)]"
+              )}
+            >
+              {f.label}
+            </button>
+          );
+        })}
+      </div>
 
-        {/* Content */}
-        {loading ? (
-          <SkeletonTable rows={5} />
-        ) : filtered.length === 0 ? (
-          <div style={{ padding: 48, textAlign: 'center', color: '#4b5563', fontSize: 14,
-            background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 16 }}>
-            {t('orders_empty')}
-          </div>
-        ) : isMobile ? (
-          /* Mobile card view */
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {filtered.map(order => {
-              const sc = STATUS_COLORS[order.status] || { bg: 'rgba(255,255,255,0.05)', color: '#9ca3af' };
-              const isLoadingThis = loadingDetail === order.id;
-              return (
-                <div
-                  key={order.id}
-                  onClick={() => !isLoadingThis && openDetail(order.id)}
-                  style={{
-                    background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)',
-                    borderRadius: 14, padding: '16px',
-                    cursor: isLoadingThis ? 'not-allowed' : 'pointer',
-                    opacity: isLoadingThis ? 0.6 : 1,
-                  }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
-                    <div>
-                      <div style={{ color: '#fff', fontSize: 15, fontWeight: 600 }}>{order.customerName}</div>
-                      <div style={{ color: '#6b7280', fontSize: 12, marginTop: 2 }}>#{order.id}</div>
-                    </div>
-                    <span style={{ padding: '4px 10px', borderRadius: 6, fontSize: 12, fontWeight: 600, background: sc.bg, color: sc.color, flexShrink: 0 }}>
-                      {STATUS_LABELS[order.status] || order.status}
-                    </span>
+      {loading ? (
+        <Card>
+          <p className="text-[14px] text-[var(--color-fg-faint)]">{t("dash_loading")}</p>
+        </Card>
+      ) : filtered.length === 0 ? (
+        <Card>
+          <EmptyState icon={Inbox} title={t("orders_empty")} />
+        </Card>
+      ) : isMobile ? (
+        <div className="flex flex-col gap-2.5">
+          {filtered.map((order) => {
+            const isLoadingThis = loadingDetail === order.id;
+            return (
+              <Card
+                key={order.id}
+                onClick={() => !isLoadingThis && openDetail(order.id)}
+                className={cn(
+                  "cursor-pointer p-4",
+                  isLoadingThis && "cursor-not-allowed opacity-60"
+                )}
+              >
+                <div className="mb-2 flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-[15px] font-medium text-[var(--color-fg)]">
+                      {order.customerName}
+                    </p>
+                    <p className="text-[12px] text-[var(--color-fg-muted)]">#{order.id}</p>
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ color: '#9ca3af', fontSize: 13 }}>{order.customerPhone}</span>
-                    <span style={{ color: '#34d399', fontSize: 14, fontWeight: 700 }}>{order.total.toFixed(2)} ₺</span>
-                  </div>
-                  <div style={{ color: '#4b5563', fontSize: 12, marginTop: 6 }}>
-                    {new Date(order.createdAt).toLocaleDateString('tr-TR')}
-                  </div>
-                  {order.status === 'PENDING' && (
-                    <div style={{ marginTop: 6 }}>
-                      {prepaidUrls[order.id] ? (
-                        <div style={{
-                          fontSize: 11, color: '#a855f7', wordBreak: 'break-all',
-                          background: 'rgba(139,92,246,0.1)', padding: '4px 8px', borderRadius: 6,
-                        }}>
-                          💳 {prepaidUrls[order.id]}
-                        </div>
-                      ) : (
-                        <button
-                          onClick={() => getPrepaidLink(order.id)}
-                          disabled={prepaidLoading[order.id]}
-                          style={{
-                            padding: '4px 10px', borderRadius: 6, border: '1px solid rgba(139,92,246,0.3)',
-                            background: 'rgba(139,92,246,0.08)', color: '#a855f7',
-                            fontSize: 12, cursor: 'pointer',
-                          }}
-                        >
-                          {prepaidLoading[order.id] ? '...' : '💳 Ön Ödeme'}
-                        </button>
-                      )}
-                    </div>
-                  )}
+                  <Badge tone={STATUS_TONE[order.status] ?? "neutral"}>
+                    {STATUS_LABELS[order.status] || order.status}
+                  </Badge>
                 </div>
-              );
-            })}
-          </div>
-        ) : (
-          /* Desktop table view */
-          <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 16, overflow: 'hidden' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead>
-                <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-                  {[t('orders_col_id'), t('orders_col_customer'), t('orders_col_phone'), t('orders_col_total'), t('orders_col_status'), t('orders_col_date'), ''].map((h, i) => (
-                    <th key={i} style={{ padding: '14px 20px', textAlign: 'left', color: '#4b5563', fontSize: 11, fontWeight: 600, letterSpacing: '0.8px', textTransform: 'uppercase' }}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.length === 0 ? (
-                  <tr><td colSpan={7} style={{ padding: '40px 20px', textAlign: 'center', color: '#4b5563', fontSize: 13 }}>{t('orders_empty')}</td></tr>
-                ) : filtered.map((order, i) => {
-                  const sc = STATUS_COLORS[order.status] || { bg: 'rgba(255,255,255,0.05)', color: '#9ca3af' };
-                  const isLoadingThis = loadingDetail === order.id;
-                  return (
-                    <tr key={order.id} style={{ borderBottom: i < filtered.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
-                      <td style={{ padding: '14px 20px', color: '#9ca3af', fontSize: 13 }}>#{order.id}</td>
-                      <td style={{ padding: '14px 20px', color: '#e5e7eb', fontSize: 14, fontWeight: 500 }}>{order.customerName}</td>
-                      <td style={{ padding: '14px 20px', color: '#9ca3af', fontSize: 13 }}>{order.customerPhone}</td>
-                      <td style={{ padding: '14px 20px', color: '#e5e7eb', fontSize: 14, fontWeight: 600 }}>{order.total.toFixed(2)} ₺</td>
-                      <td style={{ padding: '14px 20px' }}>
-                        <span style={{ padding: '4px 10px', borderRadius: 6, fontSize: 12, fontWeight: 600, background: sc.bg, color: sc.color }}>
-                          {STATUS_LABELS[order.status] || order.status}
-                        </span>
-                      </td>
-                      <td style={{ padding: '14px 20px', color: '#6b7280', fontSize: 13 }}>
-                        {new Date(order.createdAt).toLocaleDateString('tr-TR')}
-                      </td>
-                      <td style={{ padding: '14px 20px' }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                          <button
-                            onClick={() => openDetail(order.id)}
-                            disabled={isLoadingThis}
-                            style={{
-                              padding: '6px 14px', borderRadius: 7, fontSize: 12, fontWeight: 600,
-                              background: 'rgba(139,92,246,0.12)', border: '1px solid rgba(139,92,246,0.25)',
-                              color: isLoadingThis ? '#6b7280' : '#a78bfa',
-                              cursor: isLoadingThis ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap',
-                            }}
-                          >
-                            {isLoadingThis ? '...' : t('edit')}
-                          </button>
-                          {order.status === 'PENDING' && (
-                            <div style={{ marginTop: 6 }}>
-                              {prepaidUrls[order.id] ? (
-                                <div style={{
-                                  fontSize: 11, color: '#a855f7', wordBreak: 'break-all',
-                                  background: 'rgba(139,92,246,0.1)', padding: '4px 8px', borderRadius: 6,
-                                }}>
-                                  💳 {prepaidUrls[order.id]}
-                                </div>
-                              ) : (
-                                <button
-                                  onClick={() => getPrepaidLink(order.id)}
-                                  disabled={prepaidLoading[order.id]}
-                                  style={{
-                                    padding: '4px 10px', borderRadius: 6, border: '1px solid rgba(139,92,246,0.3)',
-                                    background: 'rgba(139,92,246,0.08)', color: '#a855f7',
-                                    fontSize: 12, cursor: 'pointer',
-                                  }}
-                                >
-                                  {prepaidLoading[order.id] ? '...' : '💳 Ön Ödeme'}
-                                </button>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </main>
-
-      {selectedOrder && (
-        <OrderModal
-          order={selectedOrder}
-          onClose={() => setSelectedOrder(null)}
-          onUpdate={handleOrderUpdate}
-        />
+                <div className="flex items-center justify-between text-[13px]">
+                  <span className="text-[var(--color-fg-muted)] tabular-nums">
+                    {order.customerPhone}
+                  </span>
+                  <span className="font-medium text-[var(--color-fg)] tabular-nums">
+                    {formatCurrency(order.total)}
+                  </span>
+                </div>
+                <p className="mt-1 text-[12px] text-[var(--color-fg-faint)] tabular-nums">
+                  {formatDate(order.createdAt)}
+                </p>
+                {order.status === "PENDING" && (
+                  <div className="mt-2">
+                    {prepaidUrls[order.id] ? (
+                      <p className="break-all rounded-[var(--radius-sm)] bg-[var(--color-accent-faded)] px-2 py-1 text-[11px] text-[var(--color-accent)]">
+                        {prepaidUrls[order.id]}
+                      </p>
+                    ) : (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="secondary"
+                        loading={prepaidLoading[order.id]}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          getPrepaidLink(order.id);
+                        }}
+                      >
+                        <CreditCard size={14} aria-hidden />
+                        Ön ödeme linki
+                      </Button>
+                    )}
+                  </div>
+                )}
+              </Card>
+            );
+          })}
+        </div>
+      ) : (
+        <Card className="overflow-hidden p-0">
+          <Table>
+            <THead>
+              <TR className="hover:bg-transparent">
+                <TH>#</TH>
+                <TH>{t("orders_col_customer")}</TH>
+                <TH>{t("orders_col_phone")}</TH>
+                <TH className="text-right">{t("orders_col_total")}</TH>
+                <TH>{t("orders_col_status")}</TH>
+                <TH>{t("orders_col_date")}</TH>
+                <TH className="text-right">Aksiyon</TH>
+              </TR>
+            </THead>
+            <TBody>
+              {filtered.map((order) => {
+                const isLoadingThis = loadingDetail === order.id;
+                return (
+                  <TR key={order.id}>
+                    <TD className="text-[var(--color-fg-muted)] tabular-nums">#{order.id}</TD>
+                    <TD className="font-medium">{order.customerName}</TD>
+                    <TD className="text-[var(--color-fg-muted)] tabular-nums">
+                      {order.customerPhone}
+                    </TD>
+                    <TD className="text-right tabular-nums font-medium">
+                      {formatCurrency(order.total)}
+                    </TD>
+                    <TD>
+                      <Badge tone={STATUS_TONE[order.status] ?? "neutral"}>
+                        {STATUS_LABELS[order.status] || order.status}
+                      </Badge>
+                    </TD>
+                    <TD className="text-[var(--color-fg-muted)] tabular-nums">
+                      {formatDate(order.createdAt)}
+                    </TD>
+                    <TD className="text-right">
+                      <div className="flex flex-col items-end gap-1.5">
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          loading={isLoadingThis}
+                          onClick={() => openDetail(order.id)}
+                        >
+                          Detay
+                        </Button>
+                        {order.status === "PENDING" &&
+                          (prepaidUrls[order.id] ? (
+                            <span className="max-w-[180px] break-all rounded-[var(--radius-sm)] bg-[var(--color-accent-faded)] px-2 py-1 text-[11px] text-[var(--color-accent)]">
+                              {prepaidUrls[order.id]}
+                            </span>
+                          ) : (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              loading={prepaidLoading[order.id]}
+                              onClick={() => getPrepaidLink(order.id)}
+                            >
+                              <CreditCard size={14} aria-hidden />
+                              Ön ödeme
+                            </Button>
+                          ))}
+                      </div>
+                    </TD>
+                  </TR>
+                );
+              })}
+            </TBody>
+          </Table>
+        </Card>
       )}
+
+      <AnimatePresence>
+        {selectedOrder && (
+          <OrderModal
+            order={selectedOrder}
+            onClose={() => setSelectedOrder(null)}
+            onUpdate={handleOrderUpdate}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
