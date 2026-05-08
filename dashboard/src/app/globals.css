@@ -90,6 +90,18 @@ body {
   font-feature-settings: "cv11", "ss01", "ss03";
   letter-spacing: var(--tracking-body);
   margin: 0;
+  /* Cuts the iOS Safari 300ms tap delay across the app */
+  touch-action: manipulation;
+}
+
+/*
+ * `.app-shell` is opt-in for app-like surfaces (auth, customer COD, etc.)
+ * that need iOS PWA polish — it disables pull-to-refresh and reserves the
+ * safe-area insets. The merchant dashboard keeps native scroll behaviour.
+ */
+.app-shell {
+  overscroll-behavior: none;
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
 ::selection {
