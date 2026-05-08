@@ -71,25 +71,8 @@
   --duration-slow: 400ms;
 }
 
-/*
- * Compat aliases for legacy var names used by (dashboard)/orders/[id]/page.tsx
- * before the M2 dashboard re-skin. New surfaces must use --color-* tokens above.
- */
 :root {
   color-scheme: dark;
-  --bg-base: var(--color-bg);
-  --bg-surface: var(--color-bg-elevated);
-  --bg-elevated: var(--color-bg-overlay);
-  --bg-overlay: var(--color-bg-overlay);
-  --border: var(--color-border-strong);
-  --border-subtle: var(--color-border);
-  --accent: var(--color-accent);
-  --accent-hover: var(--color-accent-hover);
-  --accent-muted: var(--color-accent-faded);
-  --accent-fg: var(--color-accent-fg);
-  --text-primary: var(--color-fg);
-  --text-secondary: var(--color-fg-muted);
-  --text-muted: var(--color-fg-subtle);
 }
 
 *, *::before, *::after { box-sizing: border-box; }
