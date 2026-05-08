@@ -58,7 +58,12 @@ router.get('/:token', async (req: Request, res: Response): Promise<void> => {
       .catch(err => console.error('[confirm] Email gönderilemedi:', err));
   }
 
-  res.json({ message: 'Sipariş onaylandı', order: updated });
+  // statusUrl: customer-facing /status/[statusToken] route, so the frontend
+  // can wire the success-state "Durumu takip et" CTA without an extra round-trip.
+  // statusToken is generated at order create time (webhook.ts) and is permanent.
+  const statusUrl = order.statusToken ? `/status/${order.statusToken}` : null;
+
+  res.json({ message: 'Sipariş onaylandı', order: { ...updated, statusUrl } });
 });
 
 // GET /confirm/cancel/:token
@@ -104,7 +109,11 @@ router.get('/cancel/:token', async (req: Request, res: Response): Promise<void> 
       .catch(err => console.error('[cancel] Email gönderilemedi:', err));
   }
 
-  res.json({ message: 'Sipariş iptal edildi', order: updated });
+  // statusUrl mirrors /confirm: same /status/[statusToken] route handles the
+  // cancelled terminal state and shows the receipt OrderSummaryCard.
+  const statusUrl = order.statusToken ? `/status/${order.statusToken}` : null;
+
+  res.json({ message: 'Sipariş iptal edildi', order: { ...updated, statusUrl } });
 });
 
 // GET /confirm/otp/info/:orderId — public masked phone info
