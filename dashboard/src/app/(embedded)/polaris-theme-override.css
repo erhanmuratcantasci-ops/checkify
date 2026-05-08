@@ -1,0 +1,107 @@
+/*
+ * Apple-pro override on top of Polaris v13's design tokens. We force a
+ * dark color-scheme on the embedded shell and remap the brand / surface
+ * tokens onto the same Hot Coral / pure-black palette M2 uses, so the
+ * embedded surface reads as one continuous Chekkify product instead of
+ * a Polaris default sheet.
+ *
+ * Polaris reads `--p-color-*` per the data-color-scheme attribute on
+ * the body, so we scope the overrides under both selectors to be safe.
+ */
+
+[data-color-scheme="dark"],
+.Polaris-AppProvider [data-color-scheme="dark"],
+.embedded-shell {
+  /* Surfaces */
+  --p-color-bg: #000000;
+  --p-color-bg-surface: #0a0a0a;
+  --p-color-bg-surface-secondary: #141416;
+  --p-color-bg-surface-tertiary: #18181b;
+  --p-color-bg-surface-hover: rgba(255, 255, 255, 0.04);
+  --p-color-bg-surface-active: rgba(255, 255, 255, 0.06);
+  --p-color-bg-surface-selected: rgba(251, 113, 133, 0.12);
+  --p-color-bg-surface-pressed: rgba(255, 255, 255, 0.08);
+
+  /* Text */
+  --p-color-text: #f5f5f7;
+  --p-color-text-secondary: #a1a1aa;
+  --p-color-text-tertiary: #71717a;
+  --p-color-text-disabled: #52525b;
+  --p-color-text-link: #fb7185;
+  --p-color-text-link-hover: #fda4af;
+
+  /* Borders */
+  --p-color-border: rgba(255, 255, 255, 0.08);
+  --p-color-border-secondary: rgba(255, 255, 255, 0.04);
+  --p-color-border-tertiary: rgba(255, 255, 255, 0.14);
+  --p-color-border-strong: rgba(255, 255, 255, 0.18);
+  --p-color-border-focus: #fb7185;
+
+  /* Brand fill (primary buttons, selected states) */
+  --p-color-bg-fill-brand: #fb7185;
+  --p-color-bg-fill-brand-hover: #fda4af;
+  --p-color-bg-fill-brand-active: #f43f5e;
+  --p-color-bg-fill-brand-secondary: rgba(251, 113, 133, 0.12);
+  --p-color-text-brand-on-bg-fill: #0a0a0a;
+
+  /* Critical / success / warning */
+  --p-color-bg-fill-critical: rgba(248, 113, 113, 0.12);
+  --p-color-text-critical: #f87171;
+  --p-color-bg-fill-success: rgba(52, 211, 153, 0.12);
+  --p-color-text-success: #34d399;
+  --p-color-bg-fill-warning: rgba(251, 191, 36, 0.12);
+  --p-color-text-warning: #fbbf24;
+
+  /* Border radius bumped from Polaris default 6px → 10px */
+  --p-border-radius-100: 6px;
+  --p-border-radius-200: 10px;
+  --p-border-radius-300: 14px;
+  --p-border-radius-400: 18px;
+
+  /* Typography — match the rest of the app */
+  --p-font-family-sans:
+    "Geist", -apple-system, "SF Pro Display", system-ui, sans-serif;
+  --p-font-family-mono: "Geist Mono", "SF Mono", ui-monospace, monospace;
+}
+
+/* Force dark on the body whenever we are inside the embedded shell so
+   Shopify admin's iframe doesn't bleed light-scheme defaults through. */
+.embedded-shell {
+  color-scheme: dark;
+  background: var(--p-color-bg);
+  color: var(--p-color-text);
+}
+
+/* Polaris frame chrome on dark — kill the white shadow and align the
+   border with our hairline. */
+.embedded-shell .Polaris-Frame {
+  background: var(--p-color-bg);
+}
+
+/* Buttons: use Polaris brand fill but keep our 0.98 spring tap. */
+.embedded-shell .Polaris-Button--variantPrimary {
+  background: var(--p-color-bg-fill-brand);
+  color: var(--p-color-text-brand-on-bg-fill);
+}
+.embedded-shell .Polaris-Button--variantPrimary:hover {
+  background: var(--p-color-bg-fill-brand-hover);
+}
+.embedded-shell .Polaris-Button--variantPrimary:active {
+  transform: scale(0.98);
+}
+
+/* Cards: mirror our M2 Card primitive (0.5px coral hairline at top). */
+.embedded-shell .Polaris-Card,
+.embedded-shell .Polaris-LegacyCard,
+.embedded-shell .Polaris-Box[class*="Card"] {
+  background: var(--p-color-bg-surface);
+  border: 1px solid var(--p-color-border);
+  border-radius: var(--p-border-radius-300);
+}
+
+/* Make Polaris focus ring match the rest of the app. */
+.embedded-shell *:focus-visible {
+  outline: 2px solid rgba(251, 113, 133, 0.2);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(251, 113, 133, 0.2);
+}

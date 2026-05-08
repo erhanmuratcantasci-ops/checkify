@@ -11,8 +11,10 @@ import { cn } from "@/lib/utils";
  * has one CTA at a time, so it can carry a bit more visual weight than the
  * dashboard's flat coral. Min-height 52px keeps the iOS tap target healthy.
  */
+// `variant` + `tone` Omit'ed for the same reason as <Button> — see the
+// note in components/ui/button.tsx.
 export interface PrimaryActionButtonProps
-  extends Omit<HTMLMotionProps<"button">, "ref" | "children"> {
+  extends Omit<HTMLMotionProps<"button">, "ref" | "children" | "variant" | "tone"> {
   loading?: boolean;
   block?: boolean;
   children?: React.ReactNode;

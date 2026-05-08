@@ -43,8 +43,12 @@ const buttonVariants = cva(
   }
 );
 
+// Omit `variant` + `tone` from the underlying motion props so the
+// global JSX augmentation from @shopify/app-bridge-types
+// (variant: 'primary' | 'breadcrumb', tone: 'critical' | 'default') does
+// not intersect with our CVA-derived variants.
 export interface ButtonProps
-  extends Omit<HTMLMotionProps<"button">, "ref" | "children">,
+  extends Omit<HTMLMotionProps<"button">, "ref" | "children" | "variant" | "tone">,
     VariantProps<typeof buttonVariants> {
   loading?: boolean;
   children?: React.ReactNode;
