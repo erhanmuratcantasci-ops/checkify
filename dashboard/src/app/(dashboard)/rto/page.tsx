@@ -143,6 +143,10 @@ export default function RTOPage() {
                       tickLine={false}
                     />
                     <Tooltip
+                      // Recharts inline styles need literal colors; CSS vars
+                      // (var(--color-bg-overlay)) sometimes fail to resolve at
+                      // runtime under Tailwind v4 + Turbopack, so mirror the
+                      // token values inline. Keep in sync with @theme.
                       contentStyle={{
                         background: "#141416",
                         border: "1px solid rgba(255,255,255,0.14)",
