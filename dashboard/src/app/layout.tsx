@@ -7,9 +7,46 @@ import NextAuthProvider from "@/components/NextAuthProvider";
 import { LanguageProvider } from "@/lib/i18n";
 import { SmoothScroll } from "@/components/SmoothScroll";
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://chekkify.com";
+
 export const metadata: Metadata = {
-  title: "Chekkify",
-  description: "Chekkify — Shopify COD doğrulama platformu",
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: "Chekkify — Kapıda ödeme. Akıllı onay.",
+    template: "%s · Chekkify",
+  },
+  description:
+    "Otomatik SMS doğrulamayla iptal oranını düşür. Müşterilerin hızlıca onaylar, sen işine odaklanırsın. Türkiye'nin Apple-pro Shopify COD asistanı.",
+  applicationName: "Chekkify",
+  keywords: [
+    "kapıda ödeme",
+    "COD doğrulama",
+    "Shopify COD",
+    "SMS doğrulama",
+    "iade oranı",
+    "OTP doğrulama",
+    "Türkiye Shopify uygulaması",
+  ],
+  authors: [{ name: "Chekkify" }],
+  creator: "Chekkify",
+  openGraph: {
+    type: "website",
+    locale: "tr_TR",
+    url: SITE_URL,
+    siteName: "Chekkify",
+    title: "Chekkify — Kapıda ödeme. Akıllı onay.",
+    description:
+      "Otomatik SMS doğrulamayla iptal oranını düşür. Türkiye'nin Apple-pro Shopify COD asistanı.",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Chekkify — Kapıda ödeme. Akıllı onay.",
+    description:
+      "Otomatik SMS doğrulamayla iptal oranını düşür. Türkiye'nin Apple-pro Shopify COD asistanı.",
+  },
+  alternates: {
+    canonical: "/",
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
