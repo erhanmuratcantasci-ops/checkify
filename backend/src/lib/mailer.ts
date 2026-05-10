@@ -1,5 +1,14 @@
 import { Resend } from 'resend';
 
+/**
+ * Email locale. Sprint 3 Stage 1 — opt-in parameter on every send*()
+ * function, default 'tr'. Body templates are still hardcoded Turkish;
+ * the parameter exists so call sites (auth/confirm routes) can start
+ * threading a locale through without breaking the surface area.
+ * Stage 2 (Sprint 3.5) will fan out per-key TR + EN strings.
+ */
+export type EmailLocale = 'tr' | 'en';
+
 let resendInstance: Resend | null = null;
 
 function getResend(): Resend {
@@ -125,7 +134,11 @@ function statusCircle(kind: 'success' | 'danger' | 'accent', char: string): stri
 
 // ── Email functions ────────────────────────────────────────────────────────────
 
-export async function sendWelcomeEmail(to: string, name: string): Promise<void> {
+export async function sendWelcomeEmail(
+  to: string,
+  name: string,
+  _locale: EmailLocale = 'tr',
+): Promise<void> {
   const html = layout(`
     ${heading(`Hoş geldin, ${name}.`)}
     ${para('Chekkify\'a kaydolduğun için teşekkürler. Artık Shopify mağazanın kapıda ödeme siparişlerini SMS ile doğrulayabilirsin.')}
@@ -150,6 +163,7 @@ export async function sendOrderConfirmationEmail(
   customerName: string,
   orderTotal: number,
   orderId: number,
+  _locale: EmailLocale = 'tr',
 ): Promise<void> {
   const html = layout(`
     ${statusCircle('success', '✓')}
@@ -173,6 +187,7 @@ export async function sendOrderCancellationEmail(
   customerName: string,
   orderTotal: number,
   orderId: number,
+  _locale: EmailLocale = 'tr',
 ): Promise<void> {
   const html = layout(`
     ${statusCircle('danger', '✕')}
@@ -195,6 +210,7 @@ export async function sendLowCreditEmail(
   to: string,
   name: string,
   credits: number,
+  _locale: EmailLocale = 'tr',
 ): Promise<void> {
   const isZero = credits === 0;
   const html = layout(`
@@ -226,6 +242,7 @@ export async function sendPasswordResetEmail(
   to: string,
   name: string,
   resetUrl: string,
+  _locale: EmailLocale = 'tr',
 ): Promise<void> {
   const html = layout(`
     ${statusCircle('accent', '🔑')}
@@ -245,7 +262,12 @@ export async function sendPasswordResetEmail(
   console.log(`[mailer] Password reset email → ${to}`);
 }
 
-export async function sendVerificationEmail(to: string, name: string, verifyUrl: string): Promise<void> {
+export async function sendVerificationEmail(
+  to: string,
+  name: string,
+  verifyUrl: string,
+  _locale: EmailLocale = 'tr',
+): Promise<void> {
   const html = layout(`
     ${statusCircle('accent', '✓')}
     ${heading('Email\'ini doğrula')}
