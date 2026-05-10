@@ -2,34 +2,71 @@
 
 import { useTranslation } from '@/lib/i18n';
 
-export default function LanguageSwitcher() {
+type Variant = 'minimal' | 'pill';
+
+interface Props {
+  variant?: Variant;
+  className?: string;
+}
+
+export default function LanguageSwitcher({ variant = 'pill', className }: Props) {
   const { lang, setLang } = useTranslation();
 
+  if (variant === 'minimal') {
+    return (
+      <div
+        className={`inline-flex items-center gap-2 text-[12px] uppercase tracking-[0.06em] ${className ?? ''}`}
+      >
+        <button
+          type="button"
+          onClick={() => setLang('tr')}
+          aria-current={lang === 'tr' ? 'true' : undefined}
+          className={
+            lang === 'tr'
+              ? 'font-medium text-[var(--color-fg)]'
+              : 'text-[var(--color-fg-muted)] transition-colors hover:text-[var(--color-fg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent-faded)]'
+          }
+        >
+          TR
+        </button>
+        <span aria-hidden className="text-[var(--color-fg-faint)]">
+          |
+        </span>
+        <button
+          type="button"
+          onClick={() => setLang('en')}
+          aria-current={lang === 'en' ? 'true' : undefined}
+          className={
+            lang === 'en'
+              ? 'font-medium text-[var(--color-fg)]'
+              : 'text-[var(--color-fg-muted)] transition-colors hover:text-[var(--color-fg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent-faded)]'
+          }
+        >
+          EN
+        </button>
+      </div>
+    );
+  }
+
   return (
-    <div style={{
-      display: 'flex', alignItems: 'center',
-      background: 'rgba(255,255,255,0.05)',
-      border: '1px solid rgba(255,255,255,0.1)',
-      borderRadius: 8, overflow: 'hidden',
-      flexShrink: 0,
-    }}>
+    <div
+      className={`inline-flex items-center rounded-[var(--radius-full)] border border-[var(--color-border)] bg-[var(--color-surface)] p-0.5 ${className ?? ''}`}
+      role="group"
+      aria-label="Language"
+    >
       {(['tr', 'en'] as const).map((l) => (
         <button
           key={l}
+          type="button"
           onClick={() => setLang(l)}
-          style={{
-            padding: '5px 10px',
-            background: lang === l ? 'rgba(139,92,246,0.3)' : 'transparent',
-            border: 'none',
-            color: lang === l ? '#c4b5fd' : '#6b7280',
-            fontSize: 12, fontWeight: 700,
-            cursor: lang === l ? 'default' : 'pointer',
-            textTransform: 'uppercase',
-            letterSpacing: '0.5px',
-            transition: 'all 0.15s',
-          }}
+          aria-current={lang === l ? 'true' : undefined}
+          className={`rounded-[var(--radius-full)] px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.06em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent-faded)] ${
+            lang === l
+              ? 'bg-[var(--color-accent-faded)] text-[var(--color-accent)]'
+              : 'text-[var(--color-fg-muted)] hover:text-[var(--color-fg)]'
+          }`}
         >
-          {l.toUpperCase()}
+          {l}
         </button>
       ))}
     </div>
