@@ -19,6 +19,20 @@ function getClientKey(req: Request): string {
   return req.ip ? ipKeyGenerator(req.ip) : 'unknown';
 }
 
+// Geçici debug bypass: prod incident'larında Erhan'ın IP'si için rate limit'i atlatır.
+// Lansman sonrası env'i kaldır (RATE_LIMIT_BYPASS_IPS=""). Virgülle ayrılmış liste.
+const BYPASS_IPS: ReadonlySet<string> = new Set(
+  (process.env['RATE_LIMIT_BYPASS_IPS'] || '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean),
+);
+
+function shouldBypass(req: Request): boolean {
+  if (BYPASS_IPS.size === 0) return false;
+  return BYPASS_IPS.has(getClientKey(req));
+}
+
 const SMS_LIMIT_PER_HOUR = 100;
 
 export async function checkSmsRateLimit(shopId: number): Promise<{ allowed: boolean; remaining: number }> {
@@ -39,6 +53,7 @@ export const generalRateLimiter = rateLimit({
   legacyHeaders: false,
   message: { error: 'Çok fazla istek. Lütfen bekleyin.' },
   keyGenerator: (req: Request) => getClientKey(req),
+  skip: shouldBypass,
   handler: (req: Request, res: Response) => {
     const ip = getClientKey(req);
     logSecurityEvent(ip, req.path, 'Genel rate limit aşıldı').catch(() => {});
@@ -54,6 +69,7 @@ export const loginRateLimiter = rateLimit({
   legacyHeaders: false,
   message: { error: 'Çok fazla deneme. 15 dakika sonra tekrar deneyin.' },
   keyGenerator: (req: Request) => getClientKey(req),
+  skip: shouldBypass,
   handler: (req: Request, res: Response) => {
     const ip = getClientKey(req);
     logSecurityEvent(ip, req.path, 'Auth rate limit aşıldı').catch(() => {});
@@ -69,6 +85,7 @@ export const otpRateLimiter = rateLimit({
   legacyHeaders: false,
   message: { error: 'Çok fazla OTP denemesi. 15 dakika sonra tekrar deneyin.' },
   keyGenerator: (req: Request) => getClientKey(req),
+  skip: shouldBypass,
   handler: (req: Request, res: Response) => {
     const ip = getClientKey(req);
     logSecurityEvent(ip, req.path, 'OTP rate limit aşıldı — olası brute force').catch(() => {});
@@ -84,6 +101,7 @@ export const webhookRateLimiter = rateLimit({
   legacyHeaders: false,
   message: { error: 'Çok fazla webhook isteği.' },
   keyGenerator: (req: Request) => getClientKey(req),
+  skip: shouldBypass,
   handler: (req: Request, res: Response) => {
     const ip = getClientKey(req);
     logSecurityEvent(ip, req.path, 'Webhook rate limit aşıldı').catch(() => {});
