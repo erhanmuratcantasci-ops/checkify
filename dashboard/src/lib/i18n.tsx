@@ -624,17 +624,35 @@ const LangContext = createContext<LangContextType>({
   t: (key) => translations.tr[key],
 });
 
+function readLangCookie(): Lang | null {
+  if (typeof document === 'undefined') return null;
+  const m = document.cookie.match(/(?:^|; )lang=([^;]+)/);
+  if (!m) return null;
+  const v = decodeURIComponent(m[1]!);
+  return v === 'en' || v === 'tr' ? v : null;
+}
+
 export function LanguageProvider({ children }: { children: ReactNode }) {
   const [lang, setLangState] = useState<Lang>('tr');
 
   useEffect(() => {
+    // Priority: explicit choice (localStorage) > proxy detection (cookie) > default 'tr'.
     const stored = localStorage.getItem('lang') as Lang | null;
-    if (stored === 'en' || stored === 'tr') setLangState(stored);
+    if (stored === 'en' || stored === 'tr') {
+      setLangState(stored);
+      return;
+    }
+    const cookieLang = readLangCookie();
+    if (cookieLang) setLangState(cookieLang);
   }, []);
 
   function setLang(l: Lang) {
     setLangState(l);
     localStorage.setItem('lang', l);
+    // Mirror to cookie so subsequent SSR/proxy reads see the new choice.
+    if (typeof document !== 'undefined') {
+      document.cookie = `lang=${l}; path=/; max-age=${60 * 60 * 24 * 365}; samesite=lax`;
+    }
   }
 
   function t(key: TranslationKey): string {
