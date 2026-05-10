@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useMemo, ReactNode } from 'react';
 
 type Lang = 'tr' | 'en';
 
@@ -664,4 +664,31 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 
 export function useTranslation() {
   return useContext(LangContext);
+}
+
+/**
+ * Hard-pinned locale provider — Sprint 3 Karar 3.
+ *
+ * Customer COD flow (/confirm/[token], /confirm/cancel/[token]) must stay
+ * Turkish in V1 regardless of the merchant's LanguageSwitcher choice. This
+ * provider nests inside the root LanguageProvider; React context resolves
+ * to the innermost, so any useTranslation() call under it reads `lang` and
+ * always returns 'tr'. setLang is a no-op — switcher cannot escape.
+ */
+export function FixedLanguageProvider({
+  lang,
+  children,
+}: {
+  lang: Lang;
+  children: ReactNode;
+}) {
+  const value = useMemo<LangContextType>(
+    () => ({
+      lang,
+      setLang: () => {},
+      t: (key) => translations[lang][key] ?? translations.tr[key] ?? key,
+    }),
+    [lang],
+  );
+  return <LangContext.Provider value={value}>{children}</LangContext.Provider>;
 }
