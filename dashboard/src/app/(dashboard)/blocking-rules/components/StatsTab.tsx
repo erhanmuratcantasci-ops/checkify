@@ -26,6 +26,7 @@ import {
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { MetricCard } from "@/components/ui/metric-card";
 import { EmptyState } from "@/components/ui/empty-state";
+import { useTranslation, type TranslationKey } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 const SMS_COST = 0.25;
@@ -53,21 +54,21 @@ const SOURCE_COLORS: Record<BlockSource, string> = {
   RATE_LIMIT: "#FBBF24",
 };
 
-const SOURCE_LABELS: Record<BlockSource, string> = {
-  LEGACY_PHONE: "Telefon (eski)",
-  LEGACY_POSTAL_CODE: "Posta kodu (eski)",
-  BLOCKING_RULE: "Kural",
-  RATE_LIMIT: "Limit aşımı",
+const SOURCE_LABEL_KEYS: Record<BlockSource, TranslationKey> = {
+  LEGACY_PHONE: "blocking_stats_source_legacy_phone_short",
+  LEGACY_POSTAL_CODE: "blocking_stats_source_legacy_postal_short",
+  BLOCKING_RULE: "blocking_stats_source_rule_short",
+  RATE_LIMIT: "blocking_stats_source_rate_limit_short",
 };
 
-const RULE_TYPE_LABELS: Record<BlockingRuleType, string> = {
-  IP_ADDRESS: "IP adresi",
-  IP_RANGE: "IP aralığı",
-  PHONE_PATTERN: "Telefon deseni",
-  EMAIL_DOMAIN: "Email alan adı",
-  CUSTOMER_NAME: "Müşteri adı",
-  MAX_ORDERS_PER_PHONE: "Telefon limiti",
-  MAX_ORDERS_PER_IP: "IP limiti",
+const RULE_TYPE_LABEL_KEYS: Record<BlockingRuleType, TranslationKey> = {
+  IP_ADDRESS: "blocking_stats_ruletype_ip_address_short",
+  IP_RANGE: "blocking_stats_ruletype_ip_range_short",
+  PHONE_PATTERN: "blocking_stats_ruletype_phone_pattern_short",
+  EMAIL_DOMAIN: "blocking_stats_ruletype_email_domain_short",
+  CUSTOMER_NAME: "blocking_stats_ruletype_customer_name_short",
+  MAX_ORDERS_PER_PHONE: "blocking_stats_ruletype_max_per_phone_short",
+  MAX_ORDERS_PER_IP: "blocking_stats_ruletype_max_per_ip_short",
 };
 
 function fmtDayLabel(iso: string): string {
@@ -76,6 +77,7 @@ function fmtDayLabel(iso: string): string {
 }
 
 export default function StatsTab({ shopId }: { shopId: number }) {
+  const { t } = useTranslation();
   const [stats, setStats] = useState<BlockingStatsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -88,10 +90,10 @@ export default function StatsTab({ shopId }: { shopId: number }) {
       const res = await blockingStats.get(shopId, days);
       setStats(res);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "İstatistikler yüklenemedi");
+      setError(err instanceof Error ? err.message : t("blocking_stats_load_error"));
     }
     setLoading(false);
-  }, [shopId, days]);
+  }, [shopId, days, t]);
 
   useEffect(() => {
     load();
@@ -100,7 +102,7 @@ export default function StatsTab({ shopId }: { shopId: number }) {
   if (loading) {
     return (
       <Card>
-        <p className="text-[14px] text-[var(--color-fg-faint)]">Yükleniyor…</p>
+        <p className="text-[14px] text-[var(--color-fg-faint)]">{t("loading")}</p>
       </Card>
     );
   }
@@ -117,12 +119,12 @@ export default function StatsTab({ shopId }: { shopId: number }) {
   const estimatedSavings = totalBlocked * SMS_COST;
   const topRule = stats.topRules[0];
 
-  const pieData = (Object.keys(SOURCE_LABELS) as BlockSource[])
-    .map((src) => ({ source: src, name: SOURCE_LABELS[src], value: stats.bySource[src] ?? 0 }))
+  const pieData = (Object.keys(SOURCE_LABEL_KEYS) as BlockSource[])
+    .map((src) => ({ source: src, name: t(SOURCE_LABEL_KEYS[src]), value: stats.bySource[src] ?? 0 }))
     .filter((d) => d.value > 0);
 
   const barData = stats.topRules.map((r) => ({
-    name: RULE_TYPE_LABELS[r.ruleType] ?? r.ruleType,
+    name: t(RULE_TYPE_LABEL_KEYS[r.ruleType]) ?? r.ruleType,
     value: r.matchCount,
     label: r.value.length > 20 ? r.value.slice(0, 18) + "…" : r.value,
   }));
@@ -131,25 +133,25 @@ export default function StatsTab({ shopId }: { shopId: number }) {
     <>
       <section className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
         <MetricCard
-          label="Toplam bloklanan"
+          label={t("blocking_stats_total_blocked")}
           value={totalBlocked.toLocaleString("tr-TR")}
-          hint={`Son ${days} gün`}
+          hint={t("blocking_stats_days_filter").replace("{days}", String(days))}
         />
         <MetricCard
-          label="Tahmini SMS tasarrufu"
+          label={t("blocking_stats_sms_savings")}
           value={`~${estimatedSavings.toFixed(2)} ₺`}
           deltaTone="success"
           hint={`${totalBlocked} × 0,25 ₺`}
         />
         <MetricCard
-          label="En sık tetiklenen"
-          value={topRule ? RULE_TYPE_LABELS[topRule.ruleType] ?? topRule.ruleType : "—"}
+          label={t("blocking_stats_top_rule")}
+          value={topRule ? t(RULE_TYPE_LABEL_KEYS[topRule.ruleType]) ?? topRule.ruleType : "—"}
           hint={
             topRule
-              ? `${topRule.matchCount} eşleşme · ${
+              ? `${t("blocking_rule_matches").replace("{n}", String(topRule.matchCount))} · ${
                   topRule.value.length > 24 ? topRule.value.slice(0, 22) + "…" : topRule.value
                 }`
-              : "Henüz veri yok"
+              : t("blocking_stats_no_data_hint")
           }
         />
       </section>
@@ -169,7 +171,7 @@ export default function StatsTab({ shopId }: { shopId: number }) {
                   : "text-[var(--color-fg-muted)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-fg)]"
               )}
             >
-              Son {d} gün
+              {t("blocking_stats_days_filter").replace("{days}", String(d))}
             </button>
           );
         })}
@@ -179,15 +181,15 @@ export default function StatsTab({ shopId }: { shopId: number }) {
         <Card>
           <EmptyState
             icon={BarChart3}
-            title="Henüz bloklama verisi yok"
-            description="İlk bloklanan sipariş geldiğinde istatistikler burada görünecek."
+            title={t("blocking_stats_empty_title")}
+            description={t("blocking_stats_empty_desc")}
           />
         </Card>
       ) : (
         <>
           <Card className="mb-4">
             <CardHeader>
-              <CardTitle>Günlük trend</CardTitle>
+              <CardTitle>{t("blocking_stats_daily_trend")}</CardTitle>
             </CardHeader>
             <div className="h-[260px]">
               <ResponsiveContainer width="100%" height="100%">
@@ -204,7 +206,7 @@ export default function StatsTab({ shopId }: { shopId: number }) {
                   <Tooltip
                     contentStyle={TOOLTIP_STYLE}
                     labelFormatter={(v) => fmtDayLabel(String(v))}
-                    formatter={(v) => [v, "Bloklanan"]}
+                    formatter={(v) => [v, t("blocking_stats_blocked_label")]}
                   />
                   <Line
                     type="monotone"
@@ -222,10 +224,10 @@ export default function StatsTab({ shopId }: { shopId: number }) {
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             <Card>
               <CardHeader>
-                <CardTitle>Kaynak dağılımı</CardTitle>
+                <CardTitle>{t("blocking_stats_source_distribution")}</CardTitle>
               </CardHeader>
               {pieData.length === 0 ? (
-                <p className="text-[13px] text-[var(--color-fg-faint)]">Veri yok</p>
+                <p className="text-[13px] text-[var(--color-fg-faint)]">{t("blocking_stats_no_data")}</p>
               ) : (
                 <div className="h-[260px]">
                   <ResponsiveContainer width="100%" height="100%">
@@ -258,11 +260,11 @@ export default function StatsTab({ shopId }: { shopId: number }) {
 
             <Card>
               <CardHeader>
-                <CardTitle>En çok tetiklenen 5 kural</CardTitle>
+                <CardTitle>{t("blocking_stats_top_rules_title")}</CardTitle>
               </CardHeader>
               {barData.length === 0 ? (
                 <p className="text-[13px] text-[var(--color-fg-faint)]">
-                  Henüz kural eşleşmesi yok
+                  {t("blocking_stats_no_rules")}
                 </p>
               ) : (
                 <div className="h-[260px]">
@@ -296,7 +298,7 @@ export default function StatsTab({ shopId }: { shopId: number }) {
                           v,
                           p && p.payload && typeof p.payload === "object" && "name" in p.payload
                             ? String(p.payload["name"])
-                            : "Eşleşme",
+                            : t("blocking_stats_tooltip_match"),
                         ]}
                       />
                       <Bar dataKey="value" fill={ACCENT} radius={[0, 6, 6, 0]} />

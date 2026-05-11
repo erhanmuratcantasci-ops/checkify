@@ -14,6 +14,7 @@ import {
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { EmptyState } from "@/components/ui/empty-state";
+import { useTranslation, type TranslationKey } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import RulesTab from "./components/RulesTab";
 import BlockedOrdersTab from "./components/BlockedOrdersTab";
@@ -35,15 +36,16 @@ interface Shop {
 
 type Tab = "rules" | "blocked-orders" | "stats" | "settings";
 
-const TABS: { key: Tab; label: string; Icon: LucideIcon }[] = [
-  { key: "rules", label: "Kurallar", Icon: ListChecks },
-  { key: "blocked-orders", label: "Bloklanan siparişler", Icon: Inbox },
-  { key: "stats", label: "İstatistikler", Icon: BarChart3 },
-  { key: "settings", label: "Ayarlar", Icon: SettingsIcon },
+const TABS: { key: Tab; labelKey: TranslationKey; Icon: LucideIcon }[] = [
+  { key: "rules", labelKey: "blocking_rules_tab", Icon: ListChecks },
+  { key: "blocked-orders", labelKey: "blocking_orders_tab", Icon: Inbox },
+  { key: "stats", labelKey: "blocking_stats_tab", Icon: BarChart3 },
+  { key: "settings", labelKey: "blocking_settings_tab", Icon: SettingsIcon },
 ];
 
 export default function BlockingRulesPage() {
   const router = useRouter();
+  const { t } = useTranslation();
   const [shops, setShops] = useState<Shop[]>([]);
   const [selectedShop, setSelectedShop] = useState<number | null>(null);
   const [tab, setTab] = useState<Tab>("rules");
@@ -69,7 +71,7 @@ export default function BlockingRulesPage() {
   if (loading) {
     return (
       <div className="mx-auto w-full max-w-[1100px] px-6 py-8 md:px-10 md:py-10">
-        <p className="text-[14px] text-[var(--color-fg-faint)]">Yükleniyor…</p>
+        <p className="text-[14px] text-[var(--color-fg-faint)]">{t("loading")}</p>
       </div>
     );
   }
@@ -86,10 +88,10 @@ export default function BlockingRulesPage() {
             margin: 0,
           }}
         >
-          Gelişmiş engelleme
+          {t("blocking_page_title")}
         </h1>
         <p className="mt-1 text-[14px] text-[var(--color-fg-muted)]">
-          IP, desen ve kurallarla şüpheli siparişleri otomatik engelle.
+          {t("blocking_page_subtitle")}
         </p>
       </header>
 
@@ -97,14 +99,14 @@ export default function BlockingRulesPage() {
         <Card>
           <EmptyState
             icon={Store}
-            title="Mağaza eklenmemiş"
-            description="Engelleme kurallarını kullanmak için önce bir mağaza eklemen gerekiyor."
+            title={t("blocking_no_shop_title")}
+            description={t("blocking_no_shop_desc")}
             action={
               <Link
                 href="/shops"
                 className="inline-flex h-11 items-center justify-center rounded-[var(--radius-md)] bg-[var(--color-accent)] px-5 text-[14px] font-medium text-[var(--color-accent-fg)] hover:bg-[var(--color-accent-hover)]"
               >
-                Mağaza ekle
+                {t("dash_add_shop_cta")}
               </Link>
             }
           />
@@ -113,7 +115,7 @@ export default function BlockingRulesPage() {
         <>
           {shops.length > 1 && (
             <Card className="mb-4">
-              <Label htmlFor="shop-select">Mağaza</Label>
+              <Label htmlFor="shop-select">{t("blocking_select_shop_label")}</Label>
               <select
                 id="shop-select"
                 value={selectedShop ?? ""}
@@ -134,10 +136,10 @@ export default function BlockingRulesPage() {
             <>
               <div
                 role="tablist"
-                aria-label="Engelleme bölümleri"
+                aria-label={t("blocking_tablist_label")}
                 className="mb-5 flex flex-wrap gap-1.5 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg-elevated)] p-1"
               >
-                {TABS.map(({ key, label, Icon }) => {
+                {TABS.map(({ key, labelKey, Icon }) => {
                   const active = tab === key;
                   return (
                     <button
@@ -153,7 +155,7 @@ export default function BlockingRulesPage() {
                       )}
                     >
                       <Icon size={15} aria-hidden />
-                      {label}
+                      {t(labelKey)}
                     </button>
                   );
                 })}
