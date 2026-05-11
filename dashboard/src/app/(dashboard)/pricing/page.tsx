@@ -7,6 +7,7 @@ import { useToast } from "@/components/Toast";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { useTranslation, type TranslationKey } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
@@ -22,15 +23,15 @@ interface PlanConfig {
   label: string;
 }
 
-const PLAN_FEATURES: Record<string, string> = {
-  basic_sms: "SMS doğrulama",
-  otp: "OTP kodu doğrulama",
-  pdf_invoice: "PDF fatura",
-  whatsapp: "WhatsApp bildirimi",
-  rto: "RTO analizi",
-  blocklist: "Telefon kara listesi",
-  postal_code: "Posta kodu engeli",
-  priority_support: "Öncelikli destek",
+const PLAN_FEATURE_KEYS: Record<string, TranslationKey> = {
+  basic_sms: "landing_pricing_feature_basic_sms",
+  otp: "landing_pricing_feature_otp",
+  pdf_invoice: "landing_pricing_feature_pdf_invoice",
+  whatsapp: "landing_pricing_feature_whatsapp",
+  rto: "landing_pricing_feature_rto",
+  blocklist: "landing_pricing_feature_blocklist",
+  postal_code: "landing_pricing_feature_postal_code",
+  priority_support: "landing_pricing_feature_priority_support",
 };
 
 const ALL_FEATURES = [
@@ -57,6 +58,7 @@ function formatCurrency(value: number) {
 export default function PricingPage() {
   const router = useRouter();
   const { showToast } = useToast();
+  const { t } = useTranslation();
   const [billing, setBilling] = useState<"monthly" | "yearly">("monthly");
   const [plans, setPlans] = useState<Record<PlanType, PlanConfig> | null>(null);
   const [currentPlan, setCurrentPlan] = useState<PlanType>("FREE");
@@ -96,12 +98,12 @@ export default function PricingPage() {
       const data = await res.json();
       if (res.ok) {
         setCurrentPlan(plan);
-        showToast(data.message ?? "Plan güncellendi", "success");
+        showToast(data.message ?? t("pricing_update_success_toast"), "success");
       } else {
-        showToast(data.error ?? "Plan güncellenemedi", "error");
+        showToast(data.error ?? t("pricing_update_error_toast"), "error");
       }
     } catch {
-      showToast("Bağlantı hatası", "error");
+      showToast(t("pricing_connection_error"), "error");
     } finally {
       setUpgrading(null);
     }
@@ -119,10 +121,10 @@ export default function PricingPage() {
             margin: 0,
           }}
         >
-          Planlar ve fiyatlandırma
+          {t("pricing_title")}
         </h1>
         <p className="mt-2 text-[15px] text-[var(--color-fg-muted)]">
-          İşletmene uygun planı seç.
+          {t("pricing_subtitle")}
         </p>
 
         <div className="mt-6 inline-flex gap-1 rounded-[var(--radius-full)] border border-[var(--color-border)] bg-[var(--color-bg-elevated)] p-1">
@@ -140,8 +142,8 @@ export default function PricingPage() {
                     : "text-[var(--color-fg-muted)] hover:text-[var(--color-fg)]"
                 )}
               >
-                {cycle === "monthly" ? "Aylık" : "Yıllık"}
-                {cycle === "yearly" && <Badge tone="success">%20 indirim</Badge>}
+                {cycle === "monthly" ? t("pricing_monthly") : t("pricing_yearly")}
+                {cycle === "yearly" && <Badge tone="success">{t("pricing_yearly_discount")}</Badge>}
               </button>
             );
           })}
@@ -150,7 +152,7 @@ export default function PricingPage() {
 
       {loading || !plans ? (
         <Card>
-          <p className="text-center text-[14px] text-[var(--color-fg-faint)]">Yükleniyor…</p>
+          <p className="text-center text-[14px] text-[var(--color-fg-faint)]">{t("loading")}</p>
         </Card>
       ) : (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -177,12 +179,12 @@ export default function PricingPage() {
                     aria-hidden
                     className="absolute -top-3 left-1/2 inline-flex -translate-x-1/2 items-center gap-1 rounded-[var(--radius-full)] bg-[var(--color-accent)] px-3 py-1 text-[11px] font-medium text-[var(--color-accent-fg)]"
                   >
-                    <Star size={11} aria-hidden /> En popüler
+                    <Star size={11} aria-hidden /> {t("pricing_most_popular")}
                   </span>
                 )}
                 {isCurrent && (
                   <span className="absolute right-3 top-3">
-                    <Badge tone="accent">Aktif</Badge>
+                    <Badge tone="accent">{t("pricing_current_active")}</Badge>
                   </span>
                 )}
 
@@ -200,27 +202,27 @@ export default function PricingPage() {
                         lineHeight: 1.05,
                       }}
                     >
-                      {price === 0 ? "Ücretsiz" : formatCurrency(price)}
+                      {price === 0 ? t("pricing_free_label") : formatCurrency(price)}
                     </span>
                     {price > 0 && (
                       <span className="text-[13px] text-[var(--color-fg-muted)]">
-                        /{billing === "monthly" ? "ay" : "yıl"}
+                        /{billing === "monthly" ? t("pricing_per_month") : t("pricing_per_year")}
                       </span>
                     )}
                   </div>
                   {billing === "yearly" && price > 0 && (
                     <p className="mt-1 text-[12px] text-[var(--color-fg-faint)]">
-                      Normalde {formatCurrency(config.price)}/ay
+                      {t("pricing_normally_label").replace("{price}", formatCurrency(config.price))}
                     </p>
                   )}
                 </div>
 
                 <div className="mb-4 space-y-1.5 border-b border-[var(--color-border)] pb-4 text-[13px] text-[var(--color-fg-muted)]">
                   <p>
-                    {config.shops === -1 ? "Sınırsız" : config.shops} mağaza
+                    {config.shops === -1 ? t("pricing_unlimited") : config.shops} {t("pricing_per_shop_label")}
                   </p>
                   <p className="tabular-nums">
-                    {config.smsCreditsMonthly.toLocaleString("tr-TR")} SMS/ay
+                    {config.smsCreditsMonthly.toLocaleString("tr-TR")} {t("pricing_sms_monthly_label")}
                   </p>
                 </div>
 
@@ -250,7 +252,7 @@ export default function PricingPage() {
                             className="shrink-0 text-[var(--color-fg-faint)]"
                           />
                         )}
-                        {PLAN_FEATURES[feat]}
+                        {t(PLAN_FEATURE_KEYS[feat]!)}
                       </li>
                     );
                   })}
@@ -265,12 +267,12 @@ export default function PricingPage() {
                   onClick={() => handleUpgrade(planKey)}
                 >
                   {upgrading === planKey
-                    ? "Geçiliyor…"
+                    ? t("pricing_btn_upgrading")
                     : isCurrent
-                      ? "Mevcut plan"
+                      ? t("pricing_btn_current")
                       : planKey === "FREE"
-                        ? "Düşür"
-                        : "Yükselt"}
+                        ? t("pricing_btn_downgrade")
+                        : t("pricing_btn_upgrade")}
                 </Button>
               </div>
             );

@@ -8,18 +8,19 @@ import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/Toast";
+import { useTranslation, type TranslationKey } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
 
-const STATUS_LABELS: Record<OrderStatus, string> = {
-  PENDING: "Bekliyor",
-  CONFIRMED: "Onaylandı",
-  PREPARING: "Hazırlanıyor",
-  SHIPPED: "Kargoya verildi",
-  DELIVERED: "Teslim edildi",
-  CANCELLED: "İptal edildi",
-  BLOCKED: "Bloklandı",
+const STATUS_LABEL_KEYS: Record<OrderStatus, TranslationKey> = {
+  PENDING: "orders_status_pending_label",
+  CONFIRMED: "orders_status_confirmed_label",
+  PREPARING: "orders_status_preparing",
+  SHIPPED: "orders_status_shipped",
+  DELIVERED: "orders_status_delivered",
+  CANCELLED: "orders_status_cancelled_label",
+  BLOCKED: "orders_status_blocked_label",
 };
 
 const STATUS_TONE: Record<OrderStatus, "success" | "warning" | "danger" | "info" | "neutral" | "accent"> = {
@@ -32,12 +33,12 @@ const STATUS_TONE: Record<OrderStatus, "success" | "warning" | "danger" | "info"
   BLOCKED: "danger",
 };
 
-const STATUS_ACTIONS: { label: string; status: OrderStatus }[] = [
-  { label: "Onaylandı olarak işaretle", status: "CONFIRMED" },
-  { label: "Hazırlanıyor", status: "PREPARING" },
-  { label: "Kargoya verildi", status: "SHIPPED" },
-  { label: "Teslim edildi", status: "DELIVERED" },
-  { label: "İptal et", status: "CANCELLED" },
+const STATUS_ACTION_KEYS: { labelKey: TranslationKey; status: OrderStatus }[] = [
+  { labelKey: "orders_action_mark_confirmed", status: "CONFIRMED" },
+  { labelKey: "orders_action_prepare", status: "PREPARING" },
+  { labelKey: "orders_action_ship", status: "SHIPPED" },
+  { labelKey: "orders_action_deliver", status: "DELIVERED" },
+  { labelKey: "orders_action_cancel", status: "CANCELLED" },
 ];
 
 const SMS_TONE: Record<string, "success" | "warning" | "danger" | "neutral"> = {
@@ -71,6 +72,7 @@ export default function OrderDetailPage() {
   const router = useRouter();
   const params = useParams();
   const { showToast } = useToast();
+  const { t } = useTranslation();
   const [order, setOrder] = useState<OrderDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [updatingStatus, setUpdatingStatus] = useState<OrderStatus | null>(null);
@@ -100,11 +102,11 @@ export default function OrderDetailPage() {
         body: JSON.stringify({ status }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Durum güncellenemedi");
+      if (!res.ok) throw new Error(data.error || t("orders_error_status_update"));
       setOrder(data.order);
-      showToast(`Durum: ${STATUS_LABELS[status]}`, "success");
+      showToast(t("orders_toast_status_updated").replace("{label}", t(STATUS_LABEL_KEYS[status])), "success");
     } catch (err) {
-      showToast(err instanceof Error ? err.message : "Hata oluştu", "error");
+      showToast(err instanceof Error ? err.message : t("error_occurred"), "error");
     } finally {
       setUpdatingStatus(null);
     }
@@ -120,10 +122,10 @@ export default function OrderDetailPage() {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "SMS gönderilemedi");
-      showToast("SMS kuyruğa eklendi", "success");
+      if (!res.ok) throw new Error(data.error || t("orders_error_sms_send"));
+      showToast(t("orders_toast_sms_queued"), "success");
     } catch (err) {
-      showToast(err instanceof Error ? err.message : "Hata oluştu", "error");
+      showToast(err instanceof Error ? err.message : t("error_occurred"), "error");
     } finally {
       setResending(false);
     }
@@ -132,7 +134,7 @@ export default function OrderDetailPage() {
   if (loading) {
     return (
       <div className="mx-auto w-full max-w-[1100px] px-6 py-8 md:px-10 md:py-10">
-        <p className="text-[14px] text-[var(--color-fg-faint)]">Yükleniyor…</p>
+        <p className="text-[14px] text-[var(--color-fg-faint)]">{t("loading")}</p>
       </div>
     );
   }
@@ -146,7 +148,7 @@ export default function OrderDetailPage() {
         className="mb-4 inline-flex items-center gap-1.5 text-[13px] text-[var(--color-fg-muted)] transition-colors hover:text-[var(--color-fg)]"
       >
         <ArrowLeft size={14} aria-hidden />
-        Siparişler
+        {t("orders_back_label")}
       </button>
 
       <header className="mb-6 flex flex-wrap items-end justify-between gap-3">
@@ -160,7 +162,7 @@ export default function OrderDetailPage() {
               margin: 0,
             }}
           >
-            Sipariş #{order.id}
+            {t("orders_detail_heading").replace("{id}", String(order.id))}
           </h1>
           {order.shopifyOrderId && (
             <p className="mt-1 font-mono text-[13px] text-[var(--color-fg-muted)]">
@@ -169,7 +171,7 @@ export default function OrderDetailPage() {
           )}
         </div>
         <Badge tone={STATUS_TONE[order.status]} className="text-[12px] px-3 py-1">
-          {STATUS_LABELS[order.status]}
+          {t(STATUS_LABEL_KEYS[order.status])}
         </Badge>
       </header>
 
@@ -177,19 +179,19 @@ export default function OrderDetailPage() {
         <div className="space-y-4 lg:col-span-2">
           <Card>
             <CardHeader>
-              <CardTitle>Sipariş bilgileri</CardTitle>
+              <CardTitle>{t("orders_modal_info_section")}</CardTitle>
             </CardHeader>
             <dl className="divide-y divide-[var(--color-border)]">
               {[
-                ["Müşteri", order.customerName],
-                ["Telefon", order.customerPhone],
-                ["Tutar", formatCurrency(order.total)],
+                [t("orders_detail_customer"), order.customerName],
+                [t("orders_detail_phone"), order.customerPhone],
+                [t("orders_field_amount"), formatCurrency(order.total)],
                 [
-                  "Mağaza",
+                  t("orders_detail_shop"),
                   order.shop.name +
                     (order.shop.shopDomain ? ` · ${order.shop.shopDomain}` : ""),
                 ],
-                ["Tarih", formatDate(order.createdAt)],
+                [t("orders_detail_date"), formatDate(order.createdAt)],
               ].map(([label, value]) => (
                 <div
                   key={label}
@@ -206,16 +208,16 @@ export default function OrderDetailPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>SMS logları</CardTitle>
+              <CardTitle>{t("orders_sms_logs")}</CardTitle>
               {order.status === "PENDING" && (
                 <Button size="sm" variant="secondary" loading={resending} onClick={resendSMS}>
                   <RefreshCcw size={14} aria-hidden />
-                  Yeniden gönder
+                  {t("common_resend")}
                 </Button>
               )}
             </CardHeader>
             {order.smsLogs.length === 0 ? (
-              <p className="text-[13px] text-[var(--color-fg-faint)]">SMS gönderilmedi.</p>
+              <p className="text-[13px] text-[var(--color-fg-faint)]">{t("orders_empty_sms")}</p>
             ) : (
               <ul className="divide-y divide-[var(--color-border)]">
                 {order.smsLogs.map((log) => (
@@ -245,10 +247,10 @@ export default function OrderDetailPage() {
         <aside>
           <Card>
             <CardHeader>
-              <CardTitle>Durumu güncelle</CardTitle>
+              <CardTitle>{t("orders_modal_update_status")}</CardTitle>
             </CardHeader>
             <div className="flex flex-col gap-2">
-              {STATUS_ACTIONS.filter((a) => a.status !== order.status).map((a) => {
+              {STATUS_ACTION_KEYS.filter((a) => a.status !== order.status).map((a) => {
                 const isCancel = a.status === "CANCELLED";
                 const isConfirm = a.status === "CONFIRMED";
                 return (
@@ -262,7 +264,7 @@ export default function OrderDetailPage() {
                     onClick={() => changeStatus(a.status)}
                     className={cn(isCancel && "text-[var(--color-danger)]")}
                   >
-                    {a.label}
+                    {t(a.labelKey)}
                   </Button>
                 );
               })}
