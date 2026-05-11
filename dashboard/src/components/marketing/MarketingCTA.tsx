@@ -4,9 +4,16 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { ArrowRight, Check } from "lucide-react";
 import { PrimaryActionButton } from "@/components/ui/primary-action-button";
+import { useTranslation } from "@/lib/i18n";
 import { easeOut } from "@/lib/motion";
 
 export function MarketingCTA() {
+  const { t } = useTranslation();
+  const guarantees = [
+    t("landing_cta_no_card_required"),
+    t("landing_cta_30sec_setup"),
+    t("landing_cta_cancel_anytime"),
+  ];
   return (
     <motion.section
       initial={{ opacity: 0, y: 24 }}
@@ -39,21 +46,20 @@ export function MarketingCTA() {
           margin: 0,
         }}
       >
-        Bugün başla, ilk siparişin yarın doğrulansın.
+        {t("landing_cta_heading")}
       </h2>
       <p className="mx-auto mt-5 max-w-[520px] text-[16px] leading-relaxed text-[var(--color-fg-muted)]">
-        14 gün ücretsiz dene. Kredi kartı yok, taahhüt yok. 30 saniyede
-        Shopify mağazana bağlan.
+        {t("landing_cta_subtitle")}
       </p>
 
       <div className="mt-9 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center">
         <Link
           href="/register"
-          aria-label="14 gün ücretsiz dene"
+          aria-label={t("landing_start_free")}
           className="inline-block rounded-[var(--radius-md)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent-faded)]"
         >
           <PrimaryActionButton type="button" block={false} className="px-7">
-            14 gün ücretsiz dene
+            {t("landing_start_free")}
             <ArrowRight size={16} aria-hidden />
           </PrimaryActionButton>
         </Link>
@@ -61,16 +67,12 @@ export function MarketingCTA() {
           href="#pricing"
           className="inline-flex h-[52px] items-center justify-center gap-1.5 rounded-[var(--radius-md)] border border-[var(--color-border-strong)] px-6 text-[15px] font-medium text-[var(--color-fg)] transition-colors hover:bg-[var(--color-surface-hover)]"
         >
-          Planları gör
+          {t("landing_cta_see_plans")}
         </Link>
       </div>
 
       <ul className="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-[13px] text-[var(--color-fg-muted)]">
-        {[
-          "Kredi kartı gerekmez",
-          "30 saniyede kurulum",
-          "İstediğin zaman iptal",
-        ].map((s) => (
+        {guarantees.map((s) => (
           <li key={s} className="inline-flex items-center gap-1.5">
             <Check
               size={13}

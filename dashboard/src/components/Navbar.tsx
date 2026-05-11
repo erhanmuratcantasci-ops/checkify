@@ -10,11 +10,13 @@ import LanguageSwitcher from './LanguageSwitcher';
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
 
-const PLAN_BADGE: Record<string, { label: string; color: string; bg: string }> = {
-  FREE:     { label: 'Ücretsiz', color: '#6b7280', bg: 'rgba(107,114,128,0.15)' },
-  STARTER:  { label: 'Starter',  color: '#3b82f6', bg: 'rgba(59,130,246,0.15)' },
-  PRO:      { label: 'Pro',      color: '#a855f7', bg: 'rgba(168,85,247,0.2)' },
-  BUSINESS: { label: 'Business', color: '#f59e0b', bg: 'rgba(245,158,11,0.15)' },
+type PlanBadgeMeta = { labelKey: 'nav_plan_free' | null; rawLabel: string | null; color: string; bg: string };
+
+const PLAN_BADGE: Record<string, PlanBadgeMeta> = {
+  FREE:     { labelKey: 'nav_plan_free', rawLabel: null,        color: '#6b7280', bg: 'rgba(107,114,128,0.15)' },
+  STARTER:  { labelKey: null,            rawLabel: 'Starter',   color: '#3b82f6', bg: 'rgba(59,130,246,0.15)' },
+  PRO:      { labelKey: null,            rawLabel: 'Pro',       color: '#a855f7', bg: 'rgba(168,85,247,0.2)' },
+  BUSINESS: { labelKey: null,            rawLabel: 'Business',  color: '#f59e0b', bg: 'rgba(245,158,11,0.15)' },
 };
 
 function getToken() {
@@ -111,10 +113,10 @@ export default function Navbar() {
     { href: '/rto', label: 'RTO', icon: '📉' },
     { href: '/shops', label: t('nav_shops'), icon: '🏪' },
     { href: '/credits', label: t('nav_credits'), icon: '💳' },
-    { href: '/pricing', label: 'Fiyatlandırma', icon: '⭐' },
-    { href: '/sms-logs', label: 'SMS Geçmişi', icon: '📋' },
-    { href: '/blocklist', label: 'Engel Listesi', icon: '🚫' },
-    { href: '/blocking-rules', label: 'Gelişmiş Engelleme', icon: '🛡️' },
+    { href: '/pricing', label: t('nav_pricing'), icon: '⭐' },
+    { href: '/sms-logs', label: t('nav_sms_logs'), icon: '📋' },
+    { href: '/blocklist', label: t('nav_blocklist'), icon: '🚫' },
+    { href: '/blocking-rules', label: t('nav_blocking_rules'), icon: '🛡️' },
     { href: '/profile', label: t('nav_profile'), icon: '👤' },
   ];
 
@@ -182,7 +184,7 @@ export default function Navbar() {
                 display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4,
                 cursor: 'pointer', padding: 0,
               }}
-              aria-label="Menü"
+              aria-label={t('nav_menu')}
             >
               <span style={{
                 display: 'block', width: 18, height: 2, borderRadius: 1,
@@ -264,7 +266,7 @@ export default function Navbar() {
                 color: PLAN_BADGE[userPlan].color,
                 fontSize: 12, fontWeight: 700,
               }}>
-                {PLAN_BADGE[userPlan].label}
+                {PLAN_BADGE[userPlan].labelKey ? t(PLAN_BADGE[userPlan].labelKey!) : PLAN_BADGE[userPlan].rawLabel}
               </Link>
             </div>
           )}
@@ -399,7 +401,7 @@ export default function Navbar() {
             color: PLAN_BADGE[userPlan].color,
             fontSize: 12, fontWeight: 700,
           }}>
-            {PLAN_BADGE[userPlan].label}
+            {PLAN_BADGE[userPlan].labelKey ? t(PLAN_BADGE[userPlan].labelKey!) : PLAN_BADGE[userPlan].rawLabel}
           </Link>
         )}
         <LanguageSwitcher />

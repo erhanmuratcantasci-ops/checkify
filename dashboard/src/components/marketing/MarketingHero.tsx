@@ -33,13 +33,13 @@ export function MarketingHero() {
             href="/login"
             className="hidden text-[14px] font-medium text-[var(--color-fg-muted)] transition-colors hover:text-[var(--color-fg)] md:inline-block"
           >
-            Giriş yap
+            {t("landing_nav_login")}
           </Link>
           <Link
             href="/register"
             className="inline-flex h-10 items-center rounded-[var(--radius-md)] border border-[var(--color-border-strong)] px-4 text-[13px] font-medium text-[var(--color-fg)] transition-colors hover:bg-[var(--color-surface-hover)]"
           >
-            Kayıt ol
+            {t("landing_nav_start")}
           </Link>
         </div>
       </motion.div>

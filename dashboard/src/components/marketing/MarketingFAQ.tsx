@@ -20,11 +20,11 @@ export function MarketingFAQ() {
       viewport={{ once: true, amount: 0.2 }}
       transition={{ duration: 0.4, ease: easeOut }}
       className="py-24 md:py-32"
-      aria-label="Sık sorulan sorular"
+      aria-label={t("landing_faq_title")}
     >
       <header className="mb-12 text-center">
         <p className="mb-3 text-[12px] uppercase tracking-[0.08em] text-[var(--color-accent)]">
-          Sık sorulan sorular
+          {t("landing_faq_title")}
         </p>
         <h2
           className="mx-auto max-w-[640px] text-[var(--color-fg)]"
@@ -36,7 +36,7 @@ export function MarketingFAQ() {
             margin: 0,
           }}
         >
-          Aklındaki tüm soruların cevabı.
+          {t("landing_faq_heading")}
         </h2>
       </header>
 

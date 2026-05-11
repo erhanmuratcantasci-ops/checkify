@@ -95,7 +95,7 @@ export default function LoginPage() {
       }
       router.push("/dashboard");
     } else {
-      showError(data.error ?? "Geçersiz kod");
+      showError(data.error ?? t("login_2fa_invalid_code"));
     }
     setTwoFALoading(false);
   }
@@ -133,7 +133,7 @@ export default function LoginPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email: unverifiedEmail }),
     });
-    alert("Doğrulama emaili gönderildi!");
+    alert(t("login_email_verification_sent"));
   }
 
   return (
@@ -166,13 +166,13 @@ export default function LoginPage() {
           className="mb-5 rounded-[var(--radius-md)] border border-[var(--color-warning)]/30 bg-[var(--color-warning)]/[0.08] p-4"
         >
           <p className="m-0 text-[14px] font-medium text-[var(--color-warning)]">
-            Email adresiniz doğrulanmamış
+            {t("login_email_not_verified_title")}
           </p>
           <p className="mt-1 mb-3 text-[13px] text-[var(--color-fg-muted)]">
-            Gelen kutunuzu kontrol edin veya yeni doğrulama emaili isteyin.
+            {t("login_email_not_verified_desc")}
           </p>
           <Button type="button" size="sm" variant="secondary" onClick={resendVerification}>
-            Tekrar gönder
+            {t("common_resend")}
           </Button>
         </motion.div>
       )}
@@ -305,10 +305,10 @@ export default function LoginPage() {
                 }}
                 className="mb-2 text-center text-[var(--color-fg)]"
               >
-                İki faktörlü doğrulama
+                {t("login_2fa_title")}
               </h2>
               <p className="mb-6 text-center text-[13px] text-[var(--color-fg-muted)]">
-                Authenticator uygulamasındaki 6 haneli kodu girin
+                {t("login_2fa_desc")}
               </p>
               <Input
                 inputSize="lg"
@@ -335,7 +335,7 @@ export default function LoginPage() {
                 loading={twoFALoading}
                 onClick={handle2FA}
               >
-                {twoFALoading ? "Doğrulanıyor..." : "Doğrula"}
+                {twoFALoading ? t("login_2fa_verifying") : t("login_2fa_verify")}
               </Button>
             </motion.div>
           </motion.div>

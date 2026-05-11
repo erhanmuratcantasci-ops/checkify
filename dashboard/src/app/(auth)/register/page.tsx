@@ -173,9 +173,9 @@ export default function RegisterPage() {
         <div>
           <div className="mb-2 flex items-baseline justify-between">
             <Label htmlFor="referralCode" className="mb-0">
-              Referral kodu
+              {t("register_referral_label")}
             </Label>
-            <span className="text-[12px] text-[var(--color-fg-faint)]">opsiyonel</span>
+            <span className="text-[12px] text-[var(--color-fg-faint)]">{t("register_referral_optional")}</span>
           </div>
           <Input
             id="referralCode"
@@ -188,7 +188,7 @@ export default function RegisterPage() {
           />
           {referralCode && (
             <p className="mt-2 text-[12px] text-[var(--color-accent)]">
-              Referral kodu uygulandı — kayıt sonrası 50 SMS kredisi kazanacaksın
+              {t("register_referral_applied")}
             </p>
           )}
         </div>
