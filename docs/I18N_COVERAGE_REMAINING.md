@@ -1,6 +1,6 @@
 # i18n Coverage — Sprint 3.6 + future scope
 
-Sprint 3.5 (this PR) coverage gap sweep handled **18 dosya** — auth flow, dashboard core, global components, error/skip-link, marketing surface, MarketingCTA + FAQ. Remaining hardcoded TR strings are tracked here by priority.
+Sprint 3.5 (PR #5) coverage gap sweep handled **18 dosya** — auth flow, dashboard core, global components, error/skip-link, marketing surface, MarketingCTA + FAQ. Sprint 3.6 follows with dashboard secondary pages + blocking-rules module + customer-token hard-pin.
 
 ## Numbers
 
@@ -8,54 +8,36 @@ Sprint 3.5 (this PR) coverage gap sweep handled **18 dosya** — auth flow, dash
 |---|---|
 | Master (Sprint 3 end) | 832 |
 | After Sprint 3.5 | 690 |
-| Reduction | −142 (~17%) |
+| After Sprint 3.6 | 498 |
+| Reduction (cumulative) | −334 (~40%) |
+| Sprint 3.6 delta | −192 |
 
-i18n.tsx key count: **277 (Sprint 3) → 609 (Sprint 3 coverage) → 622 (Sprint 3.5, +13 new keys)** (`landing_cta_*`, `landing_faq_heading`, `landing_pricing_*` extensions).
+i18n.tsx key count: **277 (Sprint 3) → 609 (Sprint 3 coverage) → 622 (Sprint 3.5) → 707 (Sprint 3.6, +85 new keys)** — new families: `orders_*` detail/status, `credits_extra_*`, `upgrade_plan_*` (overlay constants), `blocking_rule_group_*`, `blocking_stats_*_short`, `cod_reset_password_*` form labels.
 
 ## Remaining buckets
 
-### Sprint 3.6 — high-value dashboard surface (~150 satır)
+### Sprint 3.6 — DONE in PR #6 (this branch)
+
+Cleaned in 4 commits:
+
+| Bucket | Dosya | Sprint 3.5 satır | After 3.6 |
+|---|---|---|---|
+| Dashboard secondary | orders/[id], pricing, blocklist, sms-logs, rto, credits, PlanUpgradeOverlay | ~98 | 0 |
+| Blocking-rules module | page + 4 tabs | ~85 | 0 |
+| Customer-token | reset-password/[token], verify/[orderId], status/[token] + 3 new layouts | ~22 | 2 (verify comment + API error pattern match) |
+
+**Visual showcase decision: (b) skip** — `HeroDashboardMockup.tsx` (~13) and `FeaturesGroup.tsx` SmsVisual/ConsoleVisual/BlockingVisual (~11) kept TR-only. These are marketing showcase mock data (Ayşe Yılmaz, Mehmet Demir, ₺549, ₺1.240). Bilingual variants would need ~12 net-new keys for specific names/currency + duplicated branching — value low (marketing site is TR-first audience). Revisit when EN landing launches.
+
+### Sprint 4 — admin & embedded panels (~150 satır)
 
 | Dosya | TR satır | Notlar |
 |---|---|---|
-| `app/(dashboard)/orders/[id]/page.tsx` | 22 | Order detail page; STATUS_LABELS refactor + modal copy |
-| `app/(dashboard)/pricing/page.tsx` | 17 | Inner pricing page (merchant-facing); mostly mirrors `landing_pricing_*` keys but layout differs from marketing |
-| `app/(dashboard)/blocklist/page.tsx` | 15 | Phone/postal block list page; keys already exist in i18n.tsx (`blocklist_*`) |
-| `app/(dashboard)/sms-logs/page.tsx` | 14 | SMS history; keys already exist (`smslogs_*`) |
-| `app/(dashboard)/rto/page.tsx` | ~11 | RTO analytics; keys already exist (`rto_*`) |
-| `app/(dashboard)/credits/page.tsx` | ~9 | Credit balance + custom purchase; keys exist (`credits_*` extensions) |
-| `components/PlanUpgradeOverlay.tsx` constants | ~10 | `UPGRADE_PLANS` price/feature TR strings remain; component scope already fixed but plan-feature data needs t() conversion |
-
-### Sprint 3.6 — blocking-rules module (~75 satır)
-
-i18n keys already added (`blocking_*` family, 75+ keys). Just needs JSX wiring:
-
-| Dosya | TR satır |
-|---|---|
-| `(dashboard)/blocking-rules/page.tsx` | 10 |
-| `(dashboard)/blocking-rules/components/RulesTab.tsx` | 35 |
-| `(dashboard)/blocking-rules/components/StatsTab.tsx` | 18 |
-| `(dashboard)/blocking-rules/components/SettingsTab.tsx` | 13 |
-| `(dashboard)/blocking-rules/components/BlockedOrdersTab.tsx` | 9 |
-
-### Sprint 3.6 — customer-token + auth edges (~26 satır)
-
-| Dosya | TR satır | Notlar |
-|---|---|---|
-| `app/reset-password/[token]/page.tsx` | 12 | Customer-facing; keys exist (`cod_reset_password_*`). **Also needs `FixedLanguageProvider` hard-pin TR** (like `/confirm/*` pattern, Sprint 3 Karar 3) |
-| `app/verify/[orderId]/page.tsx` | ~5 | OTP customer page; keys exist |
-| `app/status/[token]/page.tsx` | ~5 | Status customer page; keys exist |
-| `app/admin/(auth)/reset-password/page.tsx` | 14 | Admin reset; admin-only, low priority |
-
-### Sprint 3.6 — visual showcase data (~24 satır)
-
-Marketing/dashboard visuals with sample copy. These are showcase props (Turkish customer names, currency, sample order data) — translation requires either bilingual mock data or rendering EN versions:
-
-| Dosya | TR satır | Strategy |
-|---|---|---|
-| `components/marketing/FeaturesGroup.tsx` (SmsVisual, ConsoleVisual, BlockingVisual) | 11 | Sample order names ("Mehmet Demir", currency ₺), TR-specific. Either: (a) duplicate visual components per locale, (b) parameterize sample data, (c) ship TR-only showcase to EN audience |
-| `components/marketing/HeroDashboardMockup.tsx` | 13 | Mock dashboard metrics with TR; keys exist (`landing_mockup_*`) |
-| `app/opengraph-image.tsx` | 6 | Server-rendered OG image; needs locale-aware variant |
+| `app/admin/(panel)/page.tsx` | 82 | Admin panel — Erhan-only, customer-base etkilenmez. Low priority. |
+| `app/embedded/page.tsx` | 28 | Shopify embedded — Polaris i18n available |
+| `app/embedded/onboarding/page.tsx` | 14 | same |
+| `app/admin/(auth)/reset-password/page.tsx` | 14 | Admin reset; admin-only |
+| `app/admin/(auth)/login/page.tsx` | 7 | Admin login |
+| `app/admin/(auth)/layout.tsx` | 2 | Admin shell |
 
 ### Sprint 2 — legal/static (~113 satır) — KVKK + GDPR scope
 
@@ -95,9 +77,18 @@ grep -rEl "[ıİğĞşŞüÜöÖçÇ]" dashboard/src --include="*.tsx" --include
 ## i18n.tsx growth log
 
 - Sprint 3 (PR #4): 277 keys (TR + EN parallel)
-- Sprint 3 coverage gap (this PR, batch 1): +332 keys → 609
-- Sprint 3.5 commits (this PR, marketing tail): +13 keys → 622
+- Sprint 3 coverage gap (PR #5, batch 1): +332 keys → 609
+- Sprint 3.5 commits (PR #5, marketing tail): +13 keys → 622
   - `landing_cta_heading`, `landing_cta_subtitle`, `landing_cta_see_plans`, `landing_cta_30sec_setup` (MarketingCTA)
   - `landing_faq_heading` (MarketingFAQ)
   - `landing_pricing_heading`, `landing_pricing_subhead` (MarketingPricing)
   - `landing_pricing_feature_basic_sms`, `..._pdf_invoice`, `..._whatsapp`, `..._rto`, `..._blocklist`, `..._postal_code` (pricing feature labels)
+- Sprint 3.6 commits (PR #6): +85 keys → 707
+  - orders detail (8): `orders_back_label`, `orders_field_amount`, `orders_status_{pending,confirmed,cancelled,blocked}_label`, `orders_toast_status_updated`, `orders_sms_error_label`
+  - credits (8): `credits_buy_{plan_action,action}`, `credits_invoice_{aria,locked_aria}`, `credits_extra_{sms,wa}_title`, `credits_unit_{sms,wp}`
+  - pricing (1): `pricing_per_shop_label`
+  - upgrade overlay (19): `upgrade_plan_{starter,pro,business}_{label,price}` + 13 feature labels
+  - blocking-rules JSX (35): rule group titles (7), hints (3), short-form labels for stats/orders (12), settings toggle (2), error toasts (3), select shop (1), aria/delete (1+rest)
+  - customer-token (11): `cod_reset_password_{new_title,min_chars_hint,password_label,confirm_label,submit_btn,submitting_btn,updated_title,updated_subtitle,login_now,back_login,generic_error}`
+  - status a11y (1): `cod_status_order_aria`
+  - new layouts (not keys): `reset-password/layout.tsx`, `verify/layout.tsx`, `status/layout.tsx` — `FixedLanguageProvider lang="tr"`

@@ -9,6 +9,7 @@ import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { MetricCard } from "@/components/ui/metric-card";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
+import { useTranslation } from "@/lib/i18n";
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
 
@@ -41,6 +42,7 @@ function formatDay(iso: string) {
 
 export default function RTOPage() {
   const router = useRouter();
+  const { t } = useTranslation();
   const [data, setData] = useState<RTOData | null>(null);
   const [loading, setLoading] = useState(true);
   const [planAllowed, setPlanAllowed] = useState<boolean | null>(null);
@@ -86,42 +88,42 @@ export default function RTOPage() {
             margin: 0,
           }}
         >
-          RTO analizi
+          {t("rto_title")}
         </h1>
         <p className="mt-1 text-[14px] text-[var(--color-fg-muted)]">
-          Return to Origin — iptal edilen sipariş oranı ve trendleri.
+          {t("rto_subtitle")}
         </p>
       </header>
 
       {planAllowed === false && (
-        <PlanUpgradeOverlay featureName="RTO Analizi" requiredPlan="PRO" />
+        <PlanUpgradeOverlay featureName={t("rto_title")} requiredPlan="PRO" />
       )}
 
       {planAllowed === true && (
         <>
           <section className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
             <MetricCard
-              label="RTO oranı"
+              label={t("rto_rate_label")}
               value={loading ? "—" : `%${data?.rtoRate ?? 0}`}
               deltaTone={high ? "danger" : "neutral"}
-              delta={high ? "yüksek" : undefined}
+              delta={high ? t("rto_high_status") : undefined}
             />
             <MetricCard
-              label="İptal edilen"
+              label={t("rto_cancelled_label")}
               value={loading ? "—" : (data?.cancelled ?? 0).toLocaleString("tr-TR")}
             />
             <MetricCard
-              label="Toplam sipariş"
+              label={t("rto_total_orders_label")}
               value={loading ? "—" : (data?.total ?? 0).toLocaleString("tr-TR")}
             />
           </section>
 
           <Card className="mb-4">
             <CardHeader>
-              <CardTitle>30 günlük iptal trendi</CardTitle>
+              <CardTitle>{t("rto_trend_title")}</CardTitle>
             </CardHeader>
             {loading || !data ? (
-              <p className="text-[13px] text-[var(--color-fg-faint)]">Yükleniyor…</p>
+              <p className="text-[13px] text-[var(--color-fg-faint)]">{t("loading")}</p>
             ) : (
               <div className="h-[200px]">
                 <ResponsiveContainer width="100%" height="100%">
@@ -154,7 +156,7 @@ export default function RTOPage() {
                         color: "#f5f5f7",
                         fontSize: 13,
                       }}
-                      formatter={(v) => [v, "İptal"]}
+                      formatter={(v) => [v, t("orders_cancelled")]}
                     />
                     <Line
                       type="monotone"
@@ -172,12 +174,12 @@ export default function RTOPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>En çok iptal yapan numaralar</CardTitle>
+              <CardTitle>{t("rto_top_phones_title")}</CardTitle>
             </CardHeader>
             {loading ? (
-              <p className="text-[13px] text-[var(--color-fg-faint)]">Yükleniyor…</p>
+              <p className="text-[13px] text-[var(--color-fg-faint)]">{t("loading")}</p>
             ) : !data?.topPhones.length ? (
-              <EmptyState icon={TrendingDown} title="Henüz iptal verisi yok" />
+              <EmptyState icon={TrendingDown} title={t("rto_no_data_title")} />
             ) : (
               <ul className="flex flex-col gap-2">
                 {data.topPhones.map((p, i) => (
@@ -188,7 +190,7 @@ export default function RTOPage() {
                     <span className="font-mono text-[14px] text-[var(--color-fg)] tabular-nums">
                       {p.phone}
                     </span>
-                    <Badge tone="danger">{p.count} iptal</Badge>
+                    <Badge tone="danger">{t("rto_cancellations_badge").replace("{n}", String(p.count))}</Badge>
                   </li>
                 ))}
               </ul>

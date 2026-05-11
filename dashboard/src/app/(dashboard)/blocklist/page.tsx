@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { EmptyState } from "@/components/ui/empty-state";
+import { useTranslation } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
@@ -51,6 +52,7 @@ function formatDate(iso: string) {
 
 export default function BlocklistPage() {
   const router = useRouter();
+  const { t } = useTranslation();
   const [shops, setShops] = useState<Shop[]>([]);
   const [selectedShop, setSelectedShop] = useState<number | null>(null);
   const [tab, setTab] = useState<Tab>("phone");
@@ -128,16 +130,16 @@ export default function BlocklistPage() {
       const data = await res.json();
       if (!res.ok) {
         if (res.status === 403) setPlanError(true);
-        else setError(data.error ?? "Bir hata oluştu");
+        else setError(data.error ?? t("error_occurred"));
       } else {
         setAddValue("");
         setAddReason("");
-        setSuccess(tab === "phone" ? "Numara engellendi." : "Posta kodu engellendi.");
+        setSuccess(tab === "phone" ? t("blocklist_phone_added_toast") : t("blocklist_postal_added_toast"));
         fetchList();
         setTimeout(() => setSuccess(""), 3000);
       }
     } catch {
-      setError("Bağlantı hatası");
+      setError(t("pricing_connection_error"));
     }
     setAddLoading(false);
   }
@@ -161,7 +163,7 @@ export default function BlocklistPage() {
   if (loading) {
     return (
       <div className="mx-auto w-full max-w-[760px] px-6 py-10">
-        <p className="text-[14px] text-[var(--color-fg-faint)]">Yükleniyor…</p>
+        <p className="text-[14px] text-[var(--color-fg-faint)]">{t("loading")}</p>
       </div>
     );
   }
@@ -178,10 +180,10 @@ export default function BlocklistPage() {
             margin: 0,
           }}
         >
-          Engel listesi
+          {t("blocklist_title")}
         </h1>
         <p className="mt-1 text-[14px] text-[var(--color-fg-muted)]">
-          Belirli telefon numaralarını veya posta kodlarını COD doğrulamasından hariç tut.
+          {t("blocklist_subtitle")}
         </p>
       </header>
 
@@ -189,14 +191,14 @@ export default function BlocklistPage() {
         <Card>
           <EmptyState
             icon={Store}
-            title="Mağaza eklenmemiş"
-            description="Engel listesini kullanmak için önce bir mağaza eklemen gerekiyor."
+            title={t("blocklist_no_shops_title")}
+            description={t("blocklist_no_shops_desc")}
             action={
               <Link
                 href="/shops"
                 className="inline-flex h-11 items-center justify-center rounded-[var(--radius-md)] bg-[var(--color-accent)] px-5 text-[14px] font-medium text-[var(--color-accent-fg)] hover:bg-[var(--color-accent-hover)]"
               >
-                Mağaza ekle
+                {t("dash_add_shop_cta")}
               </Link>
             }
           />
@@ -205,7 +207,7 @@ export default function BlocklistPage() {
         <>
           {shops.length > 1 && (
             <Card className="mb-4">
-              <Label htmlFor="shop-select">Mağaza</Label>
+              <Label htmlFor="shop-select">{t("blocking_select_shop_label")}</Label>
               <select
                 id="shop-select"
                 value={selectedShop ?? ""}
@@ -232,15 +234,15 @@ export default function BlocklistPage() {
                 />
                 <div>
                   <p className="text-[14px] font-medium text-[var(--color-danger)]">
-                    PRO plan gerekli
+                    {t("blocklist_plan_required_title")}
                   </p>
                   <p className="mt-1 text-[13px] text-[var(--color-fg-muted)]">
-                    Engel listesi özelliği PRO ve üzeri planlarda kullanılabilir.{" "}
+                    {t("blocking_plan_desc_pro")}{" "}
                     <Link
                       href="/pricing"
                       className="font-medium text-[var(--color-accent)] hover:text-[var(--color-accent-hover)]"
                     >
-                      Planı yükselt →
+                      {t("blocking_upgrade_plan")}
                     </Link>
                   </p>
                 </div>
@@ -251,8 +253,8 @@ export default function BlocklistPage() {
           <div className="mb-5 flex gap-1.5 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg-elevated)] p-1">
             {(
               [
-                { key: "phone" as Tab, label: "Telefon numaraları", Icon: Phone },
-                { key: "postal" as Tab, label: "Posta kodları", Icon: MapPin },
+                { key: "phone" as Tab, label: t("blocklist_phone_tab"), Icon: Phone },
+                { key: "postal" as Tab, label: t("blocklist_postal_tab"), Icon: MapPin },
               ] as const
             ).map(({ key, label, Icon }) => {
               const active = tab === key;
@@ -282,26 +284,26 @@ export default function BlocklistPage() {
           <Card className="mb-4">
             <CardHeader>
               <CardTitle>
-                {tab === "phone" ? "Numara engelle" : "Posta kodu engelle"}
+                {tab === "phone" ? t("blocklist_add_phone_title") : t("blocklist_add_postal_title")}
               </CardTitle>
             </CardHeader>
             <div className="flex flex-wrap items-end gap-2">
               <div className="min-w-[160px] flex-1">
                 <Label htmlFor="block-value" className="text-[12px]">
-                  {tab === "phone" ? "Telefon" : "Posta kodu"}
+                  {tab === "phone" ? t("blocklist_phone_label") : t("blocklist_postal_label")}
                 </Label>
                 <Input
                   id="block-value"
                   type="text"
                   value={addValue}
-                  placeholder={tab === "phone" ? "+90 5xx xxx xx xx" : "34000"}
+                  placeholder={tab === "phone" ? t("blocklist_phone_placeholder") : t("blocklist_postal_placeholder")}
                   onChange={(e) => setAddValue(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleAdd()}
                 />
               </div>
               <div className="min-w-[160px] flex-1">
                 <Label htmlFor="block-reason" className="text-[12px]">
-                  Sebep <span className="text-[var(--color-fg-faint)]">opsiyonel</span>
+                  {t("blocklist_reason_label")} <span className="text-[var(--color-fg-faint)]">{t("optional_tag")}</span>
                 </Label>
                 <Input
                   id="block-reason"
@@ -317,7 +319,7 @@ export default function BlocklistPage() {
                 disabled={!addValue.trim()}
                 onClick={handleAdd}
               >
-                Ekle
+                {t("blocking_rule_add_btn")}
               </Button>
             </div>
             {error && (
@@ -331,20 +333,20 @@ export default function BlocklistPage() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                {tab === "phone" ? "Engellenen numaralar" : "Engellenen posta kodları"}
+                {tab === "phone" ? t("blocklist_blocked_phones_title") : t("blocklist_blocked_postal_title")}
                 <Badge tone="accent">{list.length}</Badge>
               </CardTitle>
             </CardHeader>
 
             {listLoading ? (
-              <p className="text-[13px] text-[var(--color-fg-faint)]">Yükleniyor…</p>
+              <p className="text-[13px] text-[var(--color-fg-faint)]">{t("loading")}</p>
             ) : list.length === 0 ? (
               <EmptyState
                 icon={ShieldCheck}
                 title={
                   tab === "phone"
-                    ? "Engellenen numara yok"
-                    : "Engellenen posta kodu yok"
+                    ? t("blocklist_no_phones_blocked")
+                    : t("blocklist_no_postal_blocked")
                 }
               />
             ) : (
@@ -379,7 +381,7 @@ export default function BlocklistPage() {
                         onClick={() => handleDelete(value)}
                       >
                         <X size={14} aria-hidden />
-                        Kaldır
+                        {t("delete")}
                       </Button>
                     </li>
                   );

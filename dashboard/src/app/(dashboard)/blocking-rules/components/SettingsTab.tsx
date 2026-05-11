@@ -5,6 +5,7 @@ import { blockingSettings, BlockingSettings } from "@/lib/api";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useTranslation } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 const DEFAULT_PHONE_LIMIT = 3;
@@ -47,12 +48,16 @@ function RateLimitRow({
   value,
   defaultOn,
   onChange,
+  activeLabel,
+  offLabel,
 }: {
   title: string;
   description: string;
   value: number | null;
   defaultOn: number;
   onChange: (v: number | null) => void;
+  activeLabel: string;
+  offLabel: string;
 }) {
   const active = value !== null;
   return (
@@ -84,7 +89,7 @@ function RateLimitRow({
                 : "text-[var(--color-fg-muted)] hover:bg-[var(--color-surface-hover)]"
             )}
           >
-            Aktif
+            {activeLabel}
           </button>
           <button
             type="button"
@@ -96,7 +101,7 @@ function RateLimitRow({
                 : "text-[var(--color-fg-muted)] hover:bg-[var(--color-surface-hover)]"
             )}
           >
-            Kapalı
+            {offLabel}
           </button>
         </div>
       </div>
@@ -106,6 +111,7 @@ function RateLimitRow({
 }
 
 export default function SettingsTab({ shopId }: { shopId: number }) {
+  const { t } = useTranslation();
   const [settings, setSettings] = useState<BlockingSettings | null>(null);
   const [form, setForm] = useState<BlockingSettings | null>(null);
   const [loading, setLoading] = useState(true);
@@ -121,10 +127,10 @@ export default function SettingsTab({ shopId }: { shopId: number }) {
       setSettings(res);
       setForm(res);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Ayarlar yüklenemedi");
+      setError(err instanceof Error ? err.message : t("blocking_settings_load_error"));
     }
     setLoading(false);
-  }, [shopId]);
+  }, [shopId, t]);
 
   useEffect(() => {
     load();
@@ -139,10 +145,10 @@ export default function SettingsTab({ shopId }: { shopId: number }) {
       const res = await blockingSettings.update({ shopId, ...form });
       setSettings(res.settings);
       setForm(res.settings);
-      setSuccess("Ayarlar kaydedildi.");
+      setSuccess(t("blocking_settings_saved"));
       setTimeout(() => setSuccess(null), 3000);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Kaydedilemedi");
+      setError(err instanceof Error ? err.message : t("blocking_settings_save_error"));
     }
     setSaving(false);
   }
@@ -150,7 +156,7 @@ export default function SettingsTab({ shopId }: { shopId: number }) {
   if (loading) {
     return (
       <Card>
-        <p className="text-[14px] text-[var(--color-fg-faint)]">Yükleniyor…</p>
+        <p className="text-[14px] text-[var(--color-fg-faint)]">{t("loading")}</p>
       </Card>
     );
   }
@@ -158,7 +164,7 @@ export default function SettingsTab({ shopId }: { shopId: number }) {
     return (
       <Card>
         <p className="text-[14px] text-[var(--color-danger)]">
-          {error ?? "Ayarlar yüklenemedi"}
+          {error ?? t("blocking_settings_load_error")}
         </p>
       </Card>
     );
@@ -179,11 +185,10 @@ export default function SettingsTab({ shopId }: { shopId: number }) {
                 letterSpacing: "var(--tracking-heading)",
               }}
             >
-              Gelişmiş engelleme aktif
+              {t("blocking_settings_title")}
             </p>
             <p className="mt-1 text-[13px] leading-relaxed text-[var(--color-fg-muted)]">
-              Kural bazlı (IP, regex, email, isim) ve sipariş limit engelleme sistemini
-              aç/kapat. Kapatırsan eski telefon/posta kodu engel listeleri yine çalışır.
+              {t("blocking_settings_desc")}
             </p>
           </div>
           <Toggle
@@ -195,22 +200,26 @@ export default function SettingsTab({ shopId }: { shopId: number }) {
 
       <Card className="mb-4">
         <CardHeader>
-          <CardTitle>Sipariş limitleri</CardTitle>
+          <CardTitle>{t("blocking_settings_limits_title")}</CardTitle>
         </CardHeader>
         <RateLimitRow
-          title="Telefon başına 30 günlük limit"
-          description="Aynı telefondan 30 gün içinde bu sayıyı aşan siparişler otomatik bloklanır."
+          title={t("blocking_limit_phone_title")}
+          description={t("blocking_limit_phone_desc")}
           value={form.maxOrdersPerPhone30d}
           defaultOn={DEFAULT_PHONE_LIMIT}
           onChange={(v) => setForm((f) => (f ? { ...f, maxOrdersPerPhone30d: v } : f))}
+          activeLabel={t("blocking_settings_toggle_active")}
+          offLabel={t("blocking_settings_toggle_off")}
         />
         <div className="my-5 h-px bg-[var(--color-border)]" />
         <RateLimitRow
-          title="IP başına 30 günlük limit"
-          description="Aynı IP adresinden 30 gün içinde bu sayıyı aşan siparişler otomatik bloklanır."
+          title={t("blocking_limit_ip_title")}
+          description={t("blocking_limit_ip_desc")}
           value={form.maxOrdersPerIp30d}
           defaultOn={DEFAULT_IP_LIMIT}
           onChange={(v) => setForm((f) => (f ? { ...f, maxOrdersPerIp30d: v } : f))}
+          activeLabel={t("blocking_settings_toggle_active")}
+          offLabel={t("blocking_settings_toggle_off")}
         />
       </Card>
 
@@ -221,7 +230,7 @@ export default function SettingsTab({ shopId }: { shopId: number }) {
           disabled={!hasChanges || saving}
           onClick={handleSave}
         >
-          {saving ? "Kaydediliyor…" : "Kaydet"}
+          {saving ? t("saving") : t("save")}
         </Button>
         {hasChanges && !saving && (
           <span className="inline-flex items-center gap-1.5 text-[13px] text-[var(--color-warning)]">
@@ -229,7 +238,7 @@ export default function SettingsTab({ shopId }: { shopId: number }) {
               aria-hidden
               className="inline-block h-2 w-2 rounded-full bg-[var(--color-warning)]"
             />
-            Kaydedilmemiş değişiklik var
+            {t("blocking_unsaved_changes")}
           </span>
         )}
         {success && (

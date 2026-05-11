@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
 import { EmptyState } from "@/components/ui/empty-state";
+import { useTranslation, type TranslationKey } from "@/lib/i18n";
 
 const SOURCE_TONE: Record<BlockSource, "neutral" | "accent" | "warning"> = {
   LEGACY_PHONE: "neutral",
@@ -18,11 +19,11 @@ const SOURCE_TONE: Record<BlockSource, "neutral" | "accent" | "warning"> = {
   RATE_LIMIT: "warning",
 };
 
-const SOURCE_LABEL: Record<BlockSource, string> = {
-  LEGACY_PHONE: "Telefon (eski)",
-  LEGACY_POSTAL_CODE: "Posta (eski)",
-  BLOCKING_RULE: "Kural",
-  RATE_LIMIT: "Limit aşımı",
+const SOURCE_LABEL_KEYS: Record<BlockSource, TranslationKey> = {
+  LEGACY_PHONE: "blocking_stats_source_legacy_phone_short",
+  LEGACY_POSTAL_CODE: "blocking_stats_orders_source_postal_short",
+  BLOCKING_RULE: "blocking_stats_source_rule_short",
+  RATE_LIMIT: "blocking_stats_source_rate_limit_short",
 };
 
 const LIMIT = 20;
@@ -38,6 +39,7 @@ function fmtDateTime(iso: string): string {
 }
 
 export default function BlockedOrdersTab({ shopId }: { shopId: number }) {
+  const { t } = useTranslation();
   const [items, setItems] = useState<BlockedOrder[]>([]);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
@@ -61,10 +63,10 @@ export default function BlockedOrdersTab({ shopId }: { shopId: number }) {
       setTotal(res.total);
       setTotalPages(res.totalPages);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Veri yüklenemedi");
+      setError(err instanceof Error ? err.message : t("blocking_data_load_error"));
     }
     setLoading(false);
-  }, [shopId, from, to, page]);
+  }, [shopId, from, to, page, t]);
 
   useEffect(() => {
     load();
@@ -85,12 +87,12 @@ export default function BlockedOrdersTab({ shopId }: { shopId: number }) {
     <>
       <Card className="mb-4">
         <CardHeader>
-          <CardTitle>Filtrele</CardTitle>
+          <CardTitle>{t("blocking_orders_filter_title")}</CardTitle>
         </CardHeader>
         <form onSubmit={handleFilter} className="space-y-3">
           <div className="grid grid-cols-1 gap-3 md:grid-cols-[minmax(160px,1fr)_minmax(160px,1fr)_auto_auto]">
             <div>
-              <Label htmlFor="from">Başlangıç</Label>
+              <Label htmlFor="from">{t("blocking_orders_from_label")}</Label>
               <Input
                 id="from"
                 type="date"
@@ -100,7 +102,7 @@ export default function BlockedOrdersTab({ shopId }: { shopId: number }) {
               />
             </div>
             <div>
-              <Label htmlFor="to">Bitiş</Label>
+              <Label htmlFor="to">{t("blocking_orders_to_label")}</Label>
               <Input
                 id="to"
                 type="date"
@@ -110,11 +112,11 @@ export default function BlockedOrdersTab({ shopId }: { shopId: number }) {
               />
             </div>
             <div className="flex items-end">
-              <Button type="submit">Filtrele</Button>
+              <Button type="submit">{t("blocking_orders_filter_button")}</Button>
             </div>
             <div className="flex items-end">
               <Button type="button" variant="secondary" onClick={handleClear}>
-                Temizle
+                {t("blocking_orders_clear_filter")}
               </Button>
             </div>
           </div>
@@ -125,27 +127,27 @@ export default function BlockedOrdersTab({ shopId }: { shopId: number }) {
       <Card className="overflow-hidden p-0">
         <CardHeader className="px-6 pt-5">
           <CardTitle className="flex items-center gap-2">
-            Bloklanan siparişler
+            {t("blocking_orders_title")}
             <Badge tone="accent">{total}</Badge>
           </CardTitle>
         </CardHeader>
         {loading ? (
-          <div className="px-6 pb-6 text-[13px] text-[var(--color-fg-faint)]">Yükleniyor…</div>
+          <div className="px-6 pb-6 text-[13px] text-[var(--color-fg-faint)]">{t("loading")}</div>
         ) : items.length === 0 ? (
-          <EmptyState icon={ShieldCheck} title="Henüz bloklanan sipariş yok" />
+          <EmptyState icon={ShieldCheck} title={t("blocking_orders_empty_title")} />
         ) : (
           <>
             <Table>
               <THead>
                 <TR className="hover:bg-transparent">
-                  <TH>Tarih</TH>
-                  <TH>Müşteri</TH>
-                  <TH>Telefon</TH>
-                  <TH>IP</TH>
-                  <TH>Posta</TH>
-                  <TH>Email</TH>
-                  <TH>Kaynak</TH>
-                  <TH>Kural</TH>
+                  <TH>{t("orders_col_date")}</TH>
+                  <TH>{t("orders_detail_customer")}</TH>
+                  <TH>{t("orders_detail_phone")}</TH>
+                  <TH>{t("blocking_orders_col_ip")}</TH>
+                  <TH>{t("blocking_orders_col_postal")}</TH>
+                  <TH>{t("blocking_orders_col_email")}</TH>
+                  <TH>{t("blocking_orders_col_source")}</TH>
+                  <TH>{t("blocking_orders_col_rule")}</TH>
                 </TR>
               </THead>
               <TBody>
@@ -170,7 +172,7 @@ export default function BlockedOrdersTab({ shopId }: { shopId: number }) {
                     </TD>
                     <TD>
                       <Badge tone={SOURCE_TONE[o.blockSource]}>
-                        {SOURCE_LABEL[o.blockSource]}
+                        {t(SOURCE_LABEL_KEYS[o.blockSource])}
                       </Badge>
                     </TD>
                     <TD className="font-mono text-[11px] text-[var(--color-fg-faint)]">
@@ -184,7 +186,10 @@ export default function BlockedOrdersTab({ shopId }: { shopId: number }) {
             {totalPages > 1 && (
               <div className="flex items-center justify-between border-t border-[var(--color-border)] px-6 py-3">
                 <p className="text-[13px] text-[var(--color-fg-muted)] tabular-nums">
-                  Sayfa {page} / {totalPages} · Toplam {total}
+                  {t("blocking_pagination_label")
+                    .replace("{page}", String(page))
+                    .replace("{totalPages}", String(totalPages))
+                    .replace("{total}", String(total))}
                 </p>
                 <div className="flex gap-2">
                   <Button
@@ -193,7 +198,7 @@ export default function BlockedOrdersTab({ shopId }: { shopId: number }) {
                     disabled={page <= 1}
                     onClick={() => setPage((p) => Math.max(1, p - 1))}
                   >
-                    Önceki
+                    {t("pagination_prev")}
                   </Button>
                   <Button
                     size="sm"
@@ -201,7 +206,7 @@ export default function BlockedOrdersTab({ shopId }: { shopId: number }) {
                     disabled={page >= totalPages}
                     onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                   >
-                    Sonraki
+                    {t("pagination_next")}
                   </Button>
                 </div>
               </div>

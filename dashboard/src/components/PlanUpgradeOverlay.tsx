@@ -4,42 +4,47 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Lock, Check, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useTranslation } from "@/lib/i18n";
+import { useTranslation, type TranslationKey } from "@/lib/i18n";
 import { easeOut } from "@/lib/motion";
 
-interface PlanCard {
-  label: string;
-  price: string;
-  features: string[];
+interface PlanCardKeys {
+  labelKey: TranslationKey;
+  priceKey: TranslationKey;
+  featureKeys: TranslationKey[];
   emphasis?: boolean;
 }
 
-const UPGRADE_PLANS: Record<string, PlanCard> = {
+const UPGRADE_PLAN_KEYS: Record<string, PlanCardKeys> = {
   STARTER: {
-    label: "Starter",
-    price: "99 ₺/ay",
-    features: ["300 SMS/ay", "3 mağaza", "OTP doğrulama", "PDF fatura"],
+    labelKey: "upgrade_plan_starter_label",
+    priceKey: "upgrade_plan_starter_price",
+    featureKeys: [
+      "upgrade_plan_feature_300_sms",
+      "upgrade_plan_feature_3_shops",
+      "upgrade_plan_feature_otp",
+      "upgrade_plan_feature_pdf",
+    ],
   },
   PRO: {
-    label: "Pro",
-    price: "249 ₺/ay",
-    features: [
-      "1.000 SMS/ay",
-      "10 mağaza",
-      "WhatsApp",
-      "RTO analizi",
-      "Engel listesi",
+    labelKey: "upgrade_plan_pro_label",
+    priceKey: "upgrade_plan_pro_price",
+    featureKeys: [
+      "upgrade_plan_feature_1000_sms",
+      "upgrade_plan_feature_10_shops",
+      "upgrade_plan_feature_whatsapp",
+      "upgrade_plan_feature_rto",
+      "upgrade_plan_feature_blocklist",
     ],
     emphasis: true,
   },
   BUSINESS: {
-    label: "Business",
-    price: "499 ₺/ay",
-    features: [
-      "3.000 SMS/ay",
-      "Sınırsız mağaza",
-      "Tüm özellikler",
-      "Öncelikli destek",
+    labelKey: "upgrade_plan_business_label",
+    priceKey: "upgrade_plan_business_price",
+    featureKeys: [
+      "upgrade_plan_feature_3000_sms",
+      "upgrade_plan_feature_unlimited_shops",
+      "upgrade_plan_feature_all",
+      "upgrade_plan_feature_priority_support",
     ],
   },
 };
@@ -110,7 +115,7 @@ export default function PlanUpgradeOverlay({ featureName, requiredPlan }: Props)
           }}
         >
           {visiblePlans.map((key) => {
-            const plan = UPGRADE_PLANS[key];
+            const plan = UPGRADE_PLAN_KEYS[key]!;
             const emphasis = plan.emphasis;
             return (
               <div
@@ -123,7 +128,7 @@ export default function PlanUpgradeOverlay({ featureName, requiredPlan }: Props)
                 }
               >
                 <p className="text-[11px] uppercase tracking-[0.06em] text-[var(--color-fg-muted)]">
-                  {plan.label}
+                  {t(plan.labelKey)}
                 </p>
                 <p
                   className="mt-1 text-[var(--color-fg)]"
@@ -133,12 +138,12 @@ export default function PlanUpgradeOverlay({ featureName, requiredPlan }: Props)
                     letterSpacing: "var(--tracking-heading)",
                   }}
                 >
-                  {plan.price}
+                  {t(plan.priceKey)}
                 </p>
                 <ul className="mt-3 space-y-2">
-                  {plan.features.map((f) => (
+                  {plan.featureKeys.map((fk) => (
                     <li
-                      key={f}
+                      key={fk}
                       className="flex items-center gap-2 text-[12px] text-[var(--color-fg-muted)]"
                     >
                       <Check
@@ -146,7 +151,7 @@ export default function PlanUpgradeOverlay({ featureName, requiredPlan }: Props)
                         aria-hidden
                         className="shrink-0 text-[var(--color-accent)]"
                       />
-                      {f}
+                      {t(fk)}
                     </li>
                   ))}
                 </ul>

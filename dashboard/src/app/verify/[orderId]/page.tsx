@@ -63,7 +63,7 @@ export default function VerifyPage() {
 
   async function submitCode(code: string) {
     if (code.length !== 6) {
-      setErrorMessage("6 haneli kodu eksiksiz gir.");
+      setErrorMessage(t("cod_otp_incomplete"));
       return;
     }
     setSubmitting(true);

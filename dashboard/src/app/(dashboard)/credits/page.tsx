@@ -119,7 +119,7 @@ export default function CreditsPage() {
         headers: authHeaders(),
       });
       if (!res.ok) {
-        showToast("PDF indirilemedi", "error");
+        showToast(t("credits_invoice_download_error"), "error");
         return;
       }
       const blob = await res.blob();
@@ -130,7 +130,7 @@ export default function CreditsPage() {
       a.click();
       URL.revokeObjectURL(url);
     } catch {
-      showToast("PDF indirilemedi", "error");
+      showToast(t("credits_invoice_download_error"), "error");
     }
   }
 
@@ -149,7 +149,7 @@ export default function CreditsPage() {
           : waAmount;
     const amount = raw;
     if (!amount || isNaN(amount) || amount < 100) {
-      showToast("Minimum 100 adet satın alınabilir", "error");
+      showToast(t("credits_min_purchase_error"), "error");
       return;
     }
     setPurchasing(true);
@@ -165,18 +165,19 @@ export default function CreditsPage() {
           router.push("/pricing");
           return;
         }
-        showToast(data.error || "Satın alma başarısız", "error");
+        showToast(data.error || t("credits_purchase_error_toast"), "error");
         return;
       }
       showToast(
-        `${amount} ${type === "whatsapp" ? "WhatsApp" : "SMS"} kredisi eklendi (${formatCurrency(
-          data.totalPrice
-        )})`,
+        t("credits_purchase_success_toast")
+          .replace("{amount}", String(amount))
+          .replace("{type}", type === "whatsapp" ? "WhatsApp" : "SMS")
+          .replace("{price}", formatCurrency(data.totalPrice)),
         "success"
       );
       await refreshCredits();
     } catch {
-      showToast("Satın alma başarısız", "error");
+      showToast(t("credits_purchase_error_toast"), "error");
     } finally {
       setPurchasing(false);
     }
@@ -244,7 +245,7 @@ export default function CreditsPage() {
               )}
             >
               <Icon size={14} aria-hidden />
-              {tab === "sms" ? "SMS kredileri" : "WhatsApp kredileri"}
+              {tab === "sms" ? t("credits_sms_label") : t("credits_whatsapp_label")}
             </button>
           );
         })}
@@ -288,14 +289,14 @@ export default function CreditsPage() {
             />
             <div className="flex-1">
               <p className="text-[14px] font-medium text-[var(--color-fg)]">
-                Ekstra kredi satın al
+                {t("credits_purchase_locked_title")}
               </p>
               <p className="mt-1 text-[13px] text-[var(--color-fg-muted)]">
-                Ekstra kredi almak için aktif bir plan gerekli.
+                {t("credits_purchase_locked_desc")}
               </p>
             </div>
             <Button size="sm" onClick={() => router.push("/pricing")}>
-              Plan satın al <ArrowRight size={14} aria-hidden />
+              {t("credits_buy_plan_action")} <ArrowRight size={14} aria-hidden />
             </Button>
           </div>
         </Card>
@@ -316,10 +317,10 @@ export default function CreditsPage() {
                   className="text-[var(--color-accent)]"
                 />
               )}
-              Ekstra {isWA ? "WhatsApp" : "SMS"} kredisi
+              {isWA ? t("credits_extra_wa_title") : t("credits_extra_sms_title")}
             </CardTitle>
             <span className="text-[12px] text-[var(--color-fg-muted)]">
-              {formatCurrency(isWA ? WA_UNIT : SMS_UNIT)} / {isWA ? "WP" : "SMS"}
+              {formatCurrency(isWA ? WA_UNIT : SMS_UNIT)} / {isWA ? t("credits_unit_wp") : t("credits_unit_sms")}
             </span>
           </CardHeader>
 
@@ -348,7 +349,7 @@ export default function CreditsPage() {
                       : "border-[var(--color-border)] text-[var(--color-fg-muted)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-fg)]"
                   )}
                 >
-                  {n} {isWA ? "WP" : "SMS"}
+                  {n} {isWA ? t("credits_unit_wp") : t("credits_unit_sms")}
                 </button>
               );
             })}
@@ -370,20 +371,20 @@ export default function CreditsPage() {
                   : "border-[var(--color-border)] text-[var(--color-fg-muted)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-fg)]"
               )}
             >
-              Özel miktar
+              {t("credits_custom_amount_btn")}
             </button>
           </div>
 
           {customMode && (
             <div className="mb-3">
               <Label htmlFor="custom-amount" className="text-[12px]">
-                Adet (min. 100)
+                {t("credits_custom_amount_label")}
               </Label>
               <Input
                 id="custom-amount"
                 type="number"
                 min={100}
-                placeholder="Örn. 750"
+                placeholder={t("credits_custom_placeholder")}
                 value={customValue}
                 onChange={(e) =>
                   isWA ? setWaCustom(e.target.value) : setSmsCustom(e.target.value)
@@ -394,7 +395,7 @@ export default function CreditsPage() {
 
           <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--color-border)] pt-4">
             <div className="text-[13px] text-[var(--color-fg-muted)]">
-              <span>Toplam: </span>
+              <span>{t("credits_total_label")} </span>
               <span
                 className="font-medium tabular-nums"
                 style={{
@@ -418,7 +419,7 @@ export default function CreditsPage() {
               onClick={() => purchaseExtra(activeTab)}
             >
               <CreditCard size={14} aria-hidden />
-              Satın al
+              {t("credits_buy_action")}
             </Button>
           </div>
         </Card>
@@ -487,7 +488,7 @@ export default function CreditsPage() {
                           size="sm"
                           variant="ghost"
                           onClick={() => downloadInvoice(tx.id)}
-                          aria-label="PDF indir"
+                          aria-label={t("credits_invoice_aria")}
                           className="h-7"
                         >
                           <Download size={12} aria-hidden />
@@ -498,7 +499,7 @@ export default function CreditsPage() {
                           size="sm"
                           variant="ghost"
                           onClick={() => router.push("/pricing")}
-                          title="Starter plan gerekli"
+                          title={t("credits_invoice_locked_aria")}
                           className="h-7 text-[var(--color-fg-faint)]"
                         >
                           <Lock size={12} aria-hidden />
