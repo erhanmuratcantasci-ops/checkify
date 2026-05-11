@@ -115,7 +115,7 @@ router.post('/register', asyncHandler(async (req: Request, res: Response): Promi
   const emailVerifyToken = crypto.randomBytes(32).toString('hex');
   await prisma.user.update({ where: { id: user.id }, data: { emailVerifyToken } });
 
-  const verifyUrl = `https://checkify-production.up.railway.app/auth/verify-email/${emailVerifyToken}`;
+  const verifyUrl = `${process.env['BASE_URL'] ?? 'http://localhost:3001'}/auth/verify-email/${emailVerifyToken}`;
   sendVerificationEmail(user.email, user.name ?? user.email, verifyUrl)
     .catch(err => console.error('[auth] Verification email gönderilemedi:', err));
 
@@ -561,7 +561,7 @@ router.post('/resend-verification', asyncHandler(async (req: Request, res: Respo
   const newToken = crypto.randomBytes(32).toString('hex');
   await prisma.user.update({ where: { id: user.id }, data: { emailVerifyToken: newToken } });
 
-  const verifyUrl = `https://checkify-production.up.railway.app/auth/verify-email/${newToken}`;
+  const verifyUrl = `${process.env['BASE_URL'] ?? 'http://localhost:3001'}/auth/verify-email/${newToken}`;
   const { sendVerificationEmail } = await import('../lib/mailer');
   sendVerificationEmail(user.email, user.name ?? user.email, verifyUrl)
     .catch(err => console.error('[auth] Verification email gönderilemedi:', err));
