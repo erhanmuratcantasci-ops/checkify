@@ -377,7 +377,7 @@ export default function ShopsPage() {
     const urlParams = new URLSearchParams(window.location.search);
     const connected = urlParams.get("connected");
     if (connected) {
-      showToast(`${decodeURIComponent(connected)} Shopify'a başarıyla bağlandı`, "success");
+      showToast(`${decodeURIComponent(connected)} — ${t("shops_toast_shopify_connected")}`, "success");
       window.history.replaceState({}, "", "/shops");
     }
     fetch(`${API}/plans/current`, { headers: authHeaders() })
@@ -403,7 +403,7 @@ export default function ShopsPage() {
 
   async function handleShopifyConnect(shop: Shop) {
     if (!shop.shopDomain) {
-      showToast("Önce mağaza domain'i ekle (örn: magaza.myshopify.com)", "error");
+      showToast(t("shops_error_domain_required"), "error");
       return;
     }
     setConnectingShopId(shop.id);
@@ -413,10 +413,10 @@ export default function ShopsPage() {
         { headers: authHeaders() }
       );
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Hata oluştu");
+      if (!res.ok) throw new Error(data.error || t("error_occurred"));
       window.location.href = data.url;
     } catch (err) {
-      showToast(err instanceof Error ? err.message : "Hata oluştu", "error");
+      showToast(err instanceof Error ? err.message : t("error_occurred"), "error");
       setConnectingShopId(null);
     }
   }
@@ -668,7 +668,7 @@ export default function ShopsPage() {
         ...prev,
         [shopId]: (prev[shopId] ?? []).filter((b) => b.postalCode !== postalCode),
       }));
-      showToast("Posta kodu engeli kaldırıldı", "info");
+      showToast(t("shops_toast_blocked_removed"), "info");
     } else {
       showToast(t("shops_toast_block_remove_error"), "error");
     }
@@ -745,11 +745,11 @@ export default function ShopsPage() {
                     </h2>
                     {shop.shopifyConnected ? (
                       <Badge tone="success">
-                        <CheckCircle2 size={11} aria-hidden /> Shopify bağlı
+                        <CheckCircle2 size={11} aria-hidden /> {t("shops_status_connected")}
                       </Badge>
                     ) : (
                       <Badge tone="warning">
-                        <AlertTriangle size={11} aria-hidden /> Bağlı değil
+                        <AlertTriangle size={11} aria-hidden /> {t("shops_status_disconnected")}
                       </Badge>
                     )}
                   </div>
@@ -763,7 +763,7 @@ export default function ShopsPage() {
                   {shop.shopifyConnected ? (
                     <Button size="sm" variant="secondary" onClick={() => handleShopifyConnect(shop)}>
                       <CheckCircle2 size={14} aria-hidden />
-                      Yeniden bağla
+                      {t("shops_reconnect")}
                     </Button>
                   ) : (
                     <Button
@@ -772,7 +772,7 @@ export default function ShopsPage() {
                       onClick={() => handleShopifyConnect(shop)}
                     >
                       <Link2 size={14} aria-hidden />
-                      {connectingShopId === shop.id ? "Yönlendiriliyor…" : "Shopify'a bağla"}
+                      {connectingShopId === shop.id ? t("shops_connecting") : t("shops_connect_action")}
                     </Button>
                   )}
                   <Button size="sm" variant="secondary" onClick={() => setGuideShop(shop)}>
@@ -819,10 +819,9 @@ export default function ShopsPage() {
                   />
                   <p className="text-[13px] text-[var(--color-fg-muted)]">
                     <span className="font-medium text-[var(--color-warning)]">
-                      Shopify bağlantısı yok
+                      {t("shops_warning_no_connection")}
                     </span>{" "}
-                    — siparişleri otomatik almak için &quot;Shopify&apos;a bağla&quot;ya
-                    tıkla.
+                    — {t("shops_warning_auto_orders")}
                   </p>
                 </div>
               )}
@@ -869,7 +868,7 @@ export default function ShopsPage() {
 
               {/* Notification channel */}
               <SectionRow
-                label="Bildirim kanalı"
+                label={t("shops_notification_channel")}
                 value={
                   <div className="flex flex-wrap gap-2">
                     {[
@@ -1137,7 +1136,7 @@ export default function ShopsPage() {
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="text-[11px] uppercase tracking-[0.06em] text-[var(--color-fg-muted)]">
-                      Engellenen posta kodları
+                      {t("shops_blocked_postal_codes")}
                     </p>
                     {!postalOpen[shop.id] && (
                       <p className="mt-1 text-[13px] text-[var(--color-fg-muted)]">
@@ -1212,12 +1211,12 @@ export default function ShopsPage() {
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <p className="text-[11px] uppercase tracking-[0.06em] text-[var(--color-fg-muted)]">
-                      Ön ödeme teşviki
+                      {t("shops_prepaid_incentive")}
                     </p>
                     <p className="mt-1 text-[13px] text-[var(--color-fg-muted)]">
                       {shop.prepaidEnabled
                         ? `Aktif · %${shop.prepaidDiscount} indirim`
-                        : "Kapalı"}
+                        : t("shops_prepaid_inactive")}
                     </p>
                   </div>
                   <div className="flex items-center gap-3">

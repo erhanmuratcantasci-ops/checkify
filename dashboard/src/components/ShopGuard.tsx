@@ -1,12 +1,14 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
+import { useTranslation } from '@/lib/i18n';
 
 const EXEMPT_PATHS = ['/shops', '/credits', '/pricing', '/profile', '/referral'];
 
 export default function ShopGuard() {
   const pathname = usePathname();
   const router = useRouter();
+  const { t } = useTranslation();
   const [show, setShow] = useState(false);
 
   useEffect(() => {
@@ -35,14 +37,14 @@ export default function ShopGuard() {
     }}>
       <span style={{ fontSize: 22 }}>🏪</span>
       <div style={{ flex: 1 }}>
-        <p style={{ color: '#fff', fontWeight: 700, margin: '0 0 2px', fontSize: 14 }}>Mağaza bağlı değil</p>
-        <p style={{ color: 'rgba(255,255,255,0.8)', margin: 0, fontSize: 13 }}>Sistemi kullanmak için bir Shopify mağazası bağlamalısınız.</p>
+        <p style={{ color: '#fff', fontWeight: 700, margin: '0 0 2px', fontSize: 14 }}>{t('guard_no_shop_title')}</p>
+        <p style={{ color: 'rgba(255,255,255,0.8)', margin: 0, fontSize: 13 }}>{t('guard_no_shop_desc')}</p>
       </div>
       <button
         onClick={() => { setShow(false); window.location.href = '/shops'; }}
         style={{ background: '#fff', color: '#92400e', border: 'none', borderRadius: 8, padding: '8px 16px', fontWeight: 700, fontSize: 13, cursor: 'pointer', whiteSpace: 'nowrap' }}
       >
-        Mağaza Ekle
+        {t('guard_add_shop')}
       </button>
     </div>
   );

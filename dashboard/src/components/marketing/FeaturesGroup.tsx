@@ -3,47 +3,50 @@
 import { MessageSquare, Store, ShieldCheck, Check, X } from "lucide-react";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { useTranslation } from "@/lib/i18n";
 import { FeatureSection } from "./FeatureSection";
 
 export function FeaturesGroup() {
+  const { t } = useTranslation();
   return (
     <div id="how-it-works">
       <FeatureSection
-        eyebrow="SMS doğrulama"
+        eyebrow={t("landing_feature_sms_eyebrow")}
         icon={MessageSquare}
-        title="Müşteri SMS'i okur, tek tıklamayla onaylar."
-        body="Her kapıda ödeme siparişinde müşteriye otomatik SMS gönderilir. Linke tıklayanlar saniyeler içinde onayını verir; vermeyenler kargoya çıkmadan elenir. WhatsApp da Pro planda."
+        title={t("landing_feature_sms_title")}
+        body={t("landing_feature_sms_body")}
         bullets={[
-          "6 haneli OTP destekli iki yol — link veya kod",
-          "SMS gönderim saatleri mağaza bazında ayarlanır",
-          "WhatsApp + SMS aynı anda Pro ve üzeri planlarda",
+          t("landing_feature_sms_bullet_1"),
+          t("landing_feature_sms_bullet_2"),
+          t("landing_feature_sms_bullet_3"),
         ]}
         visual={<SmsVisual />}
       />
 
       <FeatureSection
         reverse
-        eyebrow="Operasyonel kontrol"
+        eyebrow={t("landing_feature_ops_eyebrow")}
         icon={Store}
-        title="Bütün siparişler tek panelde. Net ve hızlı."
-        body="Sipariş geldiği anda durumunu takip et, manuel onayla, SMS yeniden gönder, ön ödeme linki üret. Birden fazla Shopify mağazasını tek hesaptan yönet."
+        title={t("landing_feature_ops_title")}
+        body={t("landing_feature_ops_body")}
         bullets={[
-          "Sınırsız mağaza yönetimi (Business plan)",
-          "Sipariş başına aksiyon: onayla / iptal et / SMS gönder",
-          "Detaylı SMS log + RTO analizi (Pro)",
+          t("landing_feature_ops_bullet_1"),
+          t("landing_feature_ops_bullet_2"),
+          t("landing_feature_ops_bullet_3"),
         ]}
         visual={<ConsoleVisual />}
       />
 
       <FeatureSection
-        eyebrow="Akıllı engelleme"
+        eyebrow={t("landing_feature_blocking_eyebrow")}
         icon={ShieldCheck}
-        title="Sahte siparişler senin değil, sistemin sorunu."
-        body="IP, telefon deseni, posta kodu, sipariş limiti — birden fazla kuralla şüpheli siparişleri otomatik elemine et. Bloklanan her sipariş tasarruf edilen bir SMS."
+        title={t("landing_feature_blocking_title")}
+        body={t("landing_feature_blocking_body")}
         bullets={[
-          "IP / IP aralığı, telefon regex, email alan adı kuralları",
-          "30 günlük telefon ve IP başına sipariş limiti",
-          "Bloklanan siparişler için detaylı analiz",
+          t("landing_feature_blocking_bullet_1"),
+          t("landing_feature_blocking_bullet_2"),
+          t("landing_feature_blocking_bullet_3"),
+          t("landing_feature_blocking_bullet_4"),
         ]}
         visual={<BlockingVisual />}
       />

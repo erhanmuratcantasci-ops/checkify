@@ -3,8 +3,10 @@
 import { useEffect } from 'react';
 import Link from 'next/link';
 import GeometricBackground from '@/components/GeometricBackground';
+import { useTranslation } from '@/lib/i18n';
 
 export default function Error({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
+  const { t } = useTranslation();
   useEffect(() => {
     console.error(error);
   }, [error]);
@@ -27,10 +29,10 @@ export default function Error({ error, reset }: { error: Error & { digest?: stri
           500
         </div>
         <h1 style={{ color: '#fff', fontSize: 24, fontWeight: 700, margin: '0 0 10px' }}>
-          Bir Hata Oluştu
+          {t('error_page_title')}
         </h1>
         <p style={{ color: '#6b7280', fontSize: 15, margin: '0 0 16px', maxWidth: 360, marginInline: 'auto' }}>
-          Beklenmeyen bir hata meydana geldi. Lütfen sayfayı yenileyerek tekrar deneyin.
+          {t('error_page_desc')}
         </p>
 
         {process.env.NODE_ENV === 'development' && error?.message && (
@@ -40,7 +42,7 @@ export default function Error({ error, reset }: { error: Error & { digest?: stri
             maxWidth: 480, marginInline: 'auto', textAlign: 'left',
           }}>
             <p style={{ color: '#6b7280', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.6px', margin: '0 0 6px' }}>
-              Hata Detayı (dev)
+              {t('error_dev_label')}
             </p>
             <code style={{ color: '#f87171', fontSize: 13, wordBreak: 'break-all' }}>{error.message}</code>
             {error.digest && (
@@ -56,7 +58,7 @@ export default function Error({ error, reset }: { error: Error & { digest?: stri
             color: '#fff', border: 'none', cursor: 'pointer',
             boxShadow: '0 4px 20px rgba(139,92,246,0.35)',
           }}>
-            Sayfayı Yenile
+            {t('error_reset')}
           </button>
           <Link href="/dashboard" style={{
             padding: '12px 24px', borderRadius: 10, fontSize: 14, fontWeight: 600,
@@ -64,7 +66,7 @@ export default function Error({ error, reset }: { error: Error & { digest?: stri
             border: '1px solid rgba(255,255,255,0.1)',
             color: '#d1d5db', textDecoration: 'none',
           }}>
-            Dashboard&apos;a Dön
+            {t('error_back_to_dashboard')}
           </Link>
         </div>
       </div>

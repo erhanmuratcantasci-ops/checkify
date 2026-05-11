@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { Check, X, Star, ArrowRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { useTranslation, type TranslationKey } from "@/lib/i18n";
 import { easeOut } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 
@@ -23,7 +24,8 @@ interface PlanConfig {
   shops: number;
   smsCreditsMonthly: number;
   features: string[];
-  label: string;
+  labelKey: 'landing_pricing_free_label' | null;
+  rawLabel: string | null;
 }
 
 const PLANS: Record<PlanType, PlanConfig> = {
@@ -33,7 +35,8 @@ const PLANS: Record<PlanType, PlanConfig> = {
     shops: 1,
     smsCreditsMonthly: 50,
     features: ["basic_sms"],
-    label: "Ücretsiz",
+    labelKey: "landing_pricing_free_label",
+    rawLabel: null,
   },
   STARTER: {
     price: 99,
@@ -41,7 +44,8 @@ const PLANS: Record<PlanType, PlanConfig> = {
     shops: 3,
     smsCreditsMonthly: 300,
     features: ["basic_sms", "otp", "pdf_invoice", "rate_limit_blocking"],
-    label: "Starter",
+    labelKey: null,
+    rawLabel: "Starter",
   },
   PRO: {
     price: 249,
@@ -59,7 +63,8 @@ const PLANS: Record<PlanType, PlanConfig> = {
       "rate_limit_blocking",
       "advanced_blocking",
     ],
-    label: "Pro",
+    labelKey: null,
+    rawLabel: "Pro",
   },
   BUSINESS: {
     price: 499,
@@ -78,19 +83,20 @@ const PLANS: Record<PlanType, PlanConfig> = {
       "advanced_blocking",
       "priority_support",
     ],
-    label: "Business",
+    labelKey: null,
+    rawLabel: "Business",
   },
 };
 
-const PLAN_FEATURES: Record<string, string> = {
-  basic_sms: "SMS doğrulama",
-  otp: "OTP kodu doğrulama",
-  pdf_invoice: "PDF fatura",
-  whatsapp: "WhatsApp bildirimi",
-  rto: "RTO analizi",
-  blocklist: "Telefon kara listesi",
-  postal_code: "Posta kodu engeli",
-  priority_support: "Öncelikli destek",
+const FEATURE_LABEL_KEYS: Record<string, TranslationKey> = {
+  basic_sms: "landing_pricing_feature_basic_sms",
+  otp: "landing_pricing_feature_otp",
+  pdf_invoice: "landing_pricing_feature_pdf_invoice",
+  whatsapp: "landing_pricing_feature_whatsapp",
+  rto: "landing_pricing_feature_rto",
+  blocklist: "landing_pricing_feature_blocklist",
+  postal_code: "landing_pricing_feature_postal_code",
+  priority_support: "landing_pricing_feature_priority_support",
 };
 
 const FEATURE_ORDER = [
@@ -115,7 +121,16 @@ function formatCurrency(value: number) {
 }
 
 export function MarketingPricing() {
+  const { t } = useTranslation();
   const [billing, setBilling] = useState<"monthly" | "yearly">("monthly");
+
+  const planLabel = useMemo(
+    () => (key: PlanType): string => {
+      const cfg = PLANS[key];
+      return cfg.labelKey ? t(cfg.labelKey) : (cfg.rawLabel ?? "");
+    },
+    [t],
+  );
 
   return (
     <motion.section
@@ -125,11 +140,11 @@ export function MarketingPricing() {
       viewport={{ once: true, amount: 0.2 }}
       transition={{ duration: 0.45, ease: easeOut }}
       className="py-24 md:py-32"
-      aria-label="Fiyatlandırma"
+      aria-label={t("nav_pricing")}
     >
       <header className="mb-12 text-center">
         <p className="mb-3 text-[12px] uppercase tracking-[0.08em] text-[var(--color-accent)]">
-          Fiyatlandırma
+          {t("nav_pricing")}
         </p>
         <h2
           className="mx-auto max-w-[680px] text-[var(--color-fg)]"
@@ -141,10 +156,10 @@ export function MarketingPricing() {
             margin: 0,
           }}
         >
-          İşine uygun planı seç.
+          {t("landing_pricing_heading")}
         </h2>
         <p className="mt-4 text-[16px] text-[var(--color-fg-muted)]">
-          14 gün ücretsiz dene. Kredi kartı gerekmez.
+          {t("landing_pricing_subhead")}
         </p>
 
         <div className="mt-7 inline-flex gap-1 rounded-[var(--radius-full)] border border-[var(--color-border)] bg-[var(--color-bg-elevated)] p-1">
@@ -162,8 +177,8 @@ export function MarketingPricing() {
                     : "text-[var(--color-fg-muted)] hover:text-[var(--color-fg)]"
                 )}
               >
-                {cycle === "monthly" ? "Aylık" : "Yıllık"}
-                {cycle === "yearly" && <Badge tone="success">%20 indirim</Badge>}
+                {cycle === "monthly" ? t("landing_pricing_monthly") : t("landing_pricing_yearly")}
+                {cycle === "yearly" && <Badge tone="success">{t("pricing_yearly_discount")}</Badge>}
               </button>
             );
           })}
@@ -191,13 +206,13 @@ export function MarketingPricing() {
                   aria-hidden
                   className="absolute -top-3 left-1/2 inline-flex -translate-x-1/2 items-center gap-1 rounded-[var(--radius-full)] bg-[var(--color-accent)] px-3 py-1 text-[11px] font-medium text-[var(--color-accent-fg)]"
                 >
-                  <Star size={11} aria-hidden /> En popüler
+                  <Star size={11} aria-hidden /> {t("pricing_most_popular")}
                 </span>
               )}
 
               <div className="mb-4">
                 <p className="text-[11px] uppercase tracking-[0.06em] text-[var(--color-accent)]">
-                  {config.label}
+                  {planLabel(planKey)}
                 </p>
                 <div className="mt-2 flex items-baseline gap-1">
                   <span
@@ -209,25 +224,25 @@ export function MarketingPricing() {
                       lineHeight: 1.05,
                     }}
                   >
-                    {price === 0 ? "Ücretsiz" : formatCurrency(price)}
+                    {price === 0 ? t("landing_pricing_free_label") : formatCurrency(price)}
                   </span>
                   {price > 0 && (
                     <span className="text-[13px] text-[var(--color-fg-muted)]">
-                      /{billing === "monthly" ? "ay" : "yıl"}
+                      /{billing === "monthly" ? t("landing_pricing_period_month") : t("landing_pricing_period_year")}
                     </span>
                   )}
                 </div>
                 {billing === "yearly" && price > 0 && (
                   <p className="mt-1 text-[12px] text-[var(--color-fg-faint)]">
-                    Normalde {formatCurrency(config.price)}/ay
+                    {t("pricing_normally_label").replace("{price}", formatCurrency(config.price))}
                   </p>
                 )}
               </div>
 
               <div className="mb-4 space-y-1.5 border-b border-[var(--color-border)] pb-4 text-[13px] text-[var(--color-fg-muted)]">
-                <p>{config.shops === -1 ? "Sınırsız" : config.shops} mağaza</p>
+                <p>{config.shops === -1 ? t("pricing_unlimited") : config.shops} {t("pricing_shops_label")}</p>
                 <p className="tabular-nums">
-                  {config.smsCreditsMonthly.toLocaleString("tr-TR")} SMS/ay
+                  {config.smsCreditsMonthly.toLocaleString("tr-TR")} {t("pricing_sms_monthly_label")}
                 </p>
               </div>
 
@@ -257,7 +272,7 @@ export function MarketingPricing() {
                           className="shrink-0 text-[var(--color-fg-faint)]"
                         />
                       )}
-                      {PLAN_FEATURES[feat]}
+                      {FEATURE_LABEL_KEYS[feat] ? t(FEATURE_LABEL_KEYS[feat]) : feat}
                     </li>
                   );
                 })}
@@ -272,7 +287,7 @@ export function MarketingPricing() {
                     : "border border-[var(--color-border-strong)] text-[var(--color-fg)] hover:bg-[var(--color-surface-hover)]"
                 )}
               >
-                {planKey === "FREE" ? "Hemen başla" : "Bu plana başla"}
+                {planKey === "FREE" ? t("landing_pricing_btn_free") : t("landing_pricing_btn_paid")}
                 <ArrowRight size={14} aria-hidden />
               </Link>
             </div>

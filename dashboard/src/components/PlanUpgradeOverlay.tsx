@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Lock, Check, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useTranslation } from "@/lib/i18n";
 import { easeOut } from "@/lib/motion";
 
 interface PlanCard {
@@ -50,6 +51,7 @@ interface Props {
 
 export default function PlanUpgradeOverlay({ featureName, requiredPlan }: Props) {
   const router = useRouter();
+  const { t } = useTranslation();
 
   const planOrder = ["STARTER", "PRO", "BUSINESS"];
   const startIdx = requiredPlan ? planOrder.indexOf(requiredPlan) : 0;
@@ -81,16 +83,23 @@ export default function PlanUpgradeOverlay({ featureName, requiredPlan }: Props)
             margin: 0,
           }}
         >
-          Bu özellik planında mevcut değil
+          {t("upgrade_title")}
         </h2>
         <p className="mx-auto mt-3 max-w-md text-[14px] leading-relaxed text-[var(--color-fg-muted)]">
           {featureName ? (
-            <>
-              <strong className="text-[var(--color-fg)]">{featureName}</strong> özelliğini
-              kullanmak için planını yükselt.
-            </>
+            (() => {
+              const template = t("upgrade_with_feature");
+              const [before, after] = template.split("{featureName}");
+              return (
+                <>
+                  {before}
+                  <strong className="text-[var(--color-fg)]">{featureName}</strong>
+                  {after}
+                </>
+              );
+            })()
           ) : (
-            "Bu özelliği kullanmak için planını yükselt."
+            t("upgrade_generic")
           )}
         </p>
 
@@ -148,7 +157,7 @@ export default function PlanUpgradeOverlay({ featureName, requiredPlan }: Props)
 
         <div className="mt-7 flex flex-col items-center gap-3">
           <Button size="lg" onClick={() => router.push("/pricing")}>
-            Planı yükselt
+            {t("upgrade_button")}
             <ArrowRight size={16} aria-hidden />
           </Button>
           <button
@@ -156,7 +165,7 @@ export default function PlanUpgradeOverlay({ featureName, requiredPlan }: Props)
             onClick={() => router.push("/dashboard")}
             className="text-[13px] text-[var(--color-fg-muted)] underline underline-offset-4 transition-colors hover:text-[var(--color-fg)]"
           >
-            Şimdilik kapat
+            {t("upgrade_close")}
           </button>
         </div>
       </motion.div>

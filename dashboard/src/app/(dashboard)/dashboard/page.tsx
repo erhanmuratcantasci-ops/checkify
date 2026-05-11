@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Inbox, Store as StoreIcon, ArrowRight } from "lucide-react";
@@ -41,16 +41,6 @@ interface Shop {
   name: string;
   shopDomain?: string | null;
 }
-
-const STATUS_LABEL: Record<string, string> = {
-  PENDING: "Bekliyor",
-  CONFIRMED: "Onaylandı",
-  PREPARING: "Hazırlanıyor",
-  SHIPPED: "Kargoda",
-  DELIVERED: "Teslim edildi",
-  CANCELLED: "İptal",
-  BLOCKED: "Engellendi",
-};
 
 const STATUS_TONE: Record<string, "success" | "warning" | "danger" | "info" | "neutral"> = {
   PENDING: "warning",
@@ -134,6 +124,19 @@ export default function DashboardPage() {
 
   const firstName = user?.name?.split(" ")[0];
 
+  const statusLabel = useMemo<Record<string, string>>(
+    () => ({
+      PENDING: t("orders_status_pending"),
+      CONFIRMED: t("orders_status_confirmed"),
+      PREPARING: t("orders_status_preparing"),
+      SHIPPED: t("orders_status_shipped"),
+      DELIVERED: t("orders_status_delivered"),
+      CANCELLED: t("orders_status_cancelled"),
+      BLOCKED: t("orders_status_blocked"),
+    }),
+    [t],
+  );
+
   return (
     <div className="mx-auto w-full max-w-[1100px] px-6 py-8 md:px-10 md:py-10">
       <header className="mb-8">
@@ -146,10 +149,10 @@ export default function DashboardPage() {
             margin: 0,
           }}
         >
-          Genel bakış
+          {t("dash_overview_title")}
         </h1>
         <p className="mt-1 text-[14px] text-[var(--color-fg-muted)]">
-          {firstName ? `Merhaba ${firstName}, ` : ""}işletmenin durumuna kısa bir bakış.
+          {firstName ? `${t("dash_welcome")} ${firstName}, ` : ""}{t("dash_overview_subtitle")}
         </p>
       </header>
 
@@ -158,40 +161,40 @@ export default function DashboardPage() {
         className="mb-8 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4"
       >
         <MetricCard
-          label="Bugünkü ciro"
+          label={t("dash_metric_today_revenue")}
           value={loading ? "—" : formatCurrency(todayRevenue)}
-          hint={`${stats?.todayOrders ?? 0} sipariş`}
+          hint={`${stats?.todayOrders ?? 0} ${t("nav_orders").toLowerCase()}`}
         />
         <MetricCard
-          label="Onaylanan sipariş"
+          label={t("dash_metric_confirmed_orders")}
           value={loading ? "—" : confirmed.toLocaleString("tr-TR")}
           delta={total > 0 ? `%${confirmRate}` : undefined}
           deltaTone="success"
         />
         <MetricCard
-          label="Bekleyen onay"
+          label={t("dash_metric_pending_approval")}
           value={loading ? "—" : pending.toLocaleString("tr-TR")}
           deltaTone={pending > 0 ? "warning" : "neutral"}
-          delta={pending > 0 ? "aksiyon" : undefined}
+          delta={pending > 0 ? t("dash_metric_action_needed") : undefined}
         />
         <MetricCard
-          label="İptal oranı"
+          label={t("landing_mockup_metric_cancel_rate")}
           value={loading ? "—" : `%${cancelRate}`}
           delta={cancelled > 0 ? cancelled.toLocaleString("tr-TR") : undefined}
           deltaTone={cancelRate > 20 ? "danger" : "neutral"}
-          hint={cancelRate > 20 ? "Yüksek iptal oranı" : undefined}
+          hint={cancelRate > 20 ? t("dash_metric_high_cancel_rate") : undefined}
         />
       </section>
 
       <section className="mb-6">
         <Card className="p-0">
           <CardHeader className="px-6 pt-5">
-            <CardTitle>Son siparişler</CardTitle>
+            <CardTitle>{t("dash_recent_orders")}</CardTitle>
             <Link
               href="/orders"
               className="inline-flex items-center gap-1 text-[13px] font-medium text-[var(--color-accent)] transition-colors hover:text-[var(--color-accent-hover)]"
             >
-              Hepsini gör <ArrowRight size={14} aria-hidden />
+              {t("orders_all")} <ArrowRight size={14} aria-hidden />
             </Link>
           </CardHeader>
 
@@ -202,18 +205,18 @@ export default function DashboardPage() {
           ) : recent.length === 0 ? (
             <EmptyState
               icon={Inbox}
-              title="Henüz sipariş yok"
-              description="İlk siparişin geldiğinde burada görünecek."
+              title={t("dash_empty_no_orders")}
+              description={t("dash_empty_orders_hint")}
             />
           ) : (
             <Table>
               <THead>
                 <TR className="hover:bg-transparent">
-                  <TH>Müşteri</TH>
-                  <TH>Telefon</TH>
-                  <TH className="text-right">Tutar</TH>
-                  <TH>Durum</TH>
-                  <TH>Tarih</TH>
+                  <TH>{t("orders_col_customer")}</TH>
+                  <TH>{t("orders_col_phone")}</TH>
+                  <TH className="text-right">{t("orders_col_total")}</TH>
+                  <TH>{t("orders_col_status")}</TH>
+                  <TH>{t("orders_col_date")}</TH>
                 </TR>
               </THead>
               <TBody>
@@ -230,7 +233,7 @@ export default function DashboardPage() {
                     <TD className="text-right tabular-nums">{formatCurrency(o.total)}</TD>
                     <TD>
                       <Badge tone={STATUS_TONE[o.status] ?? "neutral"}>
-                        {STATUS_LABEL[o.status] ?? o.status}
+                        {statusLabel[o.status] ?? o.status}
                       </Badge>
                     </TD>
                     <TD className="text-[var(--color-fg-muted)] tabular-nums">
@@ -247,12 +250,12 @@ export default function DashboardPage() {
       <section>
         <Card>
           <CardHeader>
-            <CardTitle>Mağazalar</CardTitle>
+            <CardTitle>{t("dash_shops_section")}</CardTitle>
             <Link
               href="/shops"
               className="inline-flex items-center gap-1 text-[13px] font-medium text-[var(--color-accent)] transition-colors hover:text-[var(--color-accent-hover)]"
             >
-              Yönet <ArrowRight size={14} aria-hidden />
+              {t("manage")} <ArrowRight size={14} aria-hidden />
             </Link>
           </CardHeader>
 
@@ -261,14 +264,14 @@ export default function DashboardPage() {
           ) : shops.length === 0 ? (
             <EmptyState
               icon={StoreIcon}
-              title="Mağaza eklenmemiş"
-              description="Shopify mağazanı bağlayarak başla."
+              title={t("dash_empty_shops_title")}
+              description={t("dash_empty_shops_hint")}
               action={
                 <Link
                   href="/shops"
                   className="inline-flex h-11 items-center justify-center rounded-[var(--radius-md)] bg-[var(--color-accent)] px-5 text-[14px] font-medium text-[var(--color-accent-fg)] hover:bg-[var(--color-accent-hover)]"
                 >
-                  Mağaza ekle
+                  {t("dash_add_shop_cta")}
                 </Link>
               }
             />
@@ -289,7 +292,7 @@ export default function DashboardPage() {
                       </p>
                     )}
                   </div>
-                  <Badge tone="success">Bağlı</Badge>
+                  <Badge tone="success">{t("dash_shop_connected")}</Badge>
                 </li>
               ))}
             </ul>

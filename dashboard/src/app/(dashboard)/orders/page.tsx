@@ -96,17 +96,17 @@ function OrderModal({
   const STATUS_LABELS: Record<string, string> = {
     PENDING: t("orders_status_pending"),
     CONFIRMED: t("orders_status_confirmed"),
-    PREPARING: "Hazırlanıyor",
-    SHIPPED: "Kargoda",
-    DELIVERED: "Teslim edildi",
+    PREPARING: t("orders_status_preparing"),
+    SHIPPED: t("orders_status_shipped"),
+    DELIVERED: t("orders_status_delivered"),
     CANCELLED: t("orders_status_cancelled"),
   };
 
   const STATUS_ACTIONS: { label: string; status: string; tone: StatusTone }[] = [
     { label: t("orders_confirm_action"), status: "CONFIRMED", tone: "success" },
-    { label: "Hazırlanıyor", status: "PREPARING", tone: "info" },
-    { label: "Kargoya verildi", status: "SHIPPED", tone: "info" },
-    { label: "Teslim edildi", status: "DELIVERED", tone: "success" },
+    { label: t("orders_action_prepare"), status: "PREPARING", tone: "info" },
+    { label: t("orders_action_ship"), status: "SHIPPED", tone: "info" },
+    { label: t("orders_action_deliver"), status: "DELIVERED", tone: "success" },
     { label: t("orders_cancel_action"), status: "CANCELLED", tone: "danger" },
   ];
 
@@ -138,7 +138,7 @@ function OrderModal({
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || t("error_occurred"));
-      showToast("SMS kuyruğa eklendi", "success");
+      showToast(t("orders_toast_sms_queued"), "success");
     } catch (err) {
       showToast(err instanceof Error ? err.message : t("error_occurred"), "error");
     } finally {
@@ -179,7 +179,7 @@ function OrderModal({
             variant="ghost"
             size="sm"
             onClick={onClose}
-            aria-label="Kapat"
+            aria-label={t("close")}
             className="h-9 w-9 px-0"
           >
             <X size={16} aria-hidden />
@@ -193,10 +193,10 @@ function OrderModal({
             </p>
             <dl className="grid grid-cols-2 gap-3">
               {[
-                ["Ad soyad", order.customerName],
+                [t("orders_detail_name"), order.customerName],
                 [t("orders_detail_phone"), order.customerPhone],
                 [t("orders_detail_total"), formatCurrency(order.total)],
-                ["Mağaza", order.shop?.name || "—"],
+                [t("orders_detail_shop"), order.shop?.name || "—"],
               ].map(([label, value]) => (
                 <div key={label}>
                   <dt className="text-[12px] text-[var(--color-fg-muted)]">{label}</dt>
@@ -210,7 +210,7 @@ function OrderModal({
 
           <section>
             <p className="mb-3 text-[11px] uppercase tracking-[0.06em] text-[var(--color-fg-muted)]">
-              Sipariş bilgileri
+              {t("orders_modal_info_section")}
             </p>
             <div className="grid grid-cols-2 gap-3">
               <div>
@@ -242,7 +242,7 @@ function OrderModal({
 
           <section>
             <p className="mb-3 text-[11px] uppercase tracking-[0.06em] text-[var(--color-fg-muted)]">
-              Durumu güncelle
+              {t("orders_modal_update_status")}
             </p>
             <div className="flex flex-wrap gap-2">
               {STATUS_ACTIONS.filter((a) => a.status !== order.status).map((a) => (
@@ -269,17 +269,17 @@ function OrderModal({
               onClick={handleResendSMS}
             >
               <RefreshCcw size={16} aria-hidden />
-              SMS yeniden gönder
+              {t("orders_resend_sms")}
             </Button>
           )}
 
           <section>
             <p className="mb-3 text-[11px] uppercase tracking-[0.06em] text-[var(--color-fg-muted)]">
-              SMS logları
+              {t("orders_sms_logs")}
             </p>
             {order.smsLogs.length === 0 ? (
               <p className="text-[13px] text-[var(--color-fg-faint)]">
-                Henüz SMS gönderilmedi.
+                {t("orders_empty_sms_logs")}
               </p>
             ) : (
               <ul className="flex flex-col gap-2">
@@ -304,7 +304,7 @@ function OrderModal({
                               : "text-[var(--color-danger)]"
                           )}
                         >
-                          {sent ? "Gönderildi" : "Başarısız"}
+                          {sent ? t("orders_sms_status_sent") : t("orders_sms_status_failed")}
                         </span>
                         <span className="text-[var(--color-fg-faint)]">
                           {formatDate(log.createdAt)}
@@ -358,9 +358,9 @@ export default function OrdersPage() {
   const STATUS_LABELS: Record<string, string> = {
     PENDING: t("orders_status_pending"),
     CONFIRMED: t("orders_status_confirmed"),
-    PREPARING: "Hazırlanıyor",
-    SHIPPED: "Kargoda",
-    DELIVERED: "Teslim edildi",
+    PREPARING: t("orders_status_preparing"),
+    SHIPPED: t("orders_status_shipped"),
+    DELIVERED: t("orders_status_delivered"),
     CANCELLED: t("orders_status_cancelled"),
   };
 
@@ -467,7 +467,7 @@ export default function OrdersPage() {
             <button
               type="button"
               onClick={() => setSearch("")}
-              aria-label="Temizle"
+              aria-label={t("common_clear")}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-fg-muted)] hover:text-[var(--color-fg)]"
             >
               <X size={14} aria-hidden />
@@ -558,7 +558,7 @@ export default function OrdersPage() {
                         }}
                       >
                         <CreditCard size={14} aria-hidden />
-                        Ön ödeme linki
+                        {t("orders_prepaid_link")}
                       </Button>
                     )}
                   </div>
@@ -578,7 +578,7 @@ export default function OrdersPage() {
                 <TH className="text-right">{t("orders_col_total")}</TH>
                 <TH>{t("orders_col_status")}</TH>
                 <TH>{t("orders_col_date")}</TH>
-                <TH className="text-right">Aksiyon</TH>
+                <TH className="text-right">{t("orders_col_action")}</TH>
               </TR>
             </THead>
             <TBody>
@@ -610,7 +610,7 @@ export default function OrdersPage() {
                           loading={isLoadingThis}
                           onClick={() => openDetail(order.id)}
                         >
-                          Detay
+                          {t("orders_detail_button")}
                         </Button>
                         {order.status === "PENDING" &&
                           (prepaidUrls[order.id] ? (
@@ -625,7 +625,7 @@ export default function OrdersPage() {
                               onClick={() => getPrepaidLink(order.id)}
                             >
                               <CreditCard size={14} aria-hidden />
-                              Ön ödeme
+                              {t("orders_prepaid")}
                             </Button>
                           ))}
                       </div>

@@ -6,6 +6,7 @@ import { ToastProvider } from "@/components/Toast";
 import NextAuthProvider from "@/components/NextAuthProvider";
 import { LanguageProvider } from "@/lib/i18n";
 import { SmoothScroll } from "@/components/SmoothScroll";
+import SkipLink from "@/components/SkipLink";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://chekkify.com";
 
@@ -84,11 +85,9 @@ export default function RootLayout({
   return (
     <html lang="tr" className={`${GeistSans.variable} ${GeistMono.variable}`}>
       <body className={GeistSans.className}>
-        <a href="#main-content" className="skip-link">
-          İçeriğe atla
-        </a>
         <NextAuthProvider>
           <LanguageProvider>
+            <SkipLink />
             <ToastProvider>
               <SmoothScroll />
               {children}

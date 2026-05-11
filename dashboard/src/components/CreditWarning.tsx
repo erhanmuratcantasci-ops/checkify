@@ -2,11 +2,13 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useTranslation } from '@/lib/i18n';
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
 const WARN_THRESHOLD = 10;
 
 export default function CreditWarning() {
+  const { t } = useTranslation();
   const [credits, setCredits] = useState<number | null>(null);
 
   useEffect(() => {
@@ -32,15 +34,15 @@ export default function CreditWarning() {
       <span style={{ fontSize: 15 }}>{isZero ? '🚫' : '⚠️'}</span>
       <span style={{ color: isZero ? '#fca5a5' : '#fcd34d', fontSize: 13, fontWeight: 500 }}>
         {isZero
-          ? 'SMS krediniz tükendi! Yeni siparişlere SMS gönderilemez.'
-          : `Krediniz azalıyor! ${credits} SMS krediniz kaldı.`}
+          ? t('credit_warning_zero')
+          : t('credit_warning_low').replace('{count}', String(credits))}
       </span>
       <Link href="/credits" style={{
         color: isZero ? '#f87171' : '#fbbf24',
         fontSize: 13, fontWeight: 700, textDecoration: 'none',
         borderBottom: `1px solid ${isZero ? 'rgba(248,113,113,0.4)' : 'rgba(251,191,36,0.4)'}`,
       }}>
-        Kredi satın al →
+        {t('credit_warning_buy')}
       </Link>
     </div>
   );

@@ -142,7 +142,7 @@ export default function ProfilePage() {
       setTwoFAEnabled(false);
       setTwoFAStep("idle");
       setTwoFAToken("");
-      setTwoFAMsg("2FA devre dışı bırakıldı");
+      setTwoFAMsg(t("profile_2fa_disabled_toast"));
     } else setTwoFAMsg(data.error ?? "Hata");
     setTwoFALoading(false);
   }
@@ -396,14 +396,10 @@ export default function ProfilePage() {
 
           <Card className="mb-4">
             <CardHeader>
-              <CardTitle>Referral programı</CardTitle>
+              <CardTitle>{t("profile_referral_title")}</CardTitle>
             </CardHeader>
             <p className="mb-4 text-[13px] leading-relaxed text-[var(--color-fg-muted)]">
-              Davet kodunu paylaş — her yeni üye için sen ve arkadaşın{" "}
-              <span className="font-medium text-[var(--color-accent)]">
-                50&apos;şer SMS kredisi
-              </span>{" "}
-              kazanırsın.
+              {t("profile_referral_desc")}
             </p>
             <div className="mb-4 flex items-center gap-2">
               <div className="flex-1 rounded-[var(--radius-md)] border border-[var(--color-accent)]/20 bg-[var(--color-accent-faded)] px-4 py-3 text-center font-mono text-[16px] font-medium tracking-[3px] text-[var(--color-accent)]">
@@ -411,12 +407,12 @@ export default function ProfilePage() {
               </div>
               <Button size="md" variant="secondary" onClick={copyReferral}>
                 {referralCopied ? <Check size={14} aria-hidden /> : <Copy size={14} aria-hidden />}
-                {referralCopied ? "Kopyalandı" : "Kopyala"}
+                {referralCopied ? t("copied") : t("copy")}
               </Button>
             </div>
             <div className="rounded-[var(--radius-md)] bg-[var(--color-surface)] px-3 py-2.5">
               <p className="text-[11px] uppercase tracking-[0.06em] text-[var(--color-fg-muted)]">
-                Davet ettiğin kişi
+                {t("profile_referral_count_label")}
               </p>
               <p className="mt-1 text-[22px] font-medium text-[var(--color-fg)] tabular-nums">
                 {user?.referredCount ?? 0}
@@ -426,23 +422,21 @@ export default function ProfilePage() {
 
           <Card className="mb-4">
             <CardHeader>
-              <CardTitle>İki faktörlü doğrulama</CardTitle>
+              <CardTitle>{t("profile_2fa_title")}</CardTitle>
               {twoFAEnabled ? (
                 <Badge tone="success">
-                  <ShieldCheck size={11} aria-hidden /> Aktif
+                  <ShieldCheck size={11} aria-hidden /> {t("profile_2fa_active")}
                 </Badge>
               ) : (
                 <Badge tone="neutral">
-                  <ShieldAlert size={11} aria-hidden /> Devre dışı
+                  <ShieldAlert size={11} aria-hidden /> {t("profile_2fa_disabled")}
                 </Badge>
               )}
             </CardHeader>
 
             <div className="flex flex-wrap items-center justify-between gap-3">
               <p className="text-[13px] text-[var(--color-fg-muted)]">
-                {twoFAEnabled
-                  ? "Hesabın iki faktörlü doğrulama ile korunuyor."
-                  : "Google Authenticator ile hesabını güvende tut."}
+                {twoFAEnabled ? t("profile_2fa_enabled_desc") : t("profile_2fa_disabled_desc")}
               </p>
               {twoFAStep === "idle" && (
                 <Button
@@ -452,7 +446,7 @@ export default function ProfilePage() {
                   onClick={twoFAEnabled ? () => setTwoFAStep("disable") : setup2FA}
                   className={twoFAEnabled ? "text-[var(--color-danger)] hover:bg-[var(--color-danger)]/[0.08]" : ""}
                 >
-                  {twoFAEnabled ? "Devre dışı bırak" : "2FA kur"}
+                  {twoFAEnabled ? t("profile_2fa_disable_btn") : t("profile_2fa_setup_btn")}
                 </Button>
               )}
             </div>
@@ -473,8 +467,7 @@ export default function ProfilePage() {
             {twoFAStep === "setup" && qrCode && (
               <div className="mt-4">
                 <p className="mb-3 text-[13px] text-[var(--color-fg-muted)]">
-                  Google Authenticator uygulamasıyla QR kodu okut, ardından üretilen 6
-                  haneli kodu gir.
+                  {t("profile_2fa_setup_instructions")}
                 </p>
                 <img
                   src={qrCode}
@@ -488,7 +481,7 @@ export default function ProfilePage() {
                     maxLength={6}
                     value={twoFAToken}
                     onChange={(e) => setTwoFAToken(e.target.value.replace(/\D/g, ""))}
-                    placeholder="6 haneli kod"
+                    placeholder={t("profile_2fa_code_placeholder")}
                     className="flex-1 min-w-[160px] tracking-[6px] text-center text-[18px] font-medium"
                   />
                   <Button
@@ -496,7 +489,7 @@ export default function ProfilePage() {
                     disabled={twoFAToken.length !== 6}
                     loading={twoFALoading}
                   >
-                    Doğrula
+                    {t("profile_2fa_verify")}
                   </Button>
                   <Button
                     variant="ghost"
@@ -506,7 +499,7 @@ export default function ProfilePage() {
                       setTwoFAToken("");
                     }}
                   >
-                    İptal
+                    {t("cancel")}
                   </Button>
                 </div>
               </div>
@@ -515,7 +508,7 @@ export default function ProfilePage() {
             {twoFAStep === "disable" && (
               <div className="mt-4">
                 <p className="mb-3 text-[13px] text-[var(--color-fg-muted)]">
-                  2FA&apos;yı devre dışı bırakmak için authenticator uygulamasındaki kodu gir.
+                  {t("profile_2fa_disable_instructions")}
                 </p>
                 <div className="flex flex-wrap gap-2">
                   <Input
@@ -524,7 +517,7 @@ export default function ProfilePage() {
                     maxLength={6}
                     value={twoFAToken}
                     onChange={(e) => setTwoFAToken(e.target.value.replace(/\D/g, ""))}
-                    placeholder="6 haneli kod"
+                    placeholder={t("profile_2fa_code_placeholder")}
                     invalid
                     className="flex-1 min-w-[160px] tracking-[6px] text-center text-[18px] font-medium"
                   />
@@ -534,7 +527,7 @@ export default function ProfilePage() {
                     loading={twoFALoading}
                     className="bg-[var(--color-danger)] hover:bg-[var(--color-danger)]/85 text-white"
                   >
-                    Kapat
+                    {t("profile_2fa_close")}
                   </Button>
                   <Button
                     variant="ghost"
@@ -543,7 +536,7 @@ export default function ProfilePage() {
                       setTwoFAToken("");
                     }}
                   >
-                    İptal
+                    {t("cancel")}
                   </Button>
                 </div>
               </div>
