@@ -1,4 +1,4 @@
-import { Router, Request, Response } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import prisma from '../lib/prisma';
@@ -13,6 +13,14 @@ import * as speakeasy from 'speakeasy';
 import * as qrcode from 'qrcode';
 
 const router = Router();
+
+// asyncHandler — uncaught promise rejection'ı next(err)'a yönlendirir,
+// global error handler (index.ts) JSON 500 dönsün. Her async handler bunu kullanmalı.
+type AsyncHandler<R extends Request = Request> = (req: R, res: Response, next: NextFunction) => Promise<unknown>;
+const asyncHandler = <R extends Request = Request>(fn: AsyncHandler<R>) =>
+  (req: R, res: Response, next: NextFunction): void => {
+    Promise.resolve(fn(req, res, next)).catch(next);
+  };
 
 
 // IP başına kayıt sayacı (in-memory, production için Redis kullan)
@@ -44,7 +52,7 @@ const loginSchema = z.object({
 });
 
 // POST /auth/register
-router.post('/register', async (req: Request, res: Response): Promise<void> => {
+router.post('/register', asyncHandler(async (req: Request, res: Response): Promise<void> => {
   const parsed = registerSchema.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.issues[0].message });
@@ -115,10 +123,10 @@ router.post('/register', async (req: Request, res: Response): Promise<void> => {
     .catch(err => console.error('[auth] Welcome email gönderilemedi:', err));
 
   res.status(201).json({ user, token, refreshToken: refreshTokenValue });
-});
+}));
 
 // POST /auth/google — Google OAuth ile giriş/kayıt
-router.post('/google', async (req: Request, res: Response): Promise<void> => {
+router.post('/google', asyncHandler(async (req: Request, res: Response): Promise<void> => {
   const { email, name } = req.body as { email?: string; name?: string };
 
   if (!email) {
@@ -142,10 +150,10 @@ router.post('/google', async (req: Request, res: Response): Promise<void> => {
   const token = jwt.sign({ userId: user.id }, process.env['JWT_SECRET']!, { expiresIn: '24h' });
 
   res.json({ token, user: { id: user.id, email: user.email, name: user.name } });
-});
+}));
 
 // POST /auth/login
-router.post('/login', async (req: Request, res: Response): Promise<void> => {
+router.post('/login', asyncHandler(async (req: Request, res: Response): Promise<void> => {
   const parsed = loginSchema.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.issues[0].message });
@@ -200,10 +208,10 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
     token,
     refreshToken: refreshTokenValue,
   });
-});
+}));
 
 // GET /auth/me
-router.get('/me', authenticate, async (req: AuthRequest, res: Response): Promise<void> => {
+router.get('/me', authenticate, asyncHandler<AuthRequest>(async (req: AuthRequest, res: Response): Promise<void> => {
   const user = await prisma.user.findUnique({
     where: { id: req.userId },
     select: { id: true, email: true, name: true, smsCredits: true, whatsappCredits: true, createdAt: true, lastLoginAt: true, referralCode: true, twoFactorEnabled: true, plan: true, planExpiresAt: true, billingCycle: true, _count: { select: { referredUsers: true } } },
@@ -215,10 +223,10 @@ router.get('/me', authenticate, async (req: AuthRequest, res: Response): Promise
   }
 
   res.json({ user: { ...user, referredCount: user._count.referredUsers, _count: undefined } });
-});
+}));
 
 // PATCH /auth/me
-router.patch('/me', authenticate, async (req: AuthRequest, res: Response): Promise<void> => {
+router.patch('/me', authenticate, asyncHandler<AuthRequest>(async (req: AuthRequest, res: Response): Promise<void> => {
   const { name, email, currentPassword, newPassword } = req.body as {
     name?: string;
     email?: string;
@@ -265,10 +273,10 @@ router.patch('/me', authenticate, async (req: AuthRequest, res: Response): Promi
   });
 
   res.json({ user });
-});
+}));
 
 // DELETE /auth/me
-router.delete('/me', authenticate, async (req: AuthRequest, res: Response): Promise<void> => {
+router.delete('/me', authenticate, asyncHandler<AuthRequest>(async (req: AuthRequest, res: Response): Promise<void> => {
   const { password } = req.body as { password?: string };
 
   if (!password) {
@@ -294,10 +302,10 @@ router.delete('/me', authenticate, async (req: AuthRequest, res: Response): Prom
   await prisma.user.delete({ where: { id: req.userId } });
 
   res.json({ success: true });
-});
+}));
 
 // POST /auth/forgot-password
-router.post('/forgot-password', async (req: Request, res: Response): Promise<void> => {
+router.post('/forgot-password', asyncHandler(async (req: Request, res: Response): Promise<void> => {
   const { email } = req.body as { email?: string };
   if (!email) { res.status(400).json({ error: 'Email gerekli' }); return; }
 
@@ -322,10 +330,10 @@ router.post('/forgot-password', async (req: Request, res: Response): Promise<voi
     .catch(err => console.error('[auth] Reset email gönderilemedi:', err));
 
   res.json({ message: 'Eğer bu email kayıtlıysa sıfırlama linki gönderildi' });
-});
+}));
 
 // POST /auth/reset-password
-router.post('/reset-password', async (req: Request, res: Response): Promise<void> => {
+router.post('/reset-password', asyncHandler(async (req: Request, res: Response): Promise<void> => {
   const { token, newPassword } = req.body as { token?: string; newPassword?: string };
   if (!token || !newPassword) { res.status(400).json({ error: 'Token ve yeni şifre gerekli' }); return; }
   if (newPassword.length < 6) { res.status(400).json({ error: 'Şifre en az 6 karakter olmalı' }); return; }
@@ -346,10 +354,10 @@ router.post('/reset-password', async (req: Request, res: Response): Promise<void
   });
 
   res.json({ message: 'Şifre başarıyla güncellendi' });
-});
+}));
 
 // POST /auth/refresh — access token yenile
-router.post('/refresh', async (req: Request, res: Response): Promise<void> => {
+router.post('/refresh', asyncHandler(async (req: Request, res: Response): Promise<void> => {
   const { refreshToken } = req.body as { refreshToken?: string };
 
   if (!refreshToken) {
@@ -384,10 +392,10 @@ router.post('/refresh', async (req: Request, res: Response): Promise<void> => {
   });
 
   res.json({ token: newToken, refreshToken: newRefreshToken });
-});
+}));
 
 // GET /auth/2fa/setup — QR kod üret
-router.get('/2fa/setup', authenticate, async (req: AuthRequest, res: Response): Promise<void> => {
+router.get('/2fa/setup', authenticate, asyncHandler<AuthRequest>(async (req: AuthRequest, res: Response): Promise<void> => {
   const user = await prisma.user.findUnique({
     where: { id: req.userId },
     select: { email: true, twoFactorEnabled: true },
@@ -407,10 +415,10 @@ router.get('/2fa/setup', authenticate, async (req: AuthRequest, res: Response): 
 
   const qrDataUrl = await qrcode.toDataURL(secret.otpauth_url!);
   res.json({ qrCode: qrDataUrl, secret: secret.base32 });
-});
+}));
 
 // POST /auth/2fa/enable { token } — doğrula ve aktif et
-router.post('/2fa/enable', authenticate, async (req: AuthRequest, res: Response): Promise<void> => {
+router.post('/2fa/enable', authenticate, asyncHandler<AuthRequest>(async (req: AuthRequest, res: Response): Promise<void> => {
   const { token } = req.body as { token?: string };
   if (!token) { res.status(400).json({ error: 'Token gerekli' }); return; }
 
@@ -436,10 +444,10 @@ router.post('/2fa/enable', authenticate, async (req: AuthRequest, res: Response)
   });
 
   res.json({ success: true, message: '2FA aktif edildi' });
-});
+}));
 
 // POST /auth/2fa/disable — 2FA kapat
-router.post('/2fa/disable', authenticate, async (req: AuthRequest, res: Response): Promise<void> => {
+router.post('/2fa/disable', authenticate, asyncHandler<AuthRequest>(async (req: AuthRequest, res: Response): Promise<void> => {
   const { token } = req.body as { token?: string };
   if (!token) { res.status(400).json({ error: 'Mevcut 2FA kodu gerekli' }); return; }
 
@@ -465,10 +473,10 @@ router.post('/2fa/disable', authenticate, async (req: AuthRequest, res: Response
   });
 
   res.json({ success: true, message: '2FA devre dışı bırakıldı' });
-});
+}));
 
 // POST /auth/2fa/verify { preAuthToken, token } — giriş sırasında 2FA doğrula
-router.post('/2fa/verify', async (req: Request, res: Response): Promise<void> => {
+router.post('/2fa/verify', asyncHandler(async (req: Request, res: Response): Promise<void> => {
   const { preAuthToken, token } = req.body as { preAuthToken?: string; token?: string };
   if (!preAuthToken || !token) {
     res.status(400).json({ error: 'preAuthToken ve token gerekli' }); return;
@@ -519,10 +527,10 @@ router.post('/2fa/verify', async (req: Request, res: Response): Promise<void> =>
     refreshToken: refreshTokenValue,
     user: { id: user.id, email: user.email, name: user.name, createdAt: user.createdAt },
   });
-});
+}));
 
 // GET /auth/verify-email/:token
-router.get('/verify-email/:token', async (req: Request, res: Response): Promise<void> => {
+router.get('/verify-email/:token', asyncHandler(async (req: Request, res: Response): Promise<void> => {
   const { token } = req.params;
   const user = await prisma.user.findFirst({ where: { emailVerifyToken: token as string } });
 
@@ -537,10 +545,10 @@ router.get('/verify-email/:token', async (req: Request, res: Response): Promise<
   });
 
   res.redirect('https://chekkify.com/login?verified=1');
-});
+}));
 
 // POST /auth/resend-verification
-router.post('/resend-verification', async (req: Request, res: Response): Promise<void> => {
+router.post('/resend-verification', asyncHandler(async (req: Request, res: Response): Promise<void> => {
   const { email } = req.body as { email?: string };
   if (!email) { res.status(400).json({ error: 'Email gerekli' }); return; }
 
@@ -559,6 +567,6 @@ router.post('/resend-verification', async (req: Request, res: Response): Promise
     .catch(err => console.error('[auth] Verification email gönderilemedi:', err));
 
   res.json({ message: 'Doğrulama emaili gönderildi' });
-});
+}));
 
 export default router;
