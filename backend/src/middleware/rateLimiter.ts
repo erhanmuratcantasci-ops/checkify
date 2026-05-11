@@ -77,6 +77,24 @@ export const loginRateLimiter = rateLimit({
   },
 });
 
+// Refresh: 10 istek/15 dakika per IP (login'den daha gevşek ama korumalı).
+// Refresh token rotation pattern'de meşru kullanıcı 24h'de bir kez tetikler;
+// 10/15dk botların token fuzzing yapmasını engellerken meşru trafiği etkilemez.
+export const refreshRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Çok fazla yenileme isteği. 15 dakika sonra tekrar deneyin.' },
+  keyGenerator: (req: Request) => getClientKey(req),
+  skip: shouldBypass,
+  handler: (req: Request, res: Response) => {
+    const ip = getClientKey(req);
+    logSecurityEvent(ip, req.path, 'Refresh rate limit aşıldı').catch(() => {});
+    res.status(429).json({ error: 'Çok fazla yenileme isteği. 15 dakika sonra tekrar deneyin.' });
+  },
+});
+
 // OTP: 10 istek/15 dakika per IP (IP bazlı brute force koruması)
 export const otpRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,

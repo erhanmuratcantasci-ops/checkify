@@ -16,7 +16,7 @@ import adminAuthRouter from './routes/adminAuth';
 import statusRouter from './routes/status';
 import plansRouter from './routes/plans';
 import blockingRulesRouter from './routes/blockingRules';
-import { loginRateLimiter, webhookRateLimiter, generalRateLimiter, otpRateLimiter } from './middleware/rateLimiter';
+import { loginRateLimiter, webhookRateLimiter, generalRateLimiter, otpRateLimiter, refreshRateLimiter } from './middleware/rateLimiter';
 import { realIp } from './middleware/cloudflare';
 import './workers/smsWorker';
 import { startAdminPasswordRotation } from './jobs/adminPasswordRotation';
@@ -50,6 +50,7 @@ app.use(express.json());
 app.use('/auth/login', loginRateLimiter);
 app.use('/auth/register', loginRateLimiter);
 app.use('/auth/forgot-password', loginRateLimiter);
+app.use('/auth/refresh', refreshRateLimiter);
 app.use('/auth', authRouter);
 app.use('/webhook', webhookRateLimiter);
 // GDPR routes mounted before the generic webhook router so the more-specific
