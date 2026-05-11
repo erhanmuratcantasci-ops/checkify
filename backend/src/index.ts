@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import express, { Request, Response } from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import authRouter from './routes/auth';
@@ -16,7 +16,7 @@ import adminAuthRouter from './routes/adminAuth';
 import statusRouter from './routes/status';
 import plansRouter from './routes/plans';
 import blockingRulesRouter from './routes/blockingRules';
-import { loginRateLimiter, webhookRateLimiter, generalRateLimiter, otpRateLimiter } from './middleware/rateLimiter';
+import { loginRateLimiter, webhookRateLimiter, generalRateLimiter, otpRateLimiter, refreshRateLimiter } from './middleware/rateLimiter';
 import { realIp } from './middleware/cloudflare';
 import './workers/smsWorker';
 import { startAdminPasswordRotation } from './jobs/adminPasswordRotation';
@@ -50,6 +50,7 @@ app.use(express.json());
 app.use('/auth/login', loginRateLimiter);
 app.use('/auth/register', loginRateLimiter);
 app.use('/auth/forgot-password', loginRateLimiter);
+app.use('/auth/refresh', refreshRateLimiter);
 app.use('/auth', authRouter);
 app.use('/webhook', webhookRateLimiter);
 // GDPR routes mounted before the generic webhook router so the more-specific
@@ -73,6 +74,26 @@ app.use('/status', statusRouter);
 
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok' });
+});
+
+// Global error handler — uncaught error → JSON 500 (HTML değil).
+// "The string did not match the expected pattern" frontend bug'ı önler.
+app.use((err: unknown, _req: Request, res: Response, next: NextFunction) => {
+  console.error('[Global error]', err);
+  if (res.headersSent) return next(err);
+  const status =
+    err && typeof err === 'object' && 'status' in err && typeof (err as { status: unknown }).status === 'number'
+      ? (err as { status: number }).status
+      : 500;
+  const message =
+    err && typeof err === 'object' && 'message' in err && typeof (err as { message: unknown }).message === 'string'
+      ? (err as { message: string }).message
+      : 'Sunucu hatası';
+  const code =
+    err && typeof err === 'object' && 'code' in err && typeof (err as { code: unknown }).code === 'string'
+      ? (err as { code: string }).code
+      : 'INTERNAL_ERROR';
+  res.status(status).json({ error: message, code });
 });
 
 app.listen(PORT, () => {
