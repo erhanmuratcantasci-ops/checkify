@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import express, { Request, Response } from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import authRouter from './routes/auth';
@@ -73,6 +73,26 @@ app.use('/status', statusRouter);
 
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok' });
+});
+
+// Global error handler — uncaught error → JSON 500 (HTML değil).
+// "The string did not match the expected pattern" frontend bug'ı önler.
+app.use((err: unknown, _req: Request, res: Response, next: NextFunction) => {
+  console.error('[Global error]', err);
+  if (res.headersSent) return next(err);
+  const status =
+    err && typeof err === 'object' && 'status' in err && typeof (err as { status: unknown }).status === 'number'
+      ? (err as { status: number }).status
+      : 500;
+  const message =
+    err && typeof err === 'object' && 'message' in err && typeof (err as { message: unknown }).message === 'string'
+      ? (err as { message: string }).message
+      : 'Sunucu hatası';
+  const code =
+    err && typeof err === 'object' && 'code' in err && typeof (err as { code: unknown }).code === 'string'
+      ? (err as { code: string }).code
+      : 'INTERNAL_ERROR';
+  res.status(status).json({ error: message, code });
 });
 
 app.listen(PORT, () => {
