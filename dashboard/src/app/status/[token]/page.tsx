@@ -203,12 +203,12 @@ function ActiveStatusView({
             margin: 0,
           }}
         >
-          Sipariş #{order.id}
+          {(t as (k: string) => string)("cod_status_order_header").replace("{orderId}", String(order.id))}
         </h1>
         <p className="mt-1 text-[14px] text-[var(--color-fg-muted)]">{order.customerName}</p>
       </div>
 
-      <ol className="mt-8" aria-label="Sipariş durumu">
+      <ol className="mt-8" aria-label={tStr("cod_status_order_aria")}>
         {TIMELINE.map((step, i) => {
           const completed = i < currentIndex;
           const active = i === currentIndex;
