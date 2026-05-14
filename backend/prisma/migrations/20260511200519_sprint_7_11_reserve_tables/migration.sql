@@ -167,14 +167,3 @@ ALTER TABLE "AbandonedCart" ADD CONSTRAINT "AbandonedCart_shopId_fkey" FOREIGN K
 
 -- AddForeignKey
 ALTER TABLE "AbandonedCartEvent" ADD CONSTRAINT "AbandonedCartEvent_abandonedCartId_fkey" FOREIGN KEY ("abandonedCartId") REFERENCES "AbandonedCart"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
-┌─────────────────────────────────────────────────────────┐
-│  Update available 5.22.0 -> 7.8.0                       │
-│                                                         │
-│  This is a major update - please follow the guide at    │
-│  https://pris.ly/d/major-version-upgrade                │
-│                                                         │
-│  Run the following to update                            │
-│    npm i --save-dev prisma@latest                       │
-│    npm i @prisma/client@latest                          │
-└─────────────────────────────────────────────────────────┘
