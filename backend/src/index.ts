@@ -17,9 +17,11 @@ import statusRouter from './routes/status';
 import plansRouter from './routes/plans';
 import blockingRulesRouter from './routes/blockingRules';
 import formsRouter from './routes/forms';
+import fraudRouter from './routes/fraud';
 import { loginRateLimiter, webhookRateLimiter, generalRateLimiter, otpRateLimiter, refreshRateLimiter } from './middleware/rateLimiter';
 import { realIp } from './middleware/cloudflare';
 import './workers/smsWorker';
+import { startFraudWorker } from './workers/fraudWorker';
 import { startAdminPasswordRotation } from './jobs/adminPasswordRotation';
 
 const app = express();
@@ -71,6 +73,7 @@ app.use('/admin-auth', adminAuthRouter);
 app.use('/plans', plansRouter);
 app.use('/blocking', blockingRulesRouter);
 app.use('/forms', formsRouter);
+app.use('/fraud', fraudRouter);
 
 app.use('/status', statusRouter);
 
@@ -97,6 +100,9 @@ app.use((err: unknown, _req: Request, res: Response, next: NextFunction) => {
       : 'INTERNAL_ERROR';
   res.status(status).json({ error: message, code });
 });
+
+// Sprint 10 PROTECT — fraud scoring worker
+startFraudWorker();
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);

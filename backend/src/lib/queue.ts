@@ -25,3 +25,23 @@ export interface SMSJobData {
   cancelUrl: string;
   statusUrl?: string;
 }
+
+// Sprint 10 — fraud scoring queue
+export const fraudQueue = new Queue('fraud-queue', {
+  connection: redisConnection,
+  defaultJobOptions: {
+    attempts: 2,
+    backoff: { type: 'fixed', delay: 30000 },
+    removeOnComplete: 200,
+    removeOnFail: 500,
+    delay: 5000, // 5s grace
+  },
+});
+
+export interface FraudJobData {
+  orderId: number;
+}
+
+export async function enqueueFraudScoring(orderId: number): Promise<void> {
+  await fraudQueue.add('score', { orderId }, { jobId: `fraud:${orderId}` });
+}

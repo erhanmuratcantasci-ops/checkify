@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import crypto, { randomUUID } from 'crypto';
 import prisma from '../lib/prisma';
-import { smsQueue } from '../lib/queue';
+import { smsQueue, enqueueFraudScoring } from '../lib/queue';
 import { normalizePhone } from '../lib/phoneUtils';
 import { checkOrderForBlocks } from '../lib/blockingService';
 
@@ -63,6 +63,9 @@ router.post('/orders/create', async (req: Request, res: Response): Promise<void>
     });
 
     console.log(`[webhook] Order oluşturuldu: #${order.id} — ${customerName} (${customerPhone}) — ${total}`);
+
+    // Sprint 10 PROTECT — schedule async fraud scoring (5s grace per queue config)
+    await enqueueFraudScoring(order.id);
 
     const statusToken = randomUUID();
     await prisma.order.update({ where: { id: order.id }, data: { statusToken } });
