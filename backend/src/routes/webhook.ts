@@ -4,6 +4,7 @@ import prisma from '../lib/prisma';
 import { smsQueue, enqueueFraudScoring } from '../lib/queue';
 import { normalizePhone } from '../lib/phoneUtils';
 import { checkOrderForBlocks } from '../lib/blockingService';
+import { matchAbandonedCart } from '../workers/cartRecoveryWorker';
 
 const router = Router();
 
@@ -46,6 +47,8 @@ router.post('/orders/create', async (req: Request, res: Response): Promise<void>
       billing_address?: { phone?: string; zip?: string };
       shipping_address?: { phone?: string; zip?: string };
       total_price?: string;
+      cart_token?: string;
+      checkout_token?: string;
     };
 
     const customerName = [payload.customer?.first_name, payload.customer?.last_name].filter(Boolean).join(' ') || 'Bilinmiyor';
@@ -61,6 +64,8 @@ router.post('/orders/create', async (req: Request, res: Response): Promise<void>
     const order = await prisma.order.create({
       data: { shopifyOrderId: BigInt(payload.id), customerName, customerPhone, total, status: 'PENDING', shopId: shop.id, confirmToken, tokenExpiresAt, ipAddress: ipAddress ?? null },
     });
+
+    await matchAbandonedCart(payload.cart_token ?? payload.checkout_token, order.id); // Sprint 11 RECOVER
 
     console.log(`[webhook] Order oluşturuldu: #${order.id} — ${customerName} (${customerPhone}) — ${total}`);
 
@@ -133,6 +138,160 @@ router.post('/orders/cancelled', async (req: Request, res: Response): Promise<vo
     console.log(`[webhook] Order iptal edildi: #${order.id} (Shopify: ${shopifyOrderId})`);
   } catch (err) {
     console.error('[webhook] orders/cancelled hatası:', err);
+  }
+});
+
+// POST /webhook/checkouts/create — Sprint 11 RECOVER
+router.post('/checkouts/create', async (req: Request, res: Response): Promise<void> => {
+  const hmacHeader = req.headers['x-shopify-hmac-sha256'] as string | undefined;
+  const shopDomain = req.headers['x-shopify-shop-domain'] as string | undefined;
+  const rawBody = req.body as Buffer;
+
+  if (!hmacHeader || !Buffer.isBuffer(rawBody)) { res.status(401).json({ error: 'Geçersiz istek' }); return; }
+
+  const shop = shopDomain
+    ? await prisma.shop.findFirst({ where: { shopDomain } })
+    : await prisma.shop.findFirst();
+  if (!shop) { res.status(401).json({ error: 'Shop bulunamadı' }); return; }
+
+  const secret = process.env['SHOPIFY_API_SECRET'] || '';
+  if (!secret || !verifyHmac(rawBody, hmacHeader, secret)) { res.status(401).json({ error: 'Geçersiz imza' }); return; }
+
+  res.status(200).send('OK');
+
+  try {
+    const payload = JSON.parse(rawBody.toString()) as {
+      token?: string;
+      cart_token?: string;
+      checkout_token?: string;
+      email?: string;
+      phone?: string;
+      customer?: { first_name?: string; last_name?: string; email?: string; phone?: string };
+      total_price?: string;
+      currency?: string;
+      line_items?: unknown[];
+      abandoned_checkout_url?: string;
+    };
+
+    const cartToken = payload.cart_token || payload.checkout_token || payload.token;
+    if (!cartToken) { console.warn('[webhook] checkouts/create — cart_token yok'); return; }
+
+    const customerEmail = payload.customer?.email || payload.email || null;
+    const customerPhoneRaw = payload.customer?.phone || payload.phone || null;
+    const customerPhone = customerPhoneRaw ? normalizePhone(customerPhoneRaw) : null;
+    const customerName = [payload.customer?.first_name, payload.customer?.last_name].filter(Boolean).join(' ') || null;
+    const cartValue = parseFloat(payload.total_price ?? '0') || 0;
+    const currency = payload.currency || 'TRY';
+    const lineItems = Array.isArray(payload.line_items) ? payload.line_items : [];
+
+    await prisma.abandonedCart.upsert({
+      where: { cartToken },
+      create: {
+        shopId: shop.id,
+        cartToken,
+        customerEmail,
+        customerPhone,
+        customerName,
+        cartValue,
+        currency,
+        lineItems: lineItems as object,
+        status: 'abandoned',
+      },
+      update: {
+        customerEmail: customerEmail ?? undefined,
+        customerPhone: customerPhone ?? undefined,
+        customerName: customerName ?? undefined,
+        cartValue,
+        currency,
+        lineItems: lineItems as object,
+      },
+    });
+
+    console.log(`[webhook] AbandonedCart upsert (create): ${cartToken} — ${cartValue} ${currency}`);
+  } catch (err) {
+    console.error('[webhook] checkouts/create hatası:', err);
+  }
+});
+
+// POST /webhook/checkouts/update — Sprint 11 RECOVER
+router.post('/checkouts/update', async (req: Request, res: Response): Promise<void> => {
+  const hmacHeader = req.headers['x-shopify-hmac-sha256'] as string | undefined;
+  const shopDomain = req.headers['x-shopify-shop-domain'] as string | undefined;
+  const rawBody = req.body as Buffer;
+
+  if (!hmacHeader || !Buffer.isBuffer(rawBody)) { res.status(401).json({ error: 'Geçersiz istek' }); return; }
+
+  const shop = shopDomain
+    ? await prisma.shop.findFirst({ where: { shopDomain } })
+    : await prisma.shop.findFirst();
+  if (!shop) { res.status(401).json({ error: 'Shop bulunamadı' }); return; }
+
+  const secret = process.env['SHOPIFY_API_SECRET'] || '';
+  if (!secret || !verifyHmac(rawBody, hmacHeader, secret)) { res.status(401).json({ error: 'Geçersiz imza' }); return; }
+
+  res.status(200).send('OK');
+
+  try {
+    const payload = JSON.parse(rawBody.toString()) as {
+      token?: string;
+      cart_token?: string;
+      checkout_token?: string;
+      email?: string;
+      phone?: string;
+      customer?: { first_name?: string; last_name?: string; email?: string; phone?: string };
+      total_price?: string;
+      currency?: string;
+      line_items?: unknown[];
+    };
+
+    const cartToken = payload.cart_token || payload.checkout_token || payload.token;
+    if (!cartToken) return;
+
+    const existing = await prisma.abandonedCart.findUnique({ where: { cartToken } });
+    if (!existing) {
+      const customerEmail = payload.customer?.email || payload.email || null;
+      const customerPhoneRaw = payload.customer?.phone || payload.phone || null;
+      const customerPhone = customerPhoneRaw ? normalizePhone(customerPhoneRaw) : null;
+      const customerName = [payload.customer?.first_name, payload.customer?.last_name].filter(Boolean).join(' ') || null;
+      await prisma.abandonedCart.create({
+        data: {
+          shopId: shop.id,
+          cartToken,
+          customerEmail,
+          customerPhone,
+          customerName,
+          cartValue: parseFloat(payload.total_price ?? '0') || 0,
+          currency: payload.currency || 'TRY',
+          lineItems: (Array.isArray(payload.line_items) ? payload.line_items : []) as object,
+          status: 'abandoned',
+        },
+      });
+      console.log(`[webhook] AbandonedCart created (from update): ${cartToken}`);
+      return;
+    }
+
+    if (existing.status === 'recovered' || existing.status === 'expired') return;
+
+    const customerEmail = payload.customer?.email || payload.email;
+    const customerPhoneRaw = payload.customer?.phone || payload.phone;
+    const customerPhone = customerPhoneRaw ? normalizePhone(customerPhoneRaw) : undefined;
+    const customerName = [payload.customer?.first_name, payload.customer?.last_name].filter(Boolean).join(' ') || undefined;
+
+    await prisma.abandonedCart.update({
+      where: { cartToken },
+      data: {
+        cartValue: parseFloat(payload.total_price ?? '0') || existing.cartValue,
+        currency: payload.currency || existing.currency,
+        lineItems: (Array.isArray(payload.line_items) ? payload.line_items : existing.lineItems) as object,
+        customerEmail: customerEmail ?? undefined,
+        customerPhone: customerPhone ?? undefined,
+        customerName: customerName ?? undefined,
+      },
+    });
+
+    console.log(`[webhook] AbandonedCart updated: ${cartToken}`);
+  } catch (err) {
+    console.error('[webhook] checkouts/update hatası:', err);
   }
 });
 
