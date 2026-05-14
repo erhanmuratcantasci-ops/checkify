@@ -45,3 +45,26 @@ export interface FraudJobData {
 export async function enqueueFraudScoring(orderId: number): Promise<void> {
   await fraudQueue.add('score', { orderId }, { jobId: `fraud:${orderId}` });
 }
+
+// Sprint 9 INTEGRATE — Google Sheets export queue
+export const sheetsExportQueue = new Queue('sheets-export-queue', {
+  connection: redisConnection,
+  defaultJobOptions: {
+    attempts: 3,
+    backoff: { type: 'exponential', delay: 30000 },
+    removeOnComplete: 200,
+    removeOnFail: 500,
+  },
+});
+
+export interface SheetsExportJobData {
+  orderId: number;
+}
+
+export async function enqueueSheetsExport(orderId: number): Promise<void> {
+  await sheetsExportQueue.add(
+    'export-order',
+    { orderId },
+    { jobId: `sheets:${orderId}` },
+  );
+}
