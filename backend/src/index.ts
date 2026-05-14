@@ -16,6 +16,7 @@ import adminAuthRouter from './routes/adminAuth';
 import statusRouter from './routes/status';
 import plansRouter from './routes/plans';
 import blockingRulesRouter from './routes/blockingRules';
+import formsRouter from './routes/forms';
 import { loginRateLimiter, webhookRateLimiter, generalRateLimiter, otpRateLimiter, refreshRateLimiter } from './middleware/rateLimiter';
 import { realIp } from './middleware/cloudflare';
 import './workers/smsWorker';
@@ -69,6 +70,7 @@ app.use('/admin', adminRouter);
 app.use('/admin-auth', adminAuthRouter);
 app.use('/plans', plansRouter);
 app.use('/blocking', blockingRulesRouter);
+app.use('/forms', formsRouter);
 
 app.use('/status', statusRouter);
 
