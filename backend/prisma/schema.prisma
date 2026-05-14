@@ -91,6 +91,9 @@ model Shop {
   blockedPostalCodes BlockedPostalCode[]
   blockingRules      BlockingRule[]
   blockedOrders      BlockedOrder[]
+  formConfigs        FormConfig[]
+  upsellOffers       UpsellOffer[]
+  abandonedCarts     AbandonedCart[]
 }
 
 model BlockedPhone {
@@ -133,8 +136,9 @@ model Order {
   createdAt      DateTime    @default(now())
   updatedAt      DateTime    @updatedAt
 
-  shop    Shop     @relation(fields: [shopId], references: [id])
-  smsLogs SMSLog[]
+  shop       Shop        @relation(fields: [shopId], references: [id])
+  smsLogs    SMSLog[]
+  fraudScore FraudScore?
 
   @@index([shopId, customerPhone, createdAt])
   @@index([shopId, ipAddress, createdAt])
@@ -258,4 +262,131 @@ model AdminCredential {
   passwordHash String
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+}
+
+// ──────────────────────────────────────────────────────────────────────
+// Sprint 7-11 schema-prep — tables reserved, no business logic yet.
+// shopId/orderId types match existing Int @default(autoincrement()) PKs.
+// All new models use cuid() string PKs (per Sprint 7-11 spec).
+// ──────────────────────────────────────────────────────────────────────
+
+// Sprint 7 — FORM builder
+model FormConfig {
+  id        String      @id @default(cuid())
+  shopId    Int
+  shop      Shop        @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  name      String
+  isActive  Boolean     @default(false)
+  schema    Json
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  fields    FormField[]
+
+  @@index([shopId])
+}
+
+model FormField {
+  id           String     @id @default(cuid())
+  formConfigId String
+  formConfig   FormConfig @relation(fields: [formConfigId], references: [id], onDelete: Cascade)
+  fieldType    String
+  label        String
+  placeholder  String?
+  required     Boolean    @default(false)
+  validation   Json?
+  order        Int
+  options      Json?
+  createdAt    DateTime   @default(now())
+
+  @@index([formConfigId])
+}
+
+// Sprint 8 — CONVERT upsell engine
+model UpsellOffer {
+  id           String        @id @default(cuid())
+  shopId       Int
+  shop         Shop          @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  name         String
+  triggerType  String
+  productId    String
+  variantId    String?
+  discount     Float?
+  discountType String?
+  isActive     Boolean       @default(false)
+  priority     Int           @default(0)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  events       UpsellEvent[]
+
+  @@index([shopId])
+}
+
+model UpsellEvent {
+  id            String      @id @default(cuid())
+  upsellOfferId String
+  upsellOffer   UpsellOffer @relation(fields: [upsellOfferId], references: [id], onDelete: Cascade)
+  orderId       Int?
+  eventType     String
+  revenue       Float?
+  createdAt     DateTime    @default(now())
+
+  @@index([upsellOfferId])
+  @@index([orderId])
+}
+
+// Sprint 10 — PROTECT AI fraud
+model FraudScore {
+  id           String    @id @default(cuid())
+  orderId      Int       @unique
+  order        Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  score        Float
+  riskLevel    String
+  signals      Json
+  modelVersion String    @default("v1")
+  reviewedBy   String?
+  reviewedAt   DateTime?
+  action       String?
+  createdAt    DateTime  @default(now())
+
+  @@index([orderId])
+  @@index([riskLevel])
+}
+
+// Sprint 11 — RECOVER abandoned cart
+model AbandonedCart {
+  id               String               @id @default(cuid())
+  shopId           Int
+  shop             Shop                 @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  cartToken        String               @unique
+  customerEmail    String?
+  customerPhone    String?
+  customerName     String?
+  cartValue        Float
+  currency         String               @default("TRY")
+  lineItems        Json
+  abandonedAt      DateTime             @default(now())
+  recoveredAt      DateTime?
+  recoveredOrderId Int?
+  status           String               @default("abandoned")
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+  events           AbandonedCartEvent[]
+
+  @@index([shopId])
+  @@index([cartToken])
+  @@index([status])
+}
+
+model AbandonedCartEvent {
+  id              String        @id @default(cuid())
+  abandonedCartId String
+  abandonedCart   AbandonedCart @relation(fields: [abandonedCartId], references: [id], onDelete: Cascade)
+  channel         String
+  template        String
+  sentAt          DateTime      @default(now())
+  delivered       Boolean       @default(false)
+  clicked         Boolean       @default(false)
+  clickedAt       DateTime?
+
+  @@index([abandonedCartId])
 }
