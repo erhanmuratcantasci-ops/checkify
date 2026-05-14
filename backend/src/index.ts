@@ -20,6 +20,7 @@ import formsRouter from './routes/forms';
 import fraudRouter from './routes/fraud';
 import abandonedCartsRouter from './routes/abandonedCarts';
 import integrationsRouter from './routes/integrations';
+import upsellsRouter from './routes/upsells';
 import { loginRateLimiter, webhookRateLimiter, generalRateLimiter, otpRateLimiter, refreshRateLimiter } from './middleware/rateLimiter';
 import { realIp } from './middleware/cloudflare';
 import './workers/smsWorker';
@@ -81,6 +82,7 @@ app.use('/forms', formsRouter);
 app.use('/fraud', fraudRouter);
 app.use('/abandoned-carts', abandonedCartsRouter);
 app.use('/integrations', integrationsRouter);
+app.use('/upsells', upsellsRouter);
 
 app.use('/status', statusRouter);
 
