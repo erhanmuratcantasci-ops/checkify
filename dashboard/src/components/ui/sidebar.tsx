@@ -15,6 +15,7 @@ import {
   FileText,
   ShieldQuestion,
   ShoppingCart,
+  Plug,
   User,
   LogOut,
   type LucideIcon,
@@ -89,6 +90,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
     { href: "/forms", label: t("nav_forms"), icon: FileText },
     { href: "/fraud", label: t("nav_fraud"), icon: ShieldQuestion },
     { href: "/recover", label: t("nav_recover"), icon: ShoppingCart },
+    { href: "/integrations", label: t("nav_integrations"), icon: Plug },
     { href: "/profile", label: t("nav_profile"), icon: User },
   ];
 

@@ -1,10 +1,11 @@
 import { Router, Request, Response } from 'express';
 import crypto, { randomUUID } from 'crypto';
 import prisma from '../lib/prisma';
-import { smsQueue, enqueueFraudScoring } from '../lib/queue';
+import { smsQueue, enqueueFraudScoring, enqueueSheetsExport } from '../lib/queue';
 import { normalizePhone } from '../lib/phoneUtils';
 import { checkOrderForBlocks } from '../lib/blockingService';
 import { matchAbandonedCart } from '../workers/cartRecoveryWorker';
+import { firePixelEvents } from '../lib/pixelInjection';
 
 const router = Router();
 
@@ -71,6 +72,10 @@ router.post('/orders/create', async (req: Request, res: Response): Promise<void>
 
     // Sprint 10 PROTECT — schedule async fraud scoring (5s grace per queue config)
     await enqueueFraudScoring(order.id);
+
+    // Sprint 9 INTEGRATE — fire pixel events + Google Sheets export
+    firePixelEvents({ id: order.id, customerName, customerPhone, customerEmail: customerEmail ?? null, total, shopId: shop.id }).catch(err => console.error('[pixel]', err));
+    await enqueueSheetsExport(order.id);
 
     const statusToken = randomUUID();
     await prisma.order.update({ where: { id: order.id }, data: { statusToken } });
