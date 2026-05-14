@@ -18,11 +18,14 @@ import plansRouter from './routes/plans';
 import blockingRulesRouter from './routes/blockingRules';
 import formsRouter from './routes/forms';
 import fraudRouter from './routes/fraud';
+import abandonedCartsRouter from './routes/abandonedCarts';
 import { loginRateLimiter, webhookRateLimiter, generalRateLimiter, otpRateLimiter, refreshRateLimiter } from './middleware/rateLimiter';
 import { realIp } from './middleware/cloudflare';
 import './workers/smsWorker';
 import { startFraudWorker } from './workers/fraudWorker';
+import './workers/cartRecoveryWorker';
 import { startAdminPasswordRotation } from './jobs/adminPasswordRotation';
+import { startCartRecoveryScheduler } from './lib/cartRecoveryScheduler';
 
 const app = express();
 const PORT = process.env['PORT'] || 3001;
@@ -74,6 +77,7 @@ app.use('/plans', plansRouter);
 app.use('/blocking', blockingRulesRouter);
 app.use('/forms', formsRouter);
 app.use('/fraud', fraudRouter);
+app.use('/abandoned-carts', abandonedCartsRouter);
 
 app.use('/status', statusRouter);
 
@@ -107,4 +111,5 @@ startFraudWorker();
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
   startAdminPasswordRotation();
+  startCartRecoveryScheduler();
 });

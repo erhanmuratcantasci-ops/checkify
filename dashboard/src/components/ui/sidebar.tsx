@@ -14,6 +14,7 @@ import {
   MessageSquare,
   FileText,
   ShieldQuestion,
+  ShoppingCart,
   User,
   LogOut,
   type LucideIcon,
@@ -87,6 +88,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
     { href: "/blocking-rules", label: "Gelişmiş engelleme", icon: ShieldCheck },
     { href: "/forms", label: t("nav_forms"), icon: FileText },
     { href: "/fraud", label: t("nav_fraud"), icon: ShieldQuestion },
+    { href: "/recover", label: t("nav_recover"), icon: ShoppingCart },
     { href: "/profile", label: t("nav_profile"), icon: User },
   ];
 
