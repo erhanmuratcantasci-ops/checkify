@@ -13,6 +13,7 @@ import {
   ShieldAlert,
   MessageSquare,
   FileText,
+  ShieldQuestion,
   User,
   LogOut,
   type LucideIcon,
@@ -85,6 +86,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
     { href: "/blocklist", label: "Engel listesi", icon: ShieldAlert },
     { href: "/blocking-rules", label: "Gelişmiş engelleme", icon: ShieldCheck },
     { href: "/forms", label: t("nav_forms"), icon: FileText },
+    { href: "/fraud", label: t("nav_fraud"), icon: ShieldQuestion },
     { href: "/profile", label: t("nav_profile"), icon: User },
   ];
 
