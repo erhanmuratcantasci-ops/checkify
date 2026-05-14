@@ -16,6 +16,7 @@ import {
   ShieldQuestion,
   ShoppingCart,
   Plug,
+  Sparkles,
   User,
   LogOut,
   type LucideIcon,
@@ -91,6 +92,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
     { href: "/fraud", label: t("nav_fraud"), icon: ShieldQuestion },
     { href: "/recover", label: t("nav_recover"), icon: ShoppingCart },
     { href: "/integrations", label: t("nav_integrations"), icon: Plug },
+    { href: "/upsells", label: t("nav_upsells"), icon: Sparkles },
     { href: "/profile", label: t("nav_profile"), icon: User },
   ];
 
